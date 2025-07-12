@@ -38,7 +38,7 @@
 # RedirectMatch 403 ^/?(app|vendor|routes|storage|tests)/.*$
 
 # Desabilitar listagem de diretórios
-Options -Indexes
+# Options -Indexes
 
 # Proteger diretório de uploads - bloquear execução de scripts
 # <FilesMatch "^(uploads/).*\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
