@@ -1,0 +1,519 @@
+/* Correção para o hover nos itens de menu */
+.nav-item .dropdown-menu a.dropdown-item:hover {
+    background-color: #e9ecef;
+    color: #000000;
+}
+
+/* Correção para o hover no botão de notificações */
+.nav-link.cor-texto-branco:hover {
+    color: #ffffff !important;
+    text-shadow: none;
+    background-color: transparent;
+}
+
+/* Correção para o dropdown do menu de acessibilidade */
+.dropdown-menu {
+    background-color: #ffffff;
+}
+
+.dropdown-menu .dropdown-item {
+    color: #212529 !important;
+}
+
+.dropdown-menu .dropdown-item:hover {
+    background-color: transparent;
+    color: #212529 !important;
+    font-weight: normal;
+}
+
+/* Correção para o hover no menu do usuário */
+.divTopServentia .dropdown-menu {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+.divTopServentia .dropdown-menu a:hover,
+.divTopServentia .dropdown-menu li:hover {
+    background-color: transparent;
+    color: #212529 !important;
+}
+
+/* Correção para o ícone de notificação */
+.badge.bg-danger {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(25%, -25%);
+}
+
+/* Correção específica para o dropdown toggle */
+.dropdown-toggle:hover {
+    color: #ffffff !important;
+    text-shadow: none;
+    background-color: transparent;
+}
+
+/* Correção para o menu dropdown quando aberto */
+.dropdown.show .dropdown-menu {
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dee2e6;
+}
+
+/* Correção para o texto no botão do usuário */
+.botaoPrimeiroTopServentias:hover span {
+    color: #ffffff !important;
+    background-color: transparent;
+}
+
+/* Correção para o dropdown toggle do usuário */
+.btn-default.dropdown-toggle:hover {
+    background-color: transparent;
+    color: #ffffff !important;
+}
+
+/* Correção para o menu dropdown quando aberto */
+.dropdown.show .dropdown-toggle {
+    color: #ffffff !important;
+    background-color: transparent;
+}
+
+/* Linha do tempo */
+ /* Estilos para a Timeline */
+.timeline {
+    position: relative;
+    margin: 0 0 30px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #ddd;
+    left: 31px;
+    margin: 0;
+    border-radius: 2px;
+}
+
+.timeline > li {
+    position: relative;
+    margin-right: 10px;
+    margin-bottom: 15px;
+}
+
+.timeline > li:before,
+.timeline > li:after {
+    content: " ";
+    display: table;
+}
+
+.timeline > li:after {
+    clear: both;
+}
+
+.timeline > li > .timeline-item {
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    border-radius: 3px;
+    margin-top: 0;
+    background: #fff;
+    color: #444;
+    margin-left: 60px;
+    margin-right: 15px;
+    padding: 0;
+    position: relative;
+}
+
+.timeline > li > .timeline-item > .time {
+    color: #999;
+    float: right;
+    padding: 10px;
+    font-size: 12px;
+}
+
+.timeline > li > .timeline-item > .timeline-header {
+    margin: 0;
+    color: #555;
+    border-bottom: 1px solid #f4f4f4;
+    padding: 10px;
+    font-size: 16px;
+    line-height: 1.1;
+}
+
+.timeline > li > .timeline-item > .timeline-header > a {
+    font-weight: 600;
+}
+
+.timeline > li > .timeline-item > .timeline-body,
+.timeline > li > .timeline-item > .timeline-footer {
+    padding: 10px;
+}
+
+.timeline > li > i {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+    line-height: 30px;
+    position: absolute;
+    color: #fff;
+    background: #d2d6de;
+    border-radius: 50%;
+    text-align: center;
+    left: 18px;
+    top: 0;
+}
+
+.timeline > .time-label > span {
+    font-weight: 600;
+    padding: 5px;
+    display: inline-block;
+    background-color: #fff;
+    border-radius: 4px;
+    margin-left: 50px;
+}
+
+.timeline-inverse > li > .timeline-item {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    box-shadow: none;
+}
+
+.timeline-inverse > li > .timeline-item > .timeline-header {
+    border-bottom-color: #ddd;
+}
+
+.bg-light-blue {
+    background-color: #3c8dbc !important;
+    color: white !important;
+}
+
+
+
+/* Status Arquivado */  
+.status-arquivado {
+    position: relative;
+    color: rgba(255, 0, 0, 0.5); /* Cor vermelha com transparência */
+}
+
+ .status-arquivado::after {
+    content: "Arquivado";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10rem; /* Tamanho da fonte da marca d'água */
+    color: rgba(255, 0, 0, 0.2); /* Cor da marca d'água */
+    pointer-events: none; /* Para que não interfira com cliques */
+} 
+
+.tooltip-inner { 
+    background-color: #000 !important; /* fundo preto*/
+    color: #fff !important;            /* texto branco */
+     border: 1px solid #333;           /*  borda opcional */
+  }
+  
+  /* seta do tooltip também precisa ser preta */
+ .tooltip.bs-tooltip-top .arrow::before,
+  .tooltip.bs-tooltip-bottom .arrow::before,
+  .tooltip.bs-tooltip-start .arrow::before,
+  .tooltip.bs-tooltip-end .arrow::before {
+    border-color: black !important;
+  }
+
+/* Layout Principal */
+main {
+    min-height: calc(100vh - 60px);
+    padding: 20px 0;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+/* pagina de erro */
+.error-page h1 {
+    font-size: 120px;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.error-page h2 {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.error-page .btn {
+    transition: transform 0.2s;
+}
+
+.error-page .btn:hover {
+    transform: translateY(-2px);
+}
+ */
+
+
+  /* Modo Escuro */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #e4e4e4;
+}
+
+/* Títulos no modo escuro */
+body.dark-mode p,
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode .h1,
+body.dark-mode .h2,
+body.dark-mode .h3,
+body.dark-mode .h4,
+body.dark-mode .h5,
+body.dark-mode .h6 {
+    color: #ffffff;
+}
+
+/* Navbar no modo escuro */
+body.dark-mode .navbar {
+    background-color: #2d2d2d !important;
+}
+
+body.dark-mode .navbar-brand,
+body.dark-mode .nav-link {
+    color: #ffffff !important;
+}
+
+/* Sidebar no modo escuro */
+body.dark-mode .sidebar {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .sidebar .nav-link {
+    color: #e4e4e4;
+}
+
+body.dark-mode .sidebar .nav-link:hover {
+    background-color: #3d3d3d;
+}
+
+body.dark-mode .sidebar .nav-link.active {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+/* Cards no modo escuro */
+body.dark-mode .card {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .card-header {
+    background-color: #333333 !important;
+    border-bottom-color: #404040;
+}
+
+body.dark-mode .card-title {
+    color: #ffffff;
+}
+
+/* Texto e elementos de texto */
+body.dark-mode .text-muted {
+    color: #a0a0a0 !important;
+}
+
+body.dark-mode .text-dark {
+    color: #ffffff !important;
+}
+
+/* Links no modo escuro */
+body.dark-mode a:not(.btn) {
+    color: #66b0ff;
+}
+
+body.dark-mode a:not(.btn):hover {
+    color: #99ccff;
+}
+
+/* Tabelas no modo escuro */
+body.dark-mode .table {
+    color: #e4e4e4;
+    border-color: #404040;
+}
+
+body.dark-mode .table th {
+    color: #ffffff;
+    background-color: #333333;
+}
+
+body.dark-mode .table-hover tbody tr:hover {
+    background-color: #3d3d3d;
+    color: #ffffff;
+}
+
+/* Formulários no modo escuro */
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #333333;
+    border-color: #404040;
+    color: #e4e4e4;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: #3d3d3d;
+    border-color: #0d6efd;
+    color: #ffffff;
+}
+
+body.dark-mode .form-label {
+    color: #e4e4e4;
+}
+
+/* Modais no modo escuro */
+body.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .modal-header {
+    border-bottom-color: #404040;
+}
+
+body.dark-mode .modal-title {
+    color: #ffffff;
+}
+
+body.dark-mode .modal-footer {
+    border-top-color: #404040;
+}
+
+/* Dropdown menus no modo escuro */
+body.dark-mode .dropdown-menu {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .dropdown-item {
+    color: #e4e4e4;
+}
+
+body.dark-mode .dropdown-item:hover {
+    background-color: #3d3d3d;
+    color: #ffffff;
+}
+
+/* Select2 no modo escuro */
+body.dark-mode .select2-container--bootstrap-5 .select2-selection {
+    background-color: #333333;
+    border-color: #404040;
+    color: #e4e4e4;
+}
+
+body.dark-mode .select2-container--bootstrap-5 .select2-dropdown {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .select2-container--bootstrap-5 .select2-results__option {
+    color: #e4e4e4;
+}
+
+body.dark-mode .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #3d3d3d;
+    color: #ffffff;
+}
+
+/* Alertas no modo escuro */
+body.dark-mode .alert {
+    background-color: #333333;
+    border-color: #404040;
+    color: #e4e4e4;
+}
+
+/* Badges no modo escuro */
+body.dark-mode .badge {
+    background-color: #404040;
+    color: #ffffff;
+}
+
+/* Tooltips no modo escuro */
+body.dark-mode .tooltip {
+    --bs-tooltip-bg: #404040;
+    --bs-tooltip-color: #ffffff;
+}
+
+/* Melhorias na barra de navegação */
+.navbar-static-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+}
+
+.navbar-header {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-brand {
+    padding: 10px 0;
+}
+
+.navbar-brand span {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+
+/* Remover efeitos de hover */
+.nav-link:hover, 
+.dropdown-toggle:hover, 
+.btn-default:hover {
+    background-color: transparent !important;
+}
+
+/* Garantir que o texto seja sempre visível */
+.text-white {
+    color: #ffffff !important;
+}
+
+/* Melhorias no dropdown de acessibilidade */
+.dropdown-menu {
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+    padding: 8px 15px;
+}
+
+/* Melhorias no badge de notificações */
+.badge.bg-danger {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(25%, -25%);
+    font-size: 0.65rem;
+    padding: 0.25em 0.5em;
+}
+
+/* Estilos para a lista de destinatários */
+.destinatarios-lista {
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.destinatario-item {
+    padding: 3px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.destinatario-item:last-child {
+    border-bottom: none;
+}

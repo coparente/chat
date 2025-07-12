@@ -1,0 +1,20 @@
+# Proteção do diretório uploads
+# Bloquear execução de scripts PHP
+
+# Desabilitar execução de PHP
+php_flag engine off
+
+# Adicionar tipos MIME seguros
+AddType text/plain .php .php3 .php4 .php5 .phtml .pl .py .jsp .asp .sh .cgi
+
+# Bloquear acesso a tipos de arquivo perigosos
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Permitir apenas tipos de arquivo específicos
+<FilesMatch "\.(txt|pdf|doc|docx|xls|xlsx|png|jpg|jpeg|gif)$">
+    Order Deny,Allow
+    Allow from all
+</FilesMatch> 

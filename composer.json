@@ -1,0 +1,31 @@
+{
+    "name": "tjgo/cuc",
+    "description": "Central Única de Contadores",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "dompdf/dompdf": "^3.1",
+        "smalot/pdfparser": "^2.12",
+        "vlucas/phpdotenv": "^5.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "authors": [
+        {
+            "name": "TJGO",
+            "email": "admin@tjgo.jus.br"
+        }
+    ],
+    "minimum-stability": "stable",
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "require-dev": {
+        "nesk/puphpeteer": "^2.0"
+    }
+}
