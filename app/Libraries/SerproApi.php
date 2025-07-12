@@ -545,18 +545,86 @@ class SerproApi
     }
 
     /**
-     * [ marcarComoLida ] - Método de compatibilidade (não implementado na nova API)
+     * [ confirmarStatusMensagem ] - Confirma status de uma mensagem (entrega/leitura)
      * 
-     * @param string $mensagemId ID da mensagem
+     * @param string $messageId ID da mensagem
+     * @param string $status Status a confirmar ('delivered' ou 'read')
      * @return array Resultado da operação
      */
-    public function marcarComoLida($mensagemId)
+    public function confirmarStatusMensagem($messageId, $status)
     {
-        // A nova API do Serpro não tem endpoint específico para marcar como lida
-        return [
-            'success' => false,
-            'message' => 'Marcar como lida não disponível na API Serpro.'
+        $token = $this->obterTokenValido();
+        if (!$token) {
+            return ['status' => 401, 'error' => 'Erro ao obter token: ' . $this->lastError];
+        }
+
+        // Endpoint para confirmar status da mensagem
+        $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/requisicao/mensagem/status';
+        
+        $payload = [
+            'message_id' => $messageId,
+            'status' => $status
         ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            $this->lastError = "Erro cURL: " . $error;
+            return ['status' => 500, 'error' => $this->lastError];
+        }
+
+        $responseData = json_decode($response, true);
+
+        // Log da confirmação
+        $this->logDebug('Confirmação de status', [
+            'message_id' => $messageId,
+            'status' => $status,
+            'http_code' => $httpCode,
+            'response' => $responseData
+        ]);
+
+        return [
+            'status' => $httpCode,
+            'response' => $responseData,
+            'error' => $httpCode >= 400 ? $response : null
+        ];
+    }
+
+    /**
+     * [ marcarComoLida ] - Marca mensagem como lida (método atualizado)
+     * 
+     * @param string $messageId ID da mensagem
+     * @return array Resultado da operação
+     */
+    public function marcarComoLida($messageId)
+    {
+        return $this->confirmarStatusMensagem($messageId, 'read');
+    }
+
+    /**
+     * [ marcarComoEntregue ] - Marca mensagem como entregue
+     * 
+     * @param string $messageId ID da mensagem
+     * @return array Resultado da operação
+     */
+    public function marcarComoEntregue($messageId)
+    {
+        return $this->confirmarStatusMensagem($messageId, 'delivered');
     }
 
     /**

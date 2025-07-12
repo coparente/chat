@@ -66,13 +66,25 @@ class Webhook extends Controllers
             // Processar cada evento no webhook
             $resultados = [];
             
-            if (isset($dados['data']) && is_array($dados['data'])) {
+            // Verificar se é um array de objetos com 'body' (novo formato)
+            if (is_array($dados) && isset($dados[0]['body'])) {
+                foreach ($dados as $item) {
+                    if (isset($item['body'])) {
+                        $evento = $item['body'];
+                        $resultado = $this->processarEvento($evento);
+                        $resultados[] = $resultado;
+                    }
+                }
+            }
+            // Formato antigo com 'data'
+            elseif (isset($dados['data']) && is_array($dados['data'])) {
                 foreach ($dados['data'] as $evento) {
                     $resultado = $this->processarEvento($evento);
                     $resultados[] = $resultado;
                 }
-            } else {
-                // Formato direto (sem array 'data')
+            }
+            // Formato direto (sem array 'data' ou 'body')
+            else {
                 $resultado = $this->processarEvento($dados);
                 $resultados[] = $resultado;
             }
@@ -200,6 +212,9 @@ class Webhook extends Controllers
                 
                 // Atualizar último contato
                 $this->contatoModel->atualizarUltimoContato($contato['id']);
+                
+                // CONFIRMAÇÃO AUTOMÁTICA DE ENTREGA E LEITURA
+                $this->confirmarEntregaELeituraAutomatica($messageId, $numeroLimpo);
                 
                 return [
                     'success' => true,
@@ -497,7 +512,8 @@ class Webhook extends Controllers
                 'dados' => $dados
             ];
             
-            $logFile = ROOT . '/logs/webhook_' . date('Y-m-d') . '.log';
+            // Usar caminho relativo ao diretório atual do projeto
+            $logFile = dirname(__DIR__, 2) . '/logs/webhook_' . date('Y-m-d') . '.log';
             
             // Criar diretório de logs se não existir
             $logDir = dirname($logFile);
@@ -506,6 +522,123 @@ class Webhook extends Controllers
             }
             
             file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND | LOCK_EX);
+        }
+    }
+
+    /**
+     * [ confirmarEntregaELeituraAutomatica ] - Confirma automaticamente entrega e leitura
+     */
+    private function confirmarEntregaELeituraAutomatica($messageId, $numero)
+    {
+        try {
+            // Instanciar API Serpro
+            $serproApi = new SerproApi();
+            
+            // Confirmar entrega imediatamente
+            $this->confirmarStatusMensagem($messageId, 'delivered', $serproApi);
+            
+            // Confirmar leitura após 2-5 segundos (delay aleatório para parecer mais natural)
+            $delay = rand(2, 5);
+            
+            // Para simular leitura automática, vamos usar um approach diferente
+            // Podemos fazer isso de forma assíncrona ou programar para depois
+            $this->programarConfirmacaoLeitura($messageId, $delay, $serproApi);
+            
+        } catch (Exception $e) {
+            error_log("Erro na confirmação automática: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * [ confirmarStatusMensagem ] - Confirma status da mensagem via API
+     */
+    private function confirmarStatusMensagem($messageId, $status, $serproApi)
+    {
+        try {
+            // Usar a API real do Serpro para confirmar status
+            $resultado = $serproApi->confirmarStatusMensagem($messageId, $status);
+            
+            if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
+                $logData = [
+                    'message_id' => $messageId,
+                    'status' => $status,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'action' => 'auto_confirm_success',
+                    'response' => $resultado['response']
+                ];
+                
+                error_log("Confirmação automática enviada com sucesso: " . json_encode($logData));
+                return true;
+            } else {
+                $logData = [
+                    'message_id' => $messageId,
+                    'status' => $status,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'action' => 'auto_confirm_error',
+                    'error' => $resultado['error']
+                ];
+                
+                error_log("Erro na confirmação automática: " . json_encode($logData));
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Erro ao confirmar status da mensagem: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * [ programarConfirmacaoLeitura ] - Programa confirmação de leitura com delay
+     */
+    private function programarConfirmacaoLeitura($messageId, $delay, $serproApi)
+    {
+        try {
+            // Para implementação simples, vamos usar sleep (não recomendado para produção)
+            // Em produção, use um sistema de filas como Redis ou banco de dados
+            
+            // Método 1: Sleep simples (pode causar timeout)
+            // sleep($delay);
+            // $this->confirmarStatusMensagem($messageId, 'read', $serproApi);
+            
+            // Método 2: Salvar para processamento posterior
+            $this->salvarConfirmacaoPendente($messageId, $delay);
+            
+        } catch (Exception $e) {
+            error_log("Erro ao programar confirmação de leitura: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * [ salvarConfirmacaoPendente ] - Salva confirmação pendente para processamento posterior
+     */
+    private function salvarConfirmacaoPendente($messageId, $delay)
+    {
+        try {
+            // Criar arquivo de confirmação pendente
+            $confirmacaoData = [
+                'message_id' => $messageId,
+                'status' => 'read',
+                'scheduled_time' => time() + $delay,
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $confirmacaoFile = dirname(__DIR__, 2) . '/logs/confirmacoes_pendentes.json';
+            
+            // Ler confirmações existentes
+            $confirmacoes = [];
+            if (file_exists($confirmacaoFile)) {
+                $confirmacoes = json_decode(file_get_contents($confirmacaoFile), true) ?: [];
+            }
+            
+            // Adicionar nova confirmação
+            $confirmacoes[] = $confirmacaoData;
+            
+            // Salvar de volta
+            file_put_contents($confirmacaoFile, json_encode($confirmacoes, JSON_PRETTY_PRINT));
+            
+        } catch (Exception $e) {
+            error_log("Erro ao salvar confirmação pendente: " . $e->getMessage());
         }
     }
 

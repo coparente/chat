@@ -1,0 +1,14 @@
+[
+    {
+        "message_id": "test_message_confirmacao_123",
+        "status": "read",
+        "scheduled_time": 1752363360,
+        "created_at": "2025-07-12 20:34:17"
+    },
+    {
+        "message_id": "test_message_confirmacao_123",
+        "status": "read",
+        "scheduled_time": 1752363360,
+        "created_at": "2025-07-12 20:34:41"
+    }
+]

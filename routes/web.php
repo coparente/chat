@@ -29,6 +29,17 @@ Route::post('/verificar-sessao', 'LoginChat@verificarSessao');
 Route::post('/alterar-status', 'LoginChat@alterarStatus');
 
 // ============================================================================
+// WEBHOOKS - Recebimento de mensagens (SEM AUTENTICAÇÃO)
+// ============================================================================
+// WEBHOOKS - Recebimento de mensagens do WhatsApp
+Route::post('/webhook/whatsapp', 'Webhook@receberMensagem');
+Route::get('/webhook/whatsapp', 'Webhook@verificarWebhook');
+
+// WEBHOOKS SERPRO - Recebimento de mensagens da API Serpro
+Route::post('/webhook/serpro', 'Webhook@serpro');
+Route::get('/webhook/serpro/test', 'Webhook@test');
+
+// ============================================================================
 // ROTAS PROTEGIDAS - SISTEMA DE CHAT
 // ============================================================================
 Route::group(['middleware' => ['auth']], function() {
@@ -162,18 +173,6 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/mensagens', 'Configuracoes@mensagens');
         Route::post('/mensagens/salvar', 'Configuracoes@salvarMensagens');
     });
-
-    // ========================================================================
-    // WEBHOOKS - Recebimento de mensagens do WhatsApp
-    // ========================================================================
-    Route::post('/webhook/whatsapp', 'Webhook@receberMensagem');
-    Route::get('/webhook/whatsapp', 'Webhook@verificarWebhook');
-
-    // ========================================================================
-    // WEBHOOKS SERPRO - Recebimento de mensagens da API Serpro
-    // ========================================================================
-    Route::post('/webhook/serpro', 'Webhook@serpro');
-    Route::get('/webhook/serpro/test', 'Webhook@test');
 
     // ========================================================================
     // API INTERNA - Para funcionalidades AJAX

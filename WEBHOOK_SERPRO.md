@@ -31,7 +31,64 @@ GET /webhook/serpro/test
 
 ## Estrutura do Payload
 
-### Mensagem Recebida
+### Formato Atual da API Serpro
+
+```json
+[
+  {
+    "headers": {
+      "host": "webhookdj.helpersti.online",
+      "user-agent": "Resteasy Reactive Client",
+      "content-length": "468",
+      "authorization": "Bearer",
+      "content-type": "application/json",
+      "x-forwarded-for": "189.9.78.4",
+      "x-forwarded-host": "webhookdj.helpersti.online",
+      "x-forwarded-port": "443",
+      "x-forwarded-proto": "https",
+      "x-forwarded-server": "93ed6629480c",
+      "x-real-ip": "189.9.78.4",
+      "accept-encoding": "gzip"
+    },
+    "params": {},
+    "query": {},
+    "body": {
+      "messaging_product": "whatsapp",
+      "metadata": {
+        "display_phone_number": "556232162929",
+        "phone_number_id": "642958872237822",
+        "webhook_object_id": "68472ebbef6eda2d4340f9f9"
+      },
+      "contacts": [
+        {
+          "profile": {
+            "name": "Cleyton Parente 😅"
+          },
+          "wa_id": "556296185892"
+        }
+      ],
+      "messages": [
+        {
+          "from": "556296185892",
+          "id": "wamid.HBgMNTU2Mjk2MTg1ODkyFQIAEhggNzkyN0YxODg4QjgxNzI2QkVFRENGNUY2MDBBRjI3MjAA",
+          "timestamp": "1752361648",
+          "text": {
+            "body": "Teste"
+          },
+          "type": "text"
+        }
+      ],
+      "errors": [],
+      "statuses": [],
+      "delay": 0
+    },
+    "webhookUrl": "https://webhook.helpersti.online/webhook-test/serpro-chat",
+    "executionMode": "test"
+  }
+]
+```
+
+### Formato Alternativo (Compatibilidade)
 
 ```json
 {
@@ -72,9 +129,9 @@ GET /webhook/serpro/test
 ### Status de Entrega
 
 ```json
-{
-  "data": [
-    {
+[
+  {
+    "body": {
       "statuses": [
         {
           "id": "wamid.HBgMNTU2Mjk2MTg1ODkyFQIAEhggNzkyN0YxODg4QjgxNzI2QkVFRENGNUY2MDBBRjI3MjAA",
@@ -84,8 +141,8 @@ GET /webhook/serpro/test
         }
       ]
     }
-  ]
-}
+  }
+]
 ```
 
 ## Tipos de Mensagem Suportados
