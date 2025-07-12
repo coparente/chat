@@ -1,30 +1,104 @@
 # Documentação: https://httpd.apache.org/docs/2.4/rewrite/flags.html
+
+# ============================================================================
+# CONFIGURAÇÕES DE SEGURANÇA
+# ============================================================================
+
+# Headers de Segurança
+<IfModule mod_headers.c>
+    # Previne que a página seja exibida em frames (clickjacking)
+    Header always set X-Frame-Options "DENY"
+    
+    # Previne MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Ativa proteção XSS do navegador
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Controla informações do referrer
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Remove informações do servidor
+    Header unset Server
+    Header unset X-Powered-By
+    
+    # Cache control para arquivos estáticos
+    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=31536000"
+    </FilesMatch>
+</IfModule>
+
+# Bloquear acesso a arquivos sensíveis
+<FilesMatch "\.(env|log|sql|htaccess|htpasswd|ini|phps|fla|psd|log|sh)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear acesso às pastas de configuração
+RedirectMatch 403 ^/?(app|vendor|routes|storage|tests)/.*$
+
+# Desabilitar listagem de diretórios
+Options -Indexes
+
+# Proteger diretório de uploads - bloquear execução de scripts
+<FilesMatch "^(uploads/).*\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# ============================================================================
+# REWRITE RULES - Sistema de Rotas
+# ============================================================================
+
 # Ativa o módulo Rewrite, que faz a reescrita de URL.
 RewriteEngine On
 
-# ===================================================
-# REGRAS PARA SERVIR ARQUIVOS DE MÍDIA DO MINIO
-# ===================================================
+# Força HTTPS em produção (descomente se necessário)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Redirecionar /media/caminho/arquivo.ext para media.php
-RewriteRule ^media/(.+)$ media.php/$1 [L]
+# Redirecionar para www (descomente se necessário)
+# RewriteCond %{HTTP_HOST} !^www\. [NC]
+# RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Redirecionar /document/, /image/, /audio/, /video/ para media.php  
-RewriteRule ^(document|image|audio|video)/(.+)$ media.php/$1/$2 [L]
-
-# ===================================================
-# REGRAS PADRÃO DO SISTEMA (MANTER COMO ESTÃO)
-# ===================================================
-
-# RewriteCond: Define uma condição para uma regra.
-# REQUEST_FILENAME é o caminho completo do diretório que atende ao request original, tomando por base o filesystem da máquina, e não relativo à hospedagem
-# RewriteCond %{REQUEST_FILENAME} !-d Informa que será criado uma condição a ser aplicado ao nome do diretório requisitado. A exclamação é o sinal de negação e -d pede para verificar a existência de um diretório físico. Ex: CONDIÇÃO = SE ARQUIVO_REQUISITADO NÃO EXISTE COMO DIRETÓRIO FISICAMENTE 
+# Permitir acesso a arquivos e diretórios que existem fisicamente
 RewriteCond %{REQUEST_FILENAME} !-d
-
-# RewriteCond %{REQUEST_FILENAME} !-f Informa que será criado uma condição a ser aplicado ao nome do arquivo requisitado. A exclamação é o sinal de negação e -f pede para verificar a existência de um arquivo físico. Ex: CONDIÇÃO = SE ARQUIVO_REQUISITADO NÃO EXISTE FISICAMENTE
 RewriteCond %{REQUEST_FILENAME} !-f
-
-# RewriteCond %{REQUEST_FILENAME} !-l Informa que será criado uma condição a ser aplicado ao link simbólico requisitado. A exclamação é o sinal de negação e -l pede para verificar a existência de um link simbólico.
 RewriteCond %{REQUEST_FILENAME} !-l
 
+# Reescrever todas as outras URLs para index.php
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
+
+# ============================================================================
+# CONFIGURAÇÕES DE COMPRESSÃO
+# ============================================================================
+
+<IfModule mod_deflate.c>
+    # Compressão para tipos de arquivo específicos
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# ============================================================================
+# CONFIGURAÇÕES DE UPLOAD E EXECUÇÃO
+# ============================================================================
+
+# Limitar tamanho de uploads
+php_value upload_max_filesize 40M
+php_value post_max_size 40M
+php_value max_execution_time 300
+php_value max_input_vars 3000
+
+# Configurações de sessão
+php_value session.cookie_httponly 1
+php_value session.cookie_secure 1
+php_value session.use_strict_mode 1
