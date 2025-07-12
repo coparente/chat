@@ -12,18 +12,42 @@ define('APPROOT', dirname(__FILE__));
 /**
  * Configurações do Banco de Dados
  */
-define('HOST', $_ENV['DEV_DB_HOST'] ?? getenv('PROD_DB_HOST') ?: 'localhost');
-define('PORTA', intval($_ENV['DEV_DB_PORT'] ?? getenv('PROD_DB_PORT') ?: 3306));
-define('BANCO', $_ENV['DEV_DB_NAME'] ?? getenv('PROD_DB_NAME') ?: 'copare52_chat');
-define('USUARIO', $_ENV['DEV_DB_USERNAME'] ?? getenv('PROD_DB_USERNAME') ?: 'copare52_chat');
-define('SENHA', $_ENV['DEV_DB_PASSWORD'] ?? getenv('PROD_DB_PASSWORD') ?: 'YiYDW*3vLLKk');
+// define('HOST', $_ENV['DEV_DB_HOST'] ?? getenv('PROD_DB_HOST') ?: 'localhost');
+// define('PORTA', intval($_ENV['DEV_DB_PORT'] ?? getenv('PROD_DB_PORT') ?: 3306));
+// define('BANCO', $_ENV['DEV_DB_NAME'] ?? getenv('PROD_DB_NAME') ?: 'copare52_chat');
+// define('USUARIO', $_ENV['DEV_DB_USERNAME'] ?? getenv('PROD_DB_USERNAME') ?: 'copare52_chat');
+// define('SENHA', $_ENV['DEV_DB_PASSWORD'] ?? getenv('PROD_DB_PASSWORD') ?: 'YiYDW*3vLLKk');
+
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$ambiente = (strpos($host, 'coparente.top') !== false) ? 'producao' : 'local';
+
+if ($ambiente === 'local') {
+    define('HOST', 'localhost');
+    define('PORTA', 3306);
+    define('BANCO', 'meu_framework');
+    define('USUARIO', 'root');
+    define('SENHA', '');
+    //URL do Intranet Judiciária local
+    // define('URL', 'http://10.90.18.141/intranet-judiciaria');
+    define('URL', 'http://localhost/chat');
+} else {
+    define('HOST', 'localhost');
+    define('PORTA', 3306);
+    define('BANCO', 'copare52_chat');
+    define('USUARIO', 'copare52_chat');
+    define('SENHA', 'YiYDW*3vLLKk');
+    //URL do Intranet Judiciária produção
+    define('URL', 'https://coparente.top/chat');
+}
+
+
 
 /**
  * Configurações da Aplicação
  */
 define('APP_NOME', $_ENV['APP_NAME'] ?? 'meu-framework');
 define('APP_VERSAO', $_ENV['APP_VERSION'] ?? '1.0');
-define('URL', $_ENV['APP_URL'] ?? 'http://localhost/meu-framework');
+// define('URL', $_ENV['APP_URL'] ?? 'http://localhost/meu-framework');
 define('APP_ENV', $_ENV['APP_ENV'] ?? 'development');
 
 /**
