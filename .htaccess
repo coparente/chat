@@ -5,28 +5,28 @@
 # ============================================================================
 
 # Headers de Segurança
-<IfModule mod_headers.c>
-    # Previne que a página seja exibida em frames (clickjacking)
-    Header always set X-Frame-Options "DENY"
+# <IfModule mod_headers.c>
+#     # Previne que a página seja exibida em frames (clickjacking)
+#     Header always set X-Frame-Options "DENY"
     
-    # Previne MIME type sniffing
-    Header always set X-Content-Type-Options "nosniff"
+#     # Previne MIME type sniffing
+#     Header always set X-Content-Type-Options "nosniff"
     
-    # Ativa proteção XSS do navegador
-    Header always set X-XSS-Protection "1; mode=block"
+#     # Ativa proteção XSS do navegador
+#     Header always set X-XSS-Protection "1; mode=block"
     
-    # Controla informações do referrer
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+#     # Controla informações do referrer
+#     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
-    # Remove informações do servidor
-    Header unset Server
-    Header unset X-Powered-By
+#     # Remove informações do servidor
+#     Header unset Server
+#     Header unset X-Powered-By
     
-    # Cache control para arquivos estáticos
-    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
-        Header set Cache-Control "public, max-age=31536000"
-    </FilesMatch>
-</IfModule>
+#     # Cache control para arquivos estáticos
+#     <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+#         Header set Cache-Control "public, max-age=31536000"
+#     </FilesMatch>
+# </IfModule>
 
 # Bloquear acesso a arquivos sensíveis
 # <FilesMatch "\.(env|log|sql|htaccess|htpasswd|ini|phps|fla|psd|log|sh)$">
@@ -93,12 +93,12 @@ RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 # ============================================================================
 
 # Limitar tamanho de uploads
-php_value upload_max_filesize 40M
-php_value post_max_size 40M
-php_value max_execution_time 300
-php_value max_input_vars 3000
+# php_value upload_max_filesize 40M
+# php_value post_max_size 40M
+# php_value max_execution_time 300
+# php_value max_input_vars 3000
 
-# Configurações de sessão
-php_value session.cookie_httponly 1
-php_value session.cookie_secure 1
-php_value session.use_strict_mode 1
+# # Configurações de sessão
+# php_value session.cookie_httponly 1
+# php_value session.cookie_secure 1
+# php_value session.use_strict_mode 1
