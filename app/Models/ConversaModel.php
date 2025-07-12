@@ -256,25 +256,134 @@ class ConversaModel
     }
 
     /**
+     * [ verificarConversaAtiva ] - Verifica se existe conversa ativa para um número
+     * 
+     * @param string $numero Número do contato
+     * @return object|null Conversa encontrada ou null
+     */
+    public function verificarConversaAtiva($numero)
+    {
+        $sql = "
+            SELECT c.*, ct.numero 
+            FROM conversas c
+            JOIN contatos ct ON c.contato_id = ct.id
+            WHERE ct.numero = :numero 
+            AND c.status IN ('aberto', 'pendente')
+            AND c.criado_em >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ORDER BY c.criado_em DESC
+            LIMIT 1
+        ";
+
+        $this->db->query($sql);
+        $this->db->bind(':numero', $numero);
+        return $this->db->resultado();
+    }
+
+    /**
+     * [ verificarConversaPorId ] - Verifica se conversa existe e retorna dados
+     * 
+     * @param int $conversaId ID da conversa
+     * @return object|null Conversa encontrada ou null
+     */
+    public function verificarConversaPorId($conversaId)
+    {
+        $sql = "
+            SELECT c.*, ct.numero, ct.nome as contato_nome
+            FROM conversas c
+            JOIN contatos ct ON c.contato_id = ct.id
+            WHERE c.id = :id
+        ";
+
+        $this->db->query($sql);
+        $this->db->bind(':id', $conversaId);
+        return $this->db->resultado();
+    }
+
+    /**
+     * [ conversaAindaAtiva ] - Verifica se conversa ainda está dentro do prazo de 24h
+     * 
+     * @param object $conversa Dados da conversa
+     * @return bool True se ainda está ativa
+     */
+    public function conversaAindaAtiva($conversa)
+    {
+        $agora = time();
+        $criadoEm = strtotime($conversa->criado_em);
+        
+        // Buscar a última mensagem recebida (entrada) para resetar o timer
+        $sql = "
+            SELECT MAX(criado_em) as ultima_mensagem_recebida
+            FROM mensagens 
+            WHERE conversa_id = :conversa_id 
+            AND direcao = 'entrada'
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversa->id);
+        $resultado = $this->db->resultado();
+        
+        // Se há mensagem recebida, usar ela como referência
+        if ($resultado && $resultado->ultima_mensagem_recebida) {
+            $ultimaMensagemRecebida = strtotime($resultado->ultima_mensagem_recebida);
+            $tempoLimite = $ultimaMensagemRecebida + (24 * 60 * 60); // 24 horas da última mensagem recebida
+        } else {
+            // Se não há mensagem recebida, usar a criação da conversa
+            $tempoLimite = $criadoEm + (24 * 60 * 60); // 24 horas da criação
+        }
+        
+        return $agora < $tempoLimite;
+    }
+
+    /**
+     * [ atualizarConversa ] - Atualiza uma conversa existente
+     * 
+     * @param int $id ID da conversa
+     * @param array $dados Dados para atualização
+     * @return bool Sucesso da operação
+     */
+    public function atualizarConversa($id, $dados)
+    {
+        $campos = [];
+        $valores = [];
+        
+        foreach ($dados as $campo => $valor) {
+            $campos[] = "$campo = :$campo";
+            $valores[":$campo"] = $valor;
+        }
+        
+        $sql = "UPDATE conversas SET " . implode(', ', $campos) . " WHERE id = :id";
+        
+        $this->db->query($sql);
+        $this->db->bind(':id', $id);
+        
+        foreach ($valores as $param => $valor) {
+            $this->db->bind($param, $valor);
+        }
+        
+        return $this->db->executa();
+    }
+
+    /**
      * [ criarConversa ] - Cria uma nova conversa
      * 
      * @param array $dados Dados da conversa
-     * @return int|false ID da conversa criada ou false em caso de erro
+     * @return int|false ID da conversa criada ou false
      */
     public function criarConversa($dados)
     {
         $sql = "
-            INSERT INTO conversas (contato_id, atendente_id, sessao_id, status, prioridade, departamento, criado_em) 
-            VALUES (:contato_id, :atendente_id, :sessao_id, :status, :prioridade, :departamento, NOW())
+            INSERT INTO conversas (
+                contato_id, atendente_id, sessao_id, status, criado_em
+            ) VALUES (
+                :contato_id, :atendente_id, :sessao_id, :status, NOW()
+            )
         ";
         
         $this->db->query($sql);
         $this->db->bind(':contato_id', $dados['contato_id']);
         $this->db->bind(':atendente_id', $dados['atendente_id'] ?? null);
-        $this->db->bind(':sessao_id', $dados['sessao_id']);
+        $this->db->bind(':sessao_id', $dados['sessao_id'] ?? 1);
         $this->db->bind(':status', $dados['status'] ?? 'pendente');
-        $this->db->bind(':prioridade', $dados['prioridade'] ?? 'normal');
-        $this->db->bind(':departamento', $dados['departamento'] ?? 'Geral');
         
         if ($this->db->executa()) {
             return $this->db->ultimoIdInserido();
@@ -284,39 +393,25 @@ class ConversaModel
     }
 
     /**
-     * [ atualizarConversa ] - Atualiza uma conversa
+     * [ buscarConversaAtivaContato ] - Busca conversa ativa para um contato específico
      * 
-     * @param int $id ID da conversa
-     * @param array $dados Dados para atualizar
-     * @return bool Sucesso da operação
+     * @param int $contatoId ID do contato
+     * @return object|null Conversa encontrada ou null
      */
-    public function atualizarConversa($id, $dados)
+    public function buscarConversaAtivaContato($contatoId)
     {
-        $campos = [];
-        $valores = [];
-        
-        $camposPermitidos = ['status', 'atendente_id', 'prioridade', 'notas_internas', 'ultima_mensagem'];
-        
-        foreach ($camposPermitidos as $campo) {
-            if (isset($dados[$campo])) {
-                $campos[] = "$campo = :$campo";
-                $valores[$campo] = $dados[$campo];
-            }
-        }
-        
-        if (empty($campos)) {
-            return false;
-        }
-        
-        $sql = "UPDATE conversas SET " . implode(', ', $campos) . ", atualizado_em = NOW() WHERE id = :id";
-        
+        $sql = "
+            SELECT c.*, ct.numero, ct.nome as contato_nome
+            FROM conversas c
+            JOIN contatos ct ON c.contato_id = ct.id
+            WHERE c.contato_id = :contato_id 
+            AND c.status IN ('aberto', 'pendente')
+            ORDER BY c.criado_em DESC
+            LIMIT 1
+        ";
+
         $this->db->query($sql);
-        $this->db->bind(':id', $id);
-        
-        foreach ($valores as $campo => $valor) {
-            $this->db->bind(":$campo", $valor);
-        }
-        
-        return $this->db->executa();
+        $this->db->bind(':contato_id', $contatoId);
+        return $this->db->resultado();
     }
 } 

@@ -115,7 +115,7 @@ class MensagemModel
      * [ criarMensagem ] - Cria uma nova mensagem
      * 
      * @param array $dados Dados da mensagem
-     * @return bool Sucesso da operação
+     * @return int|false ID da mensagem criada ou false
      */
     public function criarMensagem($dados)
     {
@@ -145,7 +145,11 @@ class MensagemModel
         $this->db->bind(':status_entrega', $dados['status_entrega'] ?? 'enviando');
         $this->db->bind(':metadata', $dados['metadata'] ?? null);
         
-        return $this->db->executa();
+        if ($this->db->executa()) {
+            return $this->db->ultimoIdInserido();
+        }
+        
+        return false;
     }
 
     /**
@@ -234,5 +238,39 @@ class MensagemModel
         }
         
         return $this->db->resultados();
+    }
+
+    /**
+     * [ contatoJaRespondeu ] - Verifica se o contato já respondeu ao template
+     * 
+     * @param int $conversaId ID da conversa
+     * @return bool True se já respondeu
+     */
+    public function contatoJaRespondeu($conversaId)
+    {
+        $sql = "
+            SELECT COUNT(*) as total
+            FROM mensagens 
+            WHERE conversa_id = :conversa_id 
+            AND direcao = 'entrada'
+        ";
+
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        return $this->db->resultado()->total > 0;
+    }
+
+    /**
+     * [ buscarPorSerproId ] - Busca mensagem pelo ID do Serpro
+     * 
+     * @param string $serproId ID da mensagem na API Serpro
+     * @return object|null Mensagem encontrada ou null
+     */
+    public function buscarPorSerproId($serproId)
+    {
+        $sql = "SELECT * FROM mensagens WHERE serpro_message_id = :serpro_id";
+        $this->db->query($sql);
+        $this->db->bind(':serpro_id', $serproId);
+        return $this->db->resultado();
     }
 } 

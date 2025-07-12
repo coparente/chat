@@ -62,6 +62,9 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/buscar-mensagens/{conversa_id}', 'Chat@buscarMensagens');
         Route::post('/marcar-lida/{mensagem_id}', 'Chat@marcarComoLida');
         
+        // Status das conversas
+        Route::get('/status-conversa/{conversa_id}', 'Chat@statusConversa');
+        
         // Templates
         Route::post('/iniciar/{contato_id}', 'Chat@iniciarConversa');
     });
@@ -165,6 +168,12 @@ Route::group(['middleware' => ['auth']], function() {
     // ========================================================================
     Route::post('/webhook/whatsapp', 'Webhook@receberMensagem');
     Route::get('/webhook/whatsapp', 'Webhook@verificarWebhook');
+
+    // ========================================================================
+    // WEBHOOKS SERPRO - Recebimento de mensagens da API Serpro
+    // ========================================================================
+    Route::post('/webhook/serpro', 'Webhook@serpro');
+    Route::get('/webhook/serpro/test', 'Webhook@test');
 
     // ========================================================================
     // API INTERNA - Para funcionalidades AJAX

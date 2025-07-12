@@ -225,84 +225,100 @@ class Chat extends Controllers
      */
     public function enviarMensagem()
     {
+        // Desabilitar exibição de erros em produção
+        if (APP_ENV === 'production') {
+            error_reporting(0);
+        }
+        
         // Limpar qualquer output buffer e definir headers antes de tudo
-        if (ob_get_level()) {
+        while (ob_get_level()) {
             ob_end_clean();
         }
         
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Método inválido']);
-            exit;
-        }
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Método inválido']);
+                exit;
+            }
 
-        $dados = json_decode(file_get_contents('php://input'), true);
+            $dados = json_decode(file_get_contents('php://input'), true);
 
-        if (!$dados || empty($dados['conversa_id']) || empty($dados['mensagem'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Conversa e mensagem são obrigatórias']);
-            exit;
-        }
+            if (!$dados || empty($dados['conversa_id']) || empty($dados['mensagem'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Conversa e mensagem são obrigatórias']);
+                exit;
+            }
 
-        $conversaId = $dados['conversa_id'];
-        $mensagem = $dados['mensagem'];
+            $conversaId = $dados['conversa_id'];
+            $mensagem = $dados['mensagem'];
 
-        // Verificar se a conversa existe e está ativa
-        $conversa = $this->verificarConversa($conversaId);
-        
-        if (!$conversa) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
-            exit;
-        }
-
-        // Verificar se conversa ainda está dentro do prazo (24h)
-        if (!$this->conversaAindaAtiva($conversa)) {
-            http_response_code(410);
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Conversa expirada. Envie um novo template para reiniciar o contato.',
-                'expirada' => true
-            ]);
-            exit;
-        }
-
-        // Verificar se o contato já respondeu (necessário para enviar mensagem de texto)
-        if (!$this->contatoJaRespondeu($conversaId)) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Aguarde o contato responder ao template antes de enviar mensagens de texto.'
-            ]);
-            exit;
-        }
-
-        // Enviar mensagem via API Serpro
-        $resultado = $this->serproApi->enviarMensagemTexto($conversa['numero'], $mensagem);
-
-        if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
-            // Salvar mensagem no banco
-            $this->salvarMensagemTexto($conversaId, $conversa['contato_id'], $mensagem, $resultado);
+            // Verificar se a conversa existe e está ativa
+            $conversa = $this->verificarConversa($conversaId);
             
-            // Atualizar conversa
-            $this->conversaModel->atualizarConversa($conversaId, [
-                'ultima_mensagem' => date('Y-m-d H:i:s')
-            ]);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
 
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Mensagem enviada com sucesso!',
-                'dados' => $resultado['response']
-            ]);
-        } else {
+            // Verificar se conversa ainda está dentro do prazo (24h)
+            if (!$this->conversaAindaAtiva($conversa)) {
+                http_response_code(410);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Conversa expirada. Envie um novo template para reiniciar o contato.',
+                    'expirada' => true
+                ]);
+                exit;
+            }
+
+            // Verificar se o contato já respondeu (necessário para enviar mensagem de texto)
+            if (!$this->contatoJaRespondeu($conversaId)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Aguarde o contato responder ao template antes de enviar mensagens de texto.'
+                ]);
+                exit;
+            }
+
+            // Enviar mensagem via API Serpro
+            $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
+
+            if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
+                // Salvar mensagem no banco
+                $this->salvarMensagemTexto($conversaId, $conversa->contato_id, $mensagem, $resultado);
+                
+                // Atualizar conversa
+                $this->conversaModel->atualizarConversa($conversaId, [
+                    'ultima_mensagem' => date('Y-m-d H:i:s')
+                ]);
+
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Mensagem enviada com sucesso!',
+                    'dados' => $resultado['response']
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Erro ao enviar mensagem: ' . ($resultado['error'] ?? 'Erro desconhecido')
+                ]);
+            }
+        } catch (Exception $e) {
+            // Log do erro para debug mas não exibir
+            error_log("Erro no Chat::enviarMensagem: " . $e->getMessage());
+            
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erro ao enviar mensagem: ' . ($resultado['error'] ?? 'Erro desconhecido')
+                'message' => 'Erro interno do servidor'
             ]);
         }
         
@@ -386,7 +402,7 @@ class Chat extends Controllers
 
             // Enviar mídia
             $resultado = $this->serproApi->enviarMidia(
-                $conversa['numero'], 
+                $conversa->numero, 
                 $tipoMidia, 
                 $idMedia, 
                 $caption, 
@@ -396,7 +412,7 @@ class Chat extends Controllers
 
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
                 // Salvar mensagem no banco
-                $this->salvarMensagemMidia($conversaId, $conversa['contato_id'], $tipoMidia, $arquivo, $caption, $resultado);
+                $this->salvarMensagemMidia($conversaId, $conversa->contato_id, $tipoMidia, $arquivo, $caption, $resultado);
                 
                 // Atualizar conversa
                 $this->conversaModel->atualizarConversa($conversaId, [
@@ -587,25 +603,87 @@ class Chat extends Controllers
     }
 
     /**
+     * [ statusConversa ] - Verifica status da conversa (se pode enviar mensagens livres)
+     */
+    public function statusConversa($conversaId)
+    {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if (!$conversaId || !is_numeric($conversaId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+            exit;
+        }
+
+        // Verificar se a conversa existe
+        $conversa = $this->verificarConversa($conversaId);
+        
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        $status = [
+            'conversa_ativa' => $this->conversaAindaAtiva($conversa),
+            'contato_respondeu' => $this->contatoJaRespondeu($conversaId),
+            'pode_enviar_mensagem_livre' => $this->podeEnviarMensagemLivre($conversaId, $conversa),
+            'tempo_restante' => $this->calcularTempoRestante($conversa)
+        ];
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'status' => $status
+        ]);
+        
+        exit;
+    }
+
+    /**
+     * [ podeEnviarMensagemLivre ] - Verifica se pode enviar mensagem livre
+     */
+    private function podeEnviarMensagemLivre($conversaId, $conversa = null)
+    {
+        if (!$conversa) {
+            $conversa = $this->verificarConversa($conversaId);
+        }
+        
+        if (!$conversa) {
+            return false;
+        }
+
+        return $this->contatoJaRespondeu($conversaId) && 
+               $this->conversaAindaAtiva($conversa);
+    }
+
+    /**
+     * [ calcularTempoRestante ] - Calcula tempo restante da janela de 24h
+     */
+    private function calcularTempoRestante($conversa)
+    {
+        $agora = time();
+        $criadoEm = strtotime($conversa->criado_em);
+        $ultimaMensagem = $conversa->ultima_mensagem ? strtotime($conversa->ultima_mensagem) : $criadoEm;
+        
+        $tempoLimite = max($criadoEm, $ultimaMensagem) + (24 * 60 * 60); // 24 horas
+        $tempoRestante = $tempoLimite - $agora;
+        
+        return max(0, $tempoRestante); // Retorna 0 se já expirou
+    }
+
+    /**
      * [ verificarConversaAtiva ] - Verifica se existe conversa ativa para um número
      */
     private function verificarConversaAtiva($numero)
     {
-        $sql = "
-            SELECT c.*, ct.numero 
-            FROM conversas c
-            JOIN contatos ct ON c.contato_id = ct.id
-            WHERE ct.numero = :numero 
-            AND c.status IN ('aberto', 'pendente')
-            AND c.criado_em >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-            ORDER BY c.criado_em DESC
-            LIMIT 1
-        ";
-
-        $this->db = new Database();
-        $this->db->query($sql);
-        $this->db->bind(':numero', $numero);
-        return $this->db->resultado();
+        return $this->conversaModel->verificarConversaAtiva($numero);
     }
 
     /**
@@ -749,17 +827,7 @@ class Chat extends Controllers
      */
     private function verificarConversa($conversaId)
     {
-        $sql = "
-            SELECT c.*, ct.numero, ct.nome as contato_nome
-            FROM conversas c
-            JOIN contatos ct ON c.contato_id = ct.id
-            WHERE c.id = :id
-        ";
-
-        $this->db = new Database();
-        $this->db->query($sql);
-        $this->db->bind(':id', $conversaId);
-        return $this->db->resultado();
+        return $this->conversaModel->verificarConversaPorId($conversaId);
     }
 
     /**
@@ -767,14 +835,7 @@ class Chat extends Controllers
      */
     private function conversaAindaAtiva($conversa)
     {
-        $agora = time();
-        $criadoEm = strtotime($conversa->criado_em);
-        $ultimaMensagem = $conversa->ultima_mensagem ? strtotime($conversa->ultima_mensagem) : $criadoEm;
-        
-        // Usar a data da última mensagem como referência
-        $tempoLimite = max($criadoEm, $ultimaMensagem) + (24 * 60 * 60); // 24 horas
-        
-        return $agora < $tempoLimite;
+        return $this->conversaModel->conversaAindaAtiva($conversa);
     }
 
     /**
@@ -782,17 +843,7 @@ class Chat extends Controllers
      */
     private function contatoJaRespondeu($conversaId)
     {
-        $sql = "
-            SELECT COUNT(*) as total
-            FROM mensagens 
-            WHERE conversa_id = :conversa_id 
-            AND direcao = 'entrada'
-        ";
-
-        $this->db = new Database();
-        $this->db->query($sql);
-        $this->db->bind(':conversa_id', $conversaId);
-        return $this->db->resultado()->total > 0;
+        return $this->mensagemModel->contatoJaRespondeu($conversaId);
     }
 
     /**
@@ -876,37 +927,38 @@ class Chat extends Controllers
                 'titulo' => 'Central de Intimação Remota',
                 'descricao' => 'Template para intimações remotas do tribunal',
                 'parametros' => ['mensagem']
-            ],
-            [
-                'nome' => 'boas_vindas',
-                'titulo' => 'Boas-vindas',
-                'descricao' => 'Mensagem de boas-vindas personalizada',
-                'parametros' => ['nome']
-            ],
-            [
-                'nome' => 'promocao',
-                'titulo' => 'Promoção',
-                'descricao' => 'Oferta especial para clientes',
-                'parametros' => ['nome', 'produto', 'desconto']
-            ],
-            [
-                'nome' => 'lembrete',
-                'titulo' => 'Lembrete',
-                'descricao' => 'Lembrete de agendamento ou compromisso',
-                'parametros' => ['nome', 'data', 'hora']
-            ],
-            [
-                'nome' => 'suporte',
-                'titulo' => 'Atendimento ao Cliente',
-                'descricao' => 'Início de atendimento ao cliente',
-                'parametros' => ['nome']
-            ],
-            [
-                'nome' => 'notificacao',
-                'titulo' => 'Notificação',
-                'descricao' => 'Notificação importante para o cliente',
-                'parametros' => ['nome', 'assunto', 'detalhes']
             ]
+            // ,
+            // [
+            //     'nome' => 'boas_vindas',
+            //     'titulo' => 'Boas-vindas',
+            //     'descricao' => 'Mensagem de boas-vindas personalizada',
+            //     'parametros' => ['nome']
+            // ],
+            // [
+            //     'nome' => 'promocao',
+            //     'titulo' => 'Promoção',
+            //     'descricao' => 'Oferta especial para clientes',
+            //     'parametros' => ['nome', 'produto', 'desconto']
+            // ],
+            // [
+            //     'nome' => 'lembrete',
+            //     'titulo' => 'Lembrete',
+            //     'descricao' => 'Lembrete de agendamento ou compromisso',
+            //     'parametros' => ['nome', 'data', 'hora']
+            // ],
+            // [
+            //     'nome' => 'suporte',
+            //     'titulo' => 'Atendimento ao Cliente',
+            //     'descricao' => 'Início de atendimento ao cliente',
+            //     'parametros' => ['nome']
+            // ],
+            // [
+            //     'nome' => 'notificacao',
+            //     'titulo' => 'Notificação',
+            //     'descricao' => 'Notificação importante para o cliente',
+            //     'parametros' => ['nome', 'assunto', 'detalhes']
+            // ]
         ];
     }
 }

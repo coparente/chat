@@ -669,8 +669,62 @@
                         mostrarToast(response.message, 'error');
                     }
                 },
-                error: function() {
-                    mostrarToast('Erro ao enviar mensagem', 'error');
+                error: function(xhr, textStatus, errorThrown) {
+                    console.log('❌ Erro ao enviar mensagem');
+                    console.log('Status:', xhr.status);
+                    console.log('TextStatus:', textStatus);
+                    console.log('ErrorThrown:', errorThrown);
+                    console.log('ResponseText:', xhr.responseText);
+                    
+                    let mensagemErro = 'Erro ao enviar mensagem';
+                    
+                    // Tentar interpretar a resposta JSON mesmo em caso de erro
+                    try {
+                        if (xhr.responseText) {
+                            // Procurar JSON na resposta
+                            let jsonStart = xhr.responseText.indexOf('{');
+                            let jsonEnd = xhr.responseText.lastIndexOf('}');
+                            
+                            if (jsonStart !== -1 && jsonEnd !== -1) {
+                                let jsonString = xhr.responseText.substring(jsonStart, jsonEnd + 1);
+                                const response = JSON.parse(jsonString);
+                                
+                                if (response && response.message) {
+                                    mensagemErro = response.message;
+                                    
+                                    // Tratamento especial para conversa expirada
+                                    if (xhr.status === 410 && response.expirada) {
+                                        mensagemErro += '\n\nA conversa será removida da lista.';
+                                        
+                                        // Remover conversa da lista após 3 segundos
+                                        setTimeout(() => {
+                                            $(`.chat-item[data-conversa-id="${conversaAtiva}"]`).fadeOut();
+                                            $('#chatActive').hide();
+                                            $('#chatWelcome').show();
+                                            conversaAtiva = null;
+                                        }, 3000);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Erro ao fazer parse da resposta de erro:', e);
+                    }
+                    
+                    // Verificar códigos HTTP específicos
+                    if (xhr.status === 410) {
+                        mensagemErro = mensagemErro || 'Conversa expirada. Envie um novo template para reiniciar o contato.';
+                    } else if (xhr.status === 400) {
+                        mensagemErro = mensagemErro || 'Aguarde o contato responder ao template antes de enviar mensagens.';
+                    } else if (xhr.status === 404) {
+                        mensagemErro = 'Conversa não encontrada';
+                    } else if (xhr.status === 500) {
+                        mensagemErro = 'Erro interno do servidor';
+                    } else if (xhr.status === 0) {
+                        mensagemErro = 'Erro de conexão';
+                    }
+                    
+                    mostrarToast(mensagemErro, 'error');
                 }
             });
         }
@@ -839,8 +893,62 @@
                         mostrarToast(response.message, 'error');
                     }
                 },
-                error: function() {
-                    mostrarToast('Erro ao enviar arquivo', 'error');
+                error: function(xhr, textStatus, errorThrown) {
+                    console.log('❌ Erro ao enviar arquivo');
+                    console.log('Status:', xhr.status);
+                    console.log('TextStatus:', textStatus);
+                    console.log('ErrorThrown:', errorThrown);
+                    console.log('ResponseText:', xhr.responseText);
+                    
+                    let mensagemErro = 'Erro ao enviar arquivo';
+                    
+                    // Tentar interpretar a resposta JSON mesmo em caso de erro
+                    try {
+                        if (xhr.responseText) {
+                            // Procurar JSON na resposta
+                            let jsonStart = xhr.responseText.indexOf('{');
+                            let jsonEnd = xhr.responseText.lastIndexOf('}');
+                            
+                            if (jsonStart !== -1 && jsonEnd !== -1) {
+                                let jsonString = xhr.responseText.substring(jsonStart, jsonEnd + 1);
+                                const response = JSON.parse(jsonString);
+                                
+                                if (response && response.message) {
+                                    mensagemErro = response.message;
+                                    
+                                    // Tratamento especial para conversa expirada
+                                    if (xhr.status === 410 && response.expirada) {
+                                        mensagemErro += '\n\nA conversa será removida da lista.';
+                                        
+                                        // Remover conversa da lista após 3 segundos
+                                        setTimeout(() => {
+                                            $(`.chat-item[data-conversa-id="${conversaAtiva}"]`).fadeOut();
+                                            $('#chatActive').hide();
+                                            $('#chatWelcome').show();
+                                            conversaAtiva = null;
+                                        }, 3000);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Erro ao fazer parse da resposta de erro:', e);
+                    }
+                    
+                    // Verificar códigos HTTP específicos
+                    if (xhr.status === 410) {
+                        mensagemErro = mensagemErro || 'Conversa expirada. Envie um novo template para reiniciar o contato.';
+                    } else if (xhr.status === 400) {
+                        mensagemErro = mensagemErro || 'Aguarde o contato responder ao template antes de enviar arquivos.';
+                    } else if (xhr.status === 404) {
+                        mensagemErro = 'Conversa não encontrada';
+                    } else if (xhr.status === 500) {
+                        mensagemErro = 'Erro interno do servidor';
+                    } else if (xhr.status === 0) {
+                        mensagemErro = 'Erro de conexão';
+                    }
+                    
+                    mostrarToast(mensagemErro, 'error');
                 },
                 complete: function() {
                     $('#btnEnviarArquivo').prop('disabled', false).html('<i class="fas fa-cloud-upload-alt me-2"></i>Enviar Arquivo');
@@ -969,10 +1077,10 @@
         
         function mostrarToast(mensagem, tipo) {
             const toastHtml = `
-                <div class="toast align-items-center text-white bg-${tipo === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast align-items-center text-white bg-${tipo === 'success' ? 'success' : (tipo === 'warning' ? 'warning' : 'danger')} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                     <div class="d-flex">
                         <div class="toast-body">
-                            <i class="fas fa-${tipo === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
+                            <i class="fas fa-${tipo === 'success' ? 'check' : (tipo === 'warning' ? 'exclamation-triangle' : 'times-circle')} me-2"></i>
                             ${mensagem}
                         </div>
                         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -996,6 +1104,75 @@
                 toast.remove();
             }, 5000);
         }
+        
+        // Verificar status da conversa ativa
+        function verificarStatusConversa() {
+            if (!conversaAtiva) {
+                return;
+            }
+            
+            $.ajax({
+                url: `<?= URL ?>/chat/status-conversa/${conversaAtiva}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const status = response.status;
+                        
+                        // Se conversa não está mais ativa, alertar
+                        if (!status.conversa_ativa) {
+                            mostrarToast('Conversa expirada! Envie um novo template para reiniciar o contato.', 'error');
+                            
+                            // Remover conversa da lista
+                            $(`.chat-item[data-conversa-id="${conversaAtiva}"]`).fadeOut();
+                            $('#chatActive').hide();
+                            $('#chatWelcome').show();
+                            conversaAtiva = null;
+                            return;
+                        }
+                        
+                        // Alertar se está próximo de expirar (menos de 1 hora)
+                        if (status.tempo_restante < 3600 && status.tempo_restante > 0) {
+                            const horas = Math.floor(status.tempo_restante / 3600);
+                            const minutos = Math.floor((status.tempo_restante % 3600) / 60);
+                            const tempoFormatado = horas > 0 ? `${horas}h ${minutos}m` : `${minutos}m`;
+                            
+                            // Mostrar alerta apenas uma vez por conversa
+                            if (!$(`.chat-item[data-conversa-id="${conversaAtiva}"]`).hasClass('alerta-expirar')) {
+                                $(`.chat-item[data-conversa-id="${conversaAtiva}"]`).addClass('alerta-expirar');
+                                mostrarToast(`Atenção: Conversa expira em ${tempoFormatado}`, 'warning');
+                            }
+                        }
+                        
+                        // Atualizar indicador visual se o contato ainda não respondeu
+                        if (!status.contato_respondeu) {
+                            $('#messageInput').attr('placeholder', 'Aguardando resposta do contato ao template...');
+                            $('#messageInput').prop('disabled', true);
+                            $('#btnEnviarMensagem').prop('disabled', true);
+                        } else {
+                            $('#messageInput').attr('placeholder', 'Digite sua mensagem...');
+                            $('#messageInput').prop('disabled', false);
+                            $('#btnEnviarMensagem').prop('disabled', false);
+                        }
+                    }
+                },
+                error: function() {
+                    // Ignorar erros na verificação de status
+                }
+            });
+        }
+        
+        // Verificar status das conversas a cada 5 minutos
+        setInterval(verificarStatusConversa, 5 * 60 * 1000);
+        
+        // Modificar a função abrirConversa existente para incluir verificação de status
+        const abrirConversaOriginal = abrirConversa;
+        abrirConversa = function(conversaId) {
+            // Chamar função original
+            abrirConversaOriginal(conversaId);
+            
+            // Verificar status da conversa após abrir
+            setTimeout(verificarStatusConversa, 1000);
+        };
     </script>
     
     <style>
