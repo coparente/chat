@@ -14,9 +14,9 @@ define('APPROOT', dirname(__FILE__));
  */
 define('HOST', $_ENV['DEV_DB_HOST'] ?? getenv('PROD_DB_HOST') ?: 'localhost');
 define('PORTA', intval($_ENV['DEV_DB_PORT'] ?? getenv('PROD_DB_PORT') ?: 3306));
-define('BANCO', $_ENV['DEV_DB_NAME'] ?? getenv('PROD_DB_NAME') ?: 'dir_judiciaria');
-define('USUARIO', $_ENV['DEV_DB_USERNAME'] ?? getenv('PROD_DB_USERNAME') ?: 'root');
-define('SENHA', $_ENV['DEV_DB_PASSWORD'] ?? getenv('PROD_DB_PASSWORD') ?: '');
+define('BANCO', $_ENV['DEV_DB_NAME'] ?? getenv('PROD_DB_NAME') ?: 'copare52_chat');
+define('USUARIO', $_ENV['DEV_DB_USERNAME'] ?? getenv('PROD_DB_USERNAME') ?: 'copare52_chat');
+define('SENHA', $_ENV['DEV_DB_PASSWORD'] ?? getenv('PROD_DB_PASSWORD') ?: 'YiYDW*3vLLKk');
 
 /**
  * Configurações da Aplicação

@@ -29,22 +29,22 @@
 </IfModule>
 
 # Bloquear acesso a arquivos sensíveis
-<FilesMatch "\.(env|log|sql|htaccess|htpasswd|ini|phps|fla|psd|log|sh)$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
+# <FilesMatch "\.(env|log|sql|htaccess|htpasswd|ini|phps|fla|psd|log|sh)$">
+#     Order Allow,Deny
+#     Deny from all
+# </FilesMatch>
 
 # Bloquear acesso às pastas de configuração
-RedirectMatch 403 ^/?(app|vendor|routes|storage|tests)/.*$
+# RedirectMatch 403 ^/?(app|vendor|routes|storage|tests)/.*$
 
 # Desabilitar listagem de diretórios
 Options -Indexes
 
 # Proteger diretório de uploads - bloquear execução de scripts
-<FilesMatch "^(uploads/).*\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
+# <FilesMatch "^(uploads/).*\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+#     Order Allow,Deny
+#     Deny from all
+# </FilesMatch>
 
 # ============================================================================
 # REWRITE RULES - Sistema de Rotas
