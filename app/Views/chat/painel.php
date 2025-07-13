@@ -1,20 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= APP_NOME ?> - Chat</title>
-    <link rel="icon" href="<?= Helper::asset('img/logo.png') ?>">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- CSS -->
-    <link rel="stylesheet" href="<?= Helper::asset('css/app.css') ?>">
-    <link rel="stylesheet" href="<?= Helper::asset('css/dashboard.css') ?>">
-</head>
+<?php include 'app/Views/include/head.php' ?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -142,10 +128,31 @@
                                     Nova
                                 </button>
                             </div>
+                            <div class="mt-2">
+                                <small class="text-muted" id="contadorConversas">
+                                    <?php 
+                                    $total_conversas = 0;
+                                    if (isset($minhas_conversas) && !empty($minhas_conversas)) {
+                                        $total_conversas = count($minhas_conversas);
+                                    } elseif (isset($conversas_ativas) && !empty($conversas_ativas)) {
+                                        $total_conversas = count($conversas_ativas);
+                                    }
+                                    ?>
+                                    Mostrando <?= $total_conversas ?> de <?= $total_conversas ?> conversas
+                                </small>
+                            </div>
                         </div>
                         
                         <!-- Filtros -->
                         <div class="chat-filters">
+                            <div class="mb-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="searchConversas" placeholder="Buscar conversas...">
+                                </div>
+                            </div>
                             <div class="btn-group w-100" role="group">
                                 <button type="button" class="btn btn-outline-primary active" data-filter="todas">
                                     Todas
@@ -461,7 +468,58 @@
                     buscarMensagensConversa(conversaAtiva);
                 }
             }, 5000);
+            
+            // Garantir que o layout seja recalculado quando a janela for redimensionada
+            $(window).on('resize', function() {
+                adjustChatLayout();
+            });
+            
+            // Inicializar layout
+            adjustChatLayout();
         });
+        
+        // Ajustar layout do chat
+        function adjustChatLayout() {
+            const chatContainer = $('.chat-container');
+            const windowHeight = $(window).height();
+            const headerHeight = $('.topbar').outerHeight() || 60;
+            const availableHeight = windowHeight - headerHeight - 20; // 20px margem
+            
+            chatContainer.css('height', `${availableHeight}px`);
+            
+            // Ajustar altura da lista de conversas
+            const sidebarHeader = $('.chat-sidebar-header').outerHeight() || 60;
+            const chatFilters = $('.chat-filters').outerHeight() || 100; // Aumentado para incluir o campo de busca
+            const chatListHeight = availableHeight - sidebarHeader - chatFilters - 20;
+            $('.chat-list').css('height', `${chatListHeight}px`);
+            
+            // Ajustar altura das mensagens se conversa estiver ativa
+            if (conversaAtiva) {
+                adjustMessagesHeight();
+            }
+        }
+        
+        // Ajustar altura da área de mensagens
+        function adjustMessagesHeight() {
+            const chatActive = $('.chat-active');
+            if (!chatActive.is(':visible')) return;
+            
+            const chatHeader = $('.chat-header').outerHeight() || 80;
+            const chatInputArea = $('.chat-input-area').outerHeight() || 120;
+            const chatActiveHeight = chatActive.height();
+            const messagesHeight = chatActiveHeight - chatHeader - chatInputArea - 20;
+            
+            $('.chat-messages').css('height', `${messagesHeight}px`);
+        }
+        
+        // Scroll para a última mensagem
+        function scrollToLastMessage() {
+            const messagesContainer = $('#chatMessages');
+            if (messagesContainer.length > 0) {
+                const scrollHeight = messagesContainer[0].scrollHeight;
+                messagesContainer.animate({ scrollTop: scrollHeight }, 300);
+            }
+        }
         
         // Configurar event listeners
         function setupEventListeners() {
@@ -520,6 +578,20 @@
                 filtrarConversas(filtro);
             });
             
+            // Busca de conversas
+            $('#searchConversas').on('input', function() {
+                const termo = $(this).val().toLowerCase();
+                buscarConversas(termo);
+            });
+            
+            // Limpar busca ao pressionar Escape
+            $('#searchConversas').on('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    $(this).val('');
+                    buscarConversas('');
+                }
+            });
+            
             // Assumir conversa
             $('#btnAssumirConversa').on('click', function() {
                 if (conversaAtiva) {
@@ -533,6 +605,34 @@
                     fecharConversa(conversaAtiva);
                 }
             });
+            
+            // Scroll automático na lista de conversas quando há muitas
+            $('.chat-list').on('scroll', function() {
+                const container = $(this);
+                const scrollTop = container.scrollTop();
+                const scrollHeight = container[0].scrollHeight;
+                const containerHeight = container.height();
+                
+                // Se está próximo do final, pode carregar mais conversas (futuro)
+                if (scrollTop + containerHeight >= scrollHeight - 50) {
+                    // Placeholder para carregamento de mais conversas
+                    console.log('Próximo do final da lista de conversas');
+                }
+            });
+            
+            // Auto-resize do textarea da mensagem
+            $('#messageInput').on('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                
+                // Limitar altura máxima
+                if (this.scrollHeight > 100) {
+                    this.style.height = '100px';
+                    this.style.overflowY = 'auto';
+                } else {
+                    this.style.overflowY = 'hidden';
+                }
+            });
         }
         
         // Inicializar chat
@@ -543,6 +643,9 @@
                 const primeiraConversa = $('.chat-item').first().data('conversa-id');
                 abrirConversa(primeiraConversa);
             }
+            
+            // Inicializar contador
+            atualizarContadorConversas();
         }
         
         // Abrir conversa
@@ -557,11 +660,36 @@
             $('#chatWelcome').hide();
             $('#chatActive').show();
             
+            // Ajustar layout após mostrar o chat
+            setTimeout(() => {
+                adjustMessagesHeight();
+            }, 100);
+            
             // Buscar dados da conversa
             buscarDadosConversa(conversaId);
             
             // Buscar mensagens
             buscarMensagensConversa(conversaId);
+            
+            // Scroll automático para a conversa ativa na lista
+            scrollToActiveChat();
+        }
+        
+        // Scroll para a conversa ativa na lista
+        function scrollToActiveChat() {
+            const activeChat = $('.chat-item.active');
+            if (activeChat.length > 0) {
+                const chatList = $('.chat-list');
+                const listHeight = chatList.height();
+                const itemTop = activeChat.position().top;
+                const itemHeight = activeChat.outerHeight();
+                
+                // Se o item não estiver visível, fazer scroll
+                if (itemTop < 0 || itemTop + itemHeight > listHeight) {
+                    const scrollTop = chatList.scrollTop() + itemTop - (listHeight / 2) + (itemHeight / 2);
+                    chatList.animate({ scrollTop: scrollTop }, 300);
+                }
+            }
         }
         
         // Buscar dados da conversa
@@ -607,6 +735,8 @@
         // Renderizar mensagens
         function renderizarMensagens(mensagens) {
             const container = $('#chatMessages');
+            const isAtBottom = isScrollAtBottom(container);
+            
             container.empty();
             
             if (mensagens.length === 0) {
@@ -638,8 +768,23 @@
                 container.append(messageHtml);
             });
             
-            // Scroll para o fim
-            container.scrollTop(container[0].scrollHeight);
+            // Scroll para o fim apenas se já estava no final ou se é a primeira vez
+            if (isAtBottom || mensagens.length === container.find('.message').length) {
+                setTimeout(() => {
+                    scrollToLastMessage();
+                }, 100);
+            }
+        }
+        
+        // Verificar se o scroll está no final
+        function isScrollAtBottom(container) {
+            if (container.length === 0) return true;
+            
+            const scrollTop = container.scrollTop();
+            const scrollHeight = container[0].scrollHeight;
+            const containerHeight = container.height();
+            
+            return scrollTop + containerHeight >= scrollHeight - 50;
         }
         
         // Enviar mensagem
@@ -655,6 +800,9 @@
                 mensagem: mensagem
             };
             
+            // Limpar input imediatamente para melhor UX
+            $('#messageInput').val('').css('height', 'auto');
+            
             $.ajax({
                 url: '<?= URL ?>/chat/enviar-mensagem',
                 method: 'POST',
@@ -662,10 +810,17 @@
                 contentType: 'application/json',
                 success: function(response) {
                     if (response.success) {
-                        $('#messageInput').val('');
+                        // Buscar mensagens atualizada
                         buscarMensagensConversa(conversaAtiva);
                         mostrarToast('Mensagem enviada!', 'success');
+                        
+                        // Garantir que o scroll vá para o final
+                        setTimeout(() => {
+                            scrollToLastMessage();
+                        }, 200);
                     } else {
+                        // Restaurar mensagem se houve erro
+                        $('#messageInput').val(mensagem);
                         mostrarToast(response.message, 'error');
                     }
                 },
@@ -675,6 +830,9 @@
                     console.log('TextStatus:', textStatus);
                     console.log('ErrorThrown:', errorThrown);
                     console.log('ResponseText:', xhr.responseText);
+                    
+                    // Restaurar mensagem em caso de erro
+                    $('#messageInput').val(mensagem);
                     
                     let mensagemErro = 'Erro ao enviar mensagem';
                     
@@ -702,6 +860,7 @@
                                             $('#chatActive').hide();
                                             $('#chatWelcome').show();
                                             conversaAtiva = null;
+                                            adjustChatLayout();
                                         }, 3000);
                                     }
                                 }
@@ -997,20 +1156,124 @@
             preview.show();
         }
         
-        // Filtrar conversas
+        // Atualizar contador de conversas
+        function atualizarContadorConversas() {
+            const totalConversas = $('.chat-item').length;
+            const conversasVisiveis = $('.chat-item:visible').length;
+            
+            $('#contadorConversas').text(`Mostrando ${conversasVisiveis} de ${totalConversas} conversas`);
+        }
+        
+        // Função para buscar conversas
+        function buscarConversas(termo) {
+            if (termo.trim() === '') {
+                // Se não há termo de busca, mostrar todas as conversas
+                $('.chat-item').show();
+                // Aplicar filtro ativo novamente
+                const filtroAtivo = $('.chat-filters .btn.active').data('filter');
+                filtrarConversas(filtroAtivo);
+                return;
+            }
+            
+            const termoLower = termo.toLowerCase();
+            let encontrouAlguma = false;
+            
+            $('.chat-item').each(function() {
+                const item = $(this);
+                const nome = item.find('.chat-name').text().toLowerCase();
+                const numero = item.find('.chat-last-message').text().toLowerCase();
+                const status = item.find('.chat-status .badge').text().toLowerCase();
+                
+                // Buscar em nome, número ou status
+                const encontrou = nome.includes(termoLower) || 
+                                numero.includes(termoLower) || 
+                                status.includes(termoLower);
+                
+                if (encontrou) {
+                    item.show();
+                    encontrouAlguma = true;
+                } else {
+                    item.hide();
+                }
+            });
+            
+            // Mostrar mensagem se não encontrou nada
+            if (!encontrouAlguma) {
+                mostrarMensagemNenhumaConversa();
+            } else {
+                removerMensagemNenhumaConversa();
+            }
+            
+            // Atualizar contador
+            atualizarContadorConversas();
+        }
+        
+        // Mostrar mensagem quando não há conversas na busca
+        function mostrarMensagemNenhumaConversa() {
+            if ($('.no-results-message').length === 0) {
+                const mensagem = `
+                    <div class="no-results-message empty-state">
+                        <i class="fas fa-search fa-3x text-muted"></i>
+                        <p class="text-muted mt-3">Nenhuma conversa encontrada</p>
+                        <small class="text-muted">
+                            Tente buscar por nome, número ou status
+                        </small>
+                    </div>
+                `;
+                $('.chat-list').append(mensagem);
+            }
+        }
+        
+        // Remover mensagem de busca vazia
+        function removerMensagemNenhumaConversa() {
+            $('.no-results-message').remove();
+        }
+        
+        // Filtrar conversas (atualizada)
         function filtrarConversas(filtro) {
+            // Remover mensagem de busca vazia
+            removerMensagemNenhumaConversa();
+            
+            const termoBusca = $('#searchConversas').val().trim();
+            
             $('.chat-item').each(function() {
                 const status = $(this).data('status');
                 let mostrar = true;
                 
+                // Aplicar filtro de status
                 if (filtro === 'ativas' && status !== 'aberto') {
                     mostrar = false;
                 } else if (filtro === 'pendentes' && status !== 'pendente') {
                     mostrar = false;
                 }
                 
+                // Se há busca ativa, aplicar também o filtro de busca
+                if (mostrar && termoBusca !== '') {
+                    const termoLower = termoBusca.toLowerCase();
+                    const nome = $(this).find('.chat-name').text().toLowerCase();
+                    const numero = $(this).find('.chat-last-message').text().toLowerCase();
+                    const statusTexto = $(this).find('.chat-status .badge').text().toLowerCase();
+                    
+                    const encontrou = nome.includes(termoLower) || 
+                                    numero.includes(termoLower) || 
+                                    statusTexto.includes(termoLower);
+                    
+                    if (!encontrou) {
+                        mostrar = false;
+                    }
+                }
+                
                 $(this).toggle(mostrar);
             });
+            
+            // Verificar se há conversas visíveis
+            const conversasVisiveis = $('.chat-item:visible').length;
+            if (conversasVisiveis === 0) {
+                mostrarMensagemNenhumaConversa();
+            }
+            
+            // Atualizar contador
+            atualizarContadorConversas();
         }
         
         // Assumir conversa
@@ -1191,16 +1454,46 @@
             padding: 1rem;
             border-bottom: 1px solid var(--border-color);
             background: var(--card-bg);
+            flex-shrink: 0;
         }
         
         .chat-filters {
             padding: 1rem;
             border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        
+        .chat-filters .input-group {
+            margin-bottom: 0.75rem;
+        }
+        
+        .chat-filters .input-group-text {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+        
+        .chat-filters #searchConversas {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .chat-filters #searchConversas:focus {
+            background-color: var(--card-bg);
+            border-color: var(--primary-color);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 0.2rem rgba(var(--primary-color), 0.25);
+        }
+        
+        .chat-filters #searchConversas::placeholder {
+            color: var(--text-muted);
         }
         
         .chat-list {
-            height: calc(100% - 140px);
+            height: calc(100% - 180px);
             overflow-y: auto;
+            flex: 1;
         }
         
         .chat-item {
@@ -1320,6 +1613,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            height: 100%;
+            min-height: 0; /* Important for flex containers */
         }
         
         .chat-header {
@@ -1329,6 +1624,8 @@
             padding: 1rem;
             border-bottom: 1px solid var(--border-color);
             background: var(--card-bg);
+            flex-shrink: 0; /* Prevent shrinking */
+            min-height: 80px; /* Fixed minimum height */
         }
         
         .chat-header-info {
@@ -1350,6 +1647,9 @@
             overflow-y: auto;
             padding: 1rem;
             background: var(--chat-bg);
+            min-height: 0; /* Important for flex containers */
+            /* Calculate available height minus header and input */
+            height: calc(100% - 80px - 120px);
         }
         
         .message {
@@ -1399,6 +1699,10 @@
             padding: 1rem;
             border-top: 1px solid var(--border-color);
             background: var(--card-bg);
+            flex-shrink: 0; /* Prevent shrinking */
+            min-height: 120px; /* Fixed minimum height */
+            position: relative;
+            bottom: 0;
         }
         
         .input-info {
@@ -1457,6 +1761,49 @@
             color: var(--text-muted);
         }
         
+        /* Sidebar com altura fixa para muitas conversas */
+        .chat-sidebar {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        /* Scroll personalizado para lista de conversas */
+        .chat-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-list::-webkit-scrollbar-track {
+            background: var(--card-bg);
+        }
+        
+        .chat-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        
+        .chat-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
+        
+        /* Scroll personalizado para mensagens */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--card-bg);
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
+        
         /* Responsividade */
         @media (max-width: 768px) {
             .chat-container {
@@ -1475,6 +1822,42 @@
             
             .message-content {
                 max-width: 85%;
+            }
+            
+            .chat-header {
+                min-height: 70px;
+            }
+            
+            .chat-input-area {
+                min-height: 100px;
+                padding: 0.75rem;
+            }
+            
+            .chat-messages {
+                height: calc(100% - 70px - 100px);
+                padding: 0.75rem;
+            }
+        }
+        
+        /* Garantir que em telas pequenas o input não desapareça */
+        @media (max-width: 576px) {
+            .chat-container {
+                height: calc(100vh - 80px);
+            }
+            
+            .chat-header {
+                min-height: 60px;
+                padding: 0.5rem;
+            }
+            
+            .chat-input-area {
+                min-height: 80px;
+                padding: 0.5rem;
+            }
+            
+            .chat-messages {
+                height: calc(100% - 60px - 80px);
+                padding: 0.5rem;
             }
         }
     </style>
