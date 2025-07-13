@@ -1,8 +1,0 @@
-[2025-07-12 20:33:48] Iniciando processamento de confirmações...
-[2025-07-12 20:33:48] Processamento concluído.
-[2025-07-12 20:35:00] Iniciando processamento de confirmações...
-[2025-07-12 20:35:00] Erro na confirmação de leitura: {"message_id":"test_message_confirmacao_123","status":"read","timestamp":"2025-07-12 20:35:00","action":"auto_confirm_error","error":"404 page not found"}
-[2025-07-12 20:35:00] Falha ao processar confirmação, reagendada: test_message_confirmacao_123
-[2025-07-12 20:35:00] Erro na confirmação de leitura: {"message_id":"test_message_confirmacao_123","status":"read","timestamp":"2025-07-12 20:35:00","action":"auto_confirm_error","error":"404 page not found"}
-[2025-07-12 20:35:00] Falha ao processar confirmação, reagendada: test_message_confirmacao_123
-[2025-07-12 20:35:00] Processamento concluído.
