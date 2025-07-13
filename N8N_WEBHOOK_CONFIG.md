@@ -1,16 +1,51 @@
 # Configuração do Webhook no n8n
 
-## Problema Identificado
+## 🔍 Diagnóstico do Problema
 
-O n8n está enviando templates não processados (`{{ $json.body.messaging_product }}`) em vez dos valores reais, o que indica que os dados não estão sendo processados corretamente.
+### Status dos Endpoints
+- ✅ **Webhook Principal**: `https://coparente.top/chat/webhook/serpro` - **FUNCIONANDO**
+- ✅ **Debug Geral**: `https://coparente.top/chat/webhook/serpro/debug` - **FUNCIONANDO**
+- ✅ **Debug N8N**: `https://coparente.top/chat/webhook/serpro/debug-n8n` - **FUNCIONANDO**
+- ✅ **Teste**: `https://coparente.top/chat/webhook/serpro/test` - **FUNCIONANDO**
 
-## URLs de Debug
+### Testes Realizados
+1. **Thunder Client** ✅ - Webhook funciona perfeitamente
+2. **PowerShell direto** ✅ - Webhook funciona perfeitamente
+3. **Curl direto** ✅ - Webhook funciona perfeitamente
+4. **n8n** ❌ - Retorna HTML da página de login
+
+### Conclusão
+O problema **NÃO** está no webhook do servidor, mas sim na configuração do n8n que está enviando a requisição de forma incorreta.
+
+## 🚨 Problema Identificado
+
+O n8n está enviando templates não processados (`{{ $json.body.messaging_product }}`) em vez dos valores reais, E além disso, pode estar enviando a requisição para uma URL incorreta ou com headers inadequados.
+
+## 🔧 URLs de Debug
 
 Para testar e debugar o webhook, use estas URLs:
 
-- **Debug POST**: `https://coparente.top/chat/webhook/serpro/debug`
-- **Debug GET**: `https://coparente.top/chat/webhook/serpro/debug`
+- **Debug N8N**: `https://coparente.top/chat/webhook/serpro/debug-n8n` (NOVO!)
+- **Debug Geral**: `https://coparente.top/chat/webhook/serpro/debug`
 - **Webhook Principal**: `https://coparente.top/chat/webhook/serpro`
+
+## 📋 Passos para Resolver
+
+### 1. Primeiro, teste o endpoint de debug do n8n
+Configure o n8n para enviar para: `https://coparente.top/chat/webhook/serpro/debug-n8n`
+
+### 2. Verifique os logs gerados
+Os logs serão salvos em: `logs/webhook_n8n_debug_YYYY-MM-DD_HH-MM-SS.log`
+
+### 3. Analise os dados capturados
+O endpoint de debug captura:
+- Headers completos
+- URL exata acessada
+- Método HTTP
+- Body da requisição
+- Todos os parâmetros
+
+### 4. Corrija a configuração baseada no debug
 
 ## Configuração Correta no n8n
 
