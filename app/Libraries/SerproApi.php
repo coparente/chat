@@ -711,7 +711,7 @@ class SerproApi
      */
     private function logDebug($titulo, $dados)
     {
-        if (defined('DEBUG') && DEBUG) {
+        if ((defined('APP_ENV') && APP_ENV === 'development')) {
             $logEntry = [
                 'timestamp' => date('Y-m-d H:i:s'),
                 'titulo' => $titulo,

@@ -22,9 +22,10 @@ class Webhook extends Controllers
 
     public function __construct()
     {
-        parent::__construct();
+        // NÃO chamar parent::__construct() para evitar verificações de autenticação
+        // Webhooks são endpoints públicos que não precisam de autenticação
         
-        // Inicializar models
+        // Inicializar models diretamente
         $this->conversaModel = $this->model('ConversaModel');
         $this->mensagemModel = $this->model('MensagemModel');
         $this->contatoModel = $this->model('ContatoModel');
