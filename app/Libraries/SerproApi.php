@@ -718,6 +718,7 @@ class SerproApi
                 'dados' => $dados
             ];
             
+            
             $logFile = 'logs/serpro_debug.log';
             $logDir = dirname($logFile);
             
