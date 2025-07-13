@@ -38,6 +38,8 @@ Route::get('/webhook/whatsapp', 'Webhook@verificarWebhook');
 // WEBHOOKS SERPRO - Recebimento de mensagens da API Serpro
 Route::post('/webhook/serpro', 'Webhook@serpro');
 Route::get('/webhook/serpro/test', 'Webhook@test');
+Route::post('/webhook/serpro/debug', 'Webhook@debug');
+Route::get('/webhook/serpro/debug', 'Webhook@debug');
 
 // ============================================================================
 // ROTAS PROTEGIDAS - SISTEMA DE CHAT

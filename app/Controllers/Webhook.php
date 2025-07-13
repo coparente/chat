@@ -644,6 +644,55 @@ class Webhook extends Controllers
     }
 
     /**
+     * [ debug ] - Endpoint para debug dos dados recebidos
+     */
+    public function debug()
+    {
+        // Limpar qualquer output buffer e definir headers
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+        
+        // Coletar todas as informações possíveis
+        $debugData = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'method' => $_SERVER['REQUEST_METHOD'],
+            'uri' => $_SERVER['REQUEST_URI'],
+            'headers' => getallheaders(),
+            'raw_body' => file_get_contents('php://input'),
+            'parsed_body' => json_decode(file_get_contents('php://input'), true),
+            'get_params' => $_GET,
+            'post_params' => $_POST,
+            'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            'remote_addr' => $_SERVER['REMOTE_ADDR'] ?? null
+        ];
+        
+        // Salvar log detalhado
+        $logFile = dirname(__DIR__, 2) . '/logs/webhook_debug_' . date('Y-m-d') . '.log';
+        
+        // Criar diretório de logs se não existir
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        
+        file_put_contents($logFile, json_encode($debugData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND | LOCK_EX);
+        
+        // Responder com os dados recebidos
+        echo json_encode([
+            'success' => true,
+            'message' => 'Debug webhook - dados capturados',
+            'data_received' => $debugData
+        ], JSON_PRETTY_PRINT);
+        
+        exit;
+    }
+
+    /**
      * [ test ] - Endpoint para testar webhook
      */
     public function test()
