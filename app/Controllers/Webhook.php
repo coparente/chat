@@ -709,5 +709,110 @@ class Webhook extends Controllers
         
         exit;
     }
+
+    /**
+     * [ debugN8n ] - Endpoint específico para debug do n8n
+     */
+    public function debugN8n()
+    {
+        // Limpar qualquer output buffer e definir headers
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        
+        // Tratar OPTIONS (preflight)
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit;
+        }
+        
+        // Coletar TODOS os dados possíveis
+        $debugData = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'method' => $_SERVER['REQUEST_METHOD'],
+            'uri' => $_SERVER['REQUEST_URI'],
+            'full_url' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
+            'headers' => [],
+            'raw_body' => file_get_contents('php://input'),
+            'parsed_body' => json_decode(file_get_contents('php://input'), true),
+            'get_params' => $_GET,
+            'post_params' => $_POST,
+            'files' => $_FILES,
+            'cookies' => $_COOKIE,
+            'session' => $_SESSION ?? [],
+            'server_vars' => [
+                'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'] ?? null,
+                'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? null,
+                'HTTP_HOST' => $_SERVER['HTTP_HOST'] ?? null,
+                'HTTP_USER_AGENT' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                'HTTP_ACCEPT' => $_SERVER['HTTP_ACCEPT'] ?? null,
+                'HTTP_AUTHORIZATION' => $_SERVER['HTTP_AUTHORIZATION'] ?? null,
+                'CONTENT_TYPE' => $_SERVER['CONTENT_TYPE'] ?? null,
+                'CONTENT_LENGTH' => $_SERVER['CONTENT_LENGTH'] ?? null,
+                'REMOTE_ADDR' => $_SERVER['REMOTE_ADDR'] ?? null,
+                'HTTP_X_FORWARDED_FOR' => $_SERVER['HTTP_X_FORWARDED_FOR'] ?? null,
+                'HTTP_X_REAL_IP' => $_SERVER['HTTP_X_REAL_IP'] ?? null,
+                'QUERY_STRING' => $_SERVER['QUERY_STRING'] ?? null,
+                'SCRIPT_NAME' => $_SERVER['SCRIPT_NAME'] ?? null,
+                'PATH_INFO' => $_SERVER['PATH_INFO'] ?? null,
+                'PHP_SELF' => $_SERVER['PHP_SELF'] ?? null,
+                'REQUEST_TIME' => $_SERVER['REQUEST_TIME'] ?? null,
+                'REQUEST_TIME_FLOAT' => $_SERVER['REQUEST_TIME_FLOAT'] ?? null,
+            ]
+        ];
+        
+        // Capturar todos os headers
+        if (function_exists('getallheaders')) {
+            $debugData['headers'] = getallheaders();
+        } else {
+            // Fallback para quando getallheaders não está disponível
+            foreach ($_SERVER as $key => $value) {
+                if (substr($key, 0, 5) === 'HTTP_') {
+                    $header = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                    $debugData['headers'][$header] = $value;
+                }
+            }
+        }
+        
+        // Salvar log super detalhado
+        $logFile = dirname(__DIR__, 2) . '/logs/webhook_n8n_debug_' . date('Y-m-d_H-i-s') . '.log';
+        
+        // Criar diretório de logs se não existir
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        
+        file_put_contents($logFile, json_encode($debugData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
+        
+        // Responder com dados super detalhados
+        $response = [
+            'success' => true,
+            'message' => 'Debug N8N - dados capturados com sucesso',
+            'debug_info' => [
+                'endpoint' => 'debugN8n',
+                'working' => true,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'php_version' => phpversion(),
+                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'unknown'
+            ],
+            'data_received' => $debugData,
+            'recommendations' => [
+                'check_url' => 'Verifique se a URL está correta: https://coparente.top/chat/webhook/serpro',
+                'check_method' => 'Use método POST',
+                'check_content_type' => 'Use Content-Type: application/json',
+                'check_body' => 'Envie dados no formato JSON válido'
+            ]
+        ];
+        
+        echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 }
 ?> 

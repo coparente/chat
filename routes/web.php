@@ -40,6 +40,8 @@ Route::post('/webhook/serpro', 'Webhook@serpro');
 Route::get('/webhook/serpro/test', 'Webhook@test');
 Route::post('/webhook/serpro/debug', 'Webhook@debug');
 Route::get('/webhook/serpro/debug', 'Webhook@debug');
+Route::post('/webhook/serpro/debug-n8n', 'Webhook@debugN8n');
+Route::get('/webhook/serpro/debug-n8n', 'Webhook@debugN8n');
 
 // ============================================================================
 // ROTAS PROTEGIDAS - SISTEMA DE CHAT
