@@ -77,8 +77,10 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/buscar-mensagens/{conversa_id}', 'Chat@buscarMensagens');
         Route::post('/marcar-lida/{mensagem_id}', 'Chat@marcarComoLida');
         
-        // Status das conversas
+        // Status das conversas e mensagens
         Route::get('/status-conversa/{conversa_id}', 'Chat@statusConversa');
+        Route::get('/verificar-status-mensagens/{conversa_id}', 'Chat@verificarStatusMensagens');
+        Route::post('/atualizar-status-mensagem', 'Chat@atualizarStatusMensagem');
         
         // Templates
         Route::post('/iniciar/{contato_id}', 'Chat@iniciarConversa');

@@ -603,6 +603,140 @@ class Chat extends Controllers
     }
 
     /**
+     * [ verificarStatusMensagens ] - Verifica status atualizado das mensagens via API Serpro
+     */
+    public function verificarStatusMensagens($conversaId)
+    {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if (!$conversaId || !is_numeric($conversaId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+            exit;
+        }
+
+        // Buscar mensagens com idRequisicao
+        $mensagensComId = $this->mensagemModel->buscarMensagensComIdRequisicao($conversaId);
+        
+        if (empty($mensagensComId)) {
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'mensagens' => [],
+                'message' => 'Nenhuma mensagem para verificar'
+            ]);
+            exit;
+        }
+
+        $mensagensStatus = [];
+        $consultasRealizadas = 0;
+        $consultasComSucesso = 0;
+
+        // Consultar status de cada requisição via API Serpro
+        foreach ($mensagensComId as $mensagem) {
+            $idRequisicao = $mensagem['id_requisicao'];
+            
+            try {
+                $consultasRealizadas++;
+                $resultadoConsulta = $this->serproApi->consultarStatus($idRequisicao);
+                
+                if ($resultadoConsulta['status'] >= 200 && $resultadoConsulta['status'] < 300) {
+                    $consultasComSucesso++;
+                    $responseData = $resultadoConsulta['response'];
+                    
+                    // Mapear status das requisições de envio
+                    $statusMapeados = [];
+                    if (isset($responseData['requisicoesEnvio']) && is_array($responseData['requisicoesEnvio'])) {
+                        foreach ($responseData['requisicoesEnvio'] as $requisicao) {
+                            $destinatario = $requisicao['destinatario'];
+                            $status = 'enviando'; // Status padrão
+                            
+                            // Mapear status baseado nos campos da API
+                            if (!empty($requisicao['read'])) {
+                                $status = 'lido';
+                            } elseif (!empty($requisicao['delivered'])) {
+                                $status = 'entregue';
+                            } elseif (!empty($requisicao['sent'])) {
+                                $status = 'enviado';
+                            } elseif (!empty($requisicao['failed'])) {
+                                $status = 'erro';
+                            } elseif (!empty($requisicao['deleted'])) {
+                                $status = 'erro';
+                            }
+                            
+                            $statusMapeados[$destinatario] = $status;
+                        }
+                    }
+                    
+                    // Determinar o status da mensagem (usar o primeiro destinatário como referência)
+                    $novoStatus = reset($statusMapeados) ?: $mensagem['status_entrega'];
+                    
+                    // Atualizar no banco se o status mudou
+                    if ($novoStatus !== $mensagem['status_entrega']) {
+                        if ($mensagem['serpro_message_id']) {
+                            $this->mensagemModel->atualizarStatusPorSerproId($mensagem['serpro_message_id'], $novoStatus);
+                        } else {
+                            $this->mensagemModel->atualizarStatusEntrega($mensagem['id'], $novoStatus);
+                        }
+                    }
+                    
+                    $mensagensStatus[] = [
+                        'id' => $mensagem['id'],
+                        'status_entrega' => $novoStatus,
+                        'serpro_message_id' => $mensagem['serpro_message_id'],
+                        'status_anterior' => $mensagem['status_entrega'],
+                        'atualizado' => $novoStatus !== $mensagem['status_entrega'],
+                        'id_requisicao' => $idRequisicao,
+                        'destinatarios_status' => $statusMapeados
+                    ];
+                    
+                } else {
+                    // Erro na consulta, manter status atual
+                    $mensagensStatus[] = [
+                        'id' => $mensagem['id'],
+                        'status_entrega' => $mensagem['status_entrega'],
+                        'serpro_message_id' => $mensagem['serpro_message_id'],
+                        'status_anterior' => $mensagem['status_entrega'],
+                        'atualizado' => false,
+                        'id_requisicao' => $idRequisicao,
+                        'erro_consulta' => $resultadoConsulta['error'] ?? 'Erro na consulta'
+                    ];
+                }
+                
+            } catch (Exception $e) {
+                $mensagensStatus[] = [
+                    'id' => $mensagem['id'],
+                    'status_entrega' => $mensagem['status_entrega'],
+                    'serpro_message_id' => $mensagem['serpro_message_id'],
+                    'status_anterior' => $mensagem['status_entrega'],
+                    'atualizado' => false,
+                    'id_requisicao' => $idRequisicao,
+                    'erro_exception' => $e->getMessage()
+                ];
+            }
+        }
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'mensagens' => $mensagensStatus,
+            'consulta_api' => true,
+            'total_mensagens' => count($mensagensComId),
+            'consultas_realizadas' => $consultasRealizadas,
+            'consultas_sucesso' => $consultasComSucesso,
+            'taxa_sucesso' => $consultasRealizadas > 0 ? round(($consultasComSucesso / $consultasRealizadas) * 100, 2) : 0
+        ]);
+        
+        exit;
+    }
+    
+    /**
      * [ statusConversa ] - Verifica status da conversa (se pode enviar mensagens livres)
      */
     public function statusConversa($conversaId)
@@ -621,27 +755,86 @@ class Chat extends Controllers
             exit;
         }
 
-        // Verificar se a conversa existe
-        $conversa = $this->verificarConversa($conversaId);
-        
+        $conversa = $this->conversaModel->buscarPorId($conversaId);
         if (!$conversa) {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
             exit;
         }
 
-        $status = [
-            'conversa_ativa' => $this->conversaAindaAtiva($conversa),
-            'contato_respondeu' => $this->contatoJaRespondeu($conversaId),
-            'pode_enviar_mensagem_livre' => $this->podeEnviarMensagemLivre($conversaId, $conversa),
-            'tempo_restante' => $this->calcularTempoRestante($conversa)
-        ];
+        $conversaAtiva = $this->conversaAindaAtiva($conversa);
+        $contatoRespondeu = $this->contatoJaRespondeu($conversaId);
+        $tempoRestante = $this->calcularTempoRestante($conversa);
 
         http_response_code(200);
         echo json_encode([
             'success' => true,
-            'status' => $status
+            'status' => [
+                'conversa_ativa' => $conversaAtiva,
+                'contato_respondeu' => $contatoRespondeu,
+                'tempo_restante' => $tempoRestante
+            ]
         ]);
+        
+        exit;
+    }
+    
+    /**
+     * [ atualizarStatusMensagem ] - Atualiza status de entrega de uma mensagem
+     */
+    public function atualizarStatusMensagem()
+    {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        // Verificar se é POST
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
+            exit;
+        }
+
+        // Pegar dados do JSON
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input || !isset($input['serpro_message_id']) || !isset($input['status'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
+            exit;
+        }
+
+        $serproMessageId = $input['serpro_message_id'];
+        $novoStatus = $input['status'];
+
+        // Validar status
+        $statusPermitidos = ['enviando', 'enviado', 'entregue', 'lido', 'erro'];
+        if (!in_array($novoStatus, $statusPermitidos)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Status inválido']);
+            exit;
+        }
+
+        // Atualizar mensagem no banco
+        $resultado = $this->mensagemModel->atualizarStatusPorSerproId($serproMessageId, $novoStatus);
+        
+        if ($resultado) {
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Status atualizado com sucesso'
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro ao atualizar status'
+            ]);
+        }
         
         exit;
     }

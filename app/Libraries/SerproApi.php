@@ -471,6 +471,45 @@ class SerproApi
     }
 
     /**
+     * [ mapearStatusRequisicao ] - Mapeia status da requisição para nosso sistema
+     * 
+     * @param array $requisicoesEnvio Array de requisições de envio
+     * @return array Status mapeados por destinatário
+     */
+    private function mapearStatusRequisicao($requisicoesEnvio)
+    {
+        $statusMapeados = [];
+        
+        foreach ($requisicoesEnvio as $requisicao) {
+            $destinatario = $requisicao['destinatario'];
+            $status = 'enviando'; // Status padrão
+            
+            // Mapear status baseado nos campos da API
+            if (!empty($requisicao['read'])) {
+                $status = 'lido';
+            } elseif (!empty($requisicao['delivered'])) {
+                $status = 'entregue';
+            } elseif (!empty($requisicao['sent'])) {
+                $status = 'enviado';
+            } elseif (!empty($requisicao['failed'])) {
+                $status = 'erro';
+            } elseif (!empty($requisicao['deleted'])) {
+                $status = 'erro';
+            }
+            
+            $statusMapeados[$destinatario] = [
+                'status' => $status,
+                'id_meta' => $requisicao['idMeta'] ?? null,
+                'erro' => $requisicao['mensagemErro'] ?? null,
+                'timestamp_envio' => $requisicao['timestampEnvioApi'] ?? null,
+                'timestamp_processamento' => $requisicao['timestampProcessamentoStatusApi'] ?? null
+            ];
+        }
+        
+        return $statusMapeados;
+    }
+
+    /**
      * [ consultarStatus ] - Consulta status de uma requisição
      * 
      * @param string $idRequisicao ID da requisição

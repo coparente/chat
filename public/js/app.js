@@ -27,44 +27,6 @@ const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstra
     }
 }));
 
-// Aguarda o carregamento completo da página
-$(document).ready(function() {
-    // Inicializa Select2
-    $('.select2').select2({
-        theme: 'bootstrap-5',
-        minimumInputLength: 2,
-        language: 'pt-BR',
-    });
-
-    // Função para aumentar/diminuir fonte
-    let fontSize = localStorage.getItem('fontSize') || 16;
-    $('body').css('font-size', fontSize + 'px');
-
-    // Função para salvar o tamanho da fonte
-    function saveFontSize(size) {
-        localStorage.setItem('fontSize', size);
-        $('body').css('font-size', size + 'px');
-    }
-
-    $('#aumentarFonte').click(function() {
-        if (fontSize < 20) {
-            fontSize = parseInt(fontSize) + 2;
-            saveFontSize(fontSize);
-        }
-    });
-
-    $('#diminuirFonte').click(function() {
-        if (fontSize > 12) {
-            fontSize = parseInt(fontSize) - 2;
-            saveFontSize(fontSize);
-        }
-    });
-
-    // Debug - Log para verificar se o script está funcionando
-    console.log('App.js carregado com sucesso');
-    console.log('jQuery version:', $.fn.jquery);
-});
-
 // Dark Mode - Sistema Bootstrap 5 (funciona sem jQuery)
 function setTheme(theme) {
     document.documentElement.setAttribute('data-bs-theme', theme);
@@ -120,62 +82,5 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Dark mode inicializado com sucesso!');
 });
 
-// Função para limpar os campos de pesquisa
-function limparCampos() {
-    document.getElementById('numero_processo').value = '';
-    document.getElementById('numero_guia').value = '';
-}
 
-// Função para validar CPF/CNPJ
-$("#cpfcnpj").keydown(function () {
-    try {
-        $("#cpfcnpj").unmask();
-    } catch (e) { }
-
-    var tamanho = $("#cpfcnpj").val().length;
-
-    if (tamanho < 11) {
-        $("#cpfcnpj").mask("999.999.999-99");
-    } else {
-        $("#cpfcnpj").mask("99.999.999/9999-99");
-    }
-    
-    var elem = this;
-    setTimeout(function () {
-        elem.selectionStart = elem.selectionEnd = 10000;
-    }, 0);
-    
-    var currentValue = $(this).val();
-    $(this).val('');
-    $(this).val(currentValue);
-});
-
-// Mascara o cpfcnpj editar parte
-$("#cpfcnpjEditar").keydown(function () {
-    try {
-        $("#cpfcnpjEditar").unmask();
-    } catch (e) { }
-
-    var tamanho = $("#cpfcnpjEditar").val().length;
-
-    if (tamanho < 11) {
-        $("#cpfcnpjEditar").mask("999.999.999-99");
-    } else {
-        $("#cpfcnpjEditar").mask("99.999.999/9999-99");
-    }
-    
-    var elem = this;
-    setTimeout(function () {
-        elem.selectionStart = elem.selectionEnd = 10000;
-    }, 0);
-    
-    var currentValue = $(this).val();
-    $(this).val('');
-    $(this).val(currentValue);
-});
-
-// Máscaras para formulários
-$("#telefone, #telefoneEditar").mask("(00) 00000-0000");
-$("#n_processo").mask("9999999-99.9999.9.99.9999");
-$("#n_guia").mask("99999999-9/99");
 

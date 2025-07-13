@@ -262,9 +262,6 @@ class MensagemModel
 
     /**
      * [ buscarPorSerproId ] - Busca mensagem pelo ID do Serpro
-     * 
-     * @param string $serproId ID da mensagem na API Serpro
-     * @return object|null Mensagem encontrada ou null
      */
     public function buscarPorSerproId($serproId)
     {
@@ -272,5 +269,105 @@ class MensagemModel
         $this->db->query($sql);
         $this->db->bind(':serpro_id', $serproId);
         return $this->db->resultado();
+    }
+    
+    /**
+     * [ buscarMensagensComIdRequisicao ] - Busca mensagens de saída com idRequisicao
+     * 
+     * @param int $conversaId ID da conversa
+     * @return array Lista de mensagens com idRequisicao
+     */
+    public function buscarMensagensComIdRequisicao($conversaId)
+    {
+        $sql = "
+            SELECT 
+                m.id,
+                m.serpro_message_id,
+                m.status_entrega,
+                m.metadata,
+                m.criado_em
+            FROM mensagens m
+            WHERE m.conversa_id = :conversa_id 
+            AND m.direcao = 'saida'
+            AND m.metadata IS NOT NULL
+            ORDER BY m.criado_em DESC
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        $mensagens = $this->db->resultados();
+        
+        // Extrair idRequisicao do metadata (buscar em diferentes estruturas)
+        $mensagensComId = [];
+        foreach ($mensagens as $mensagem) {
+            $metadata = json_decode($mensagem->metadata, true);
+            $idRequisicao = null;
+            
+            // Tentar diferentes estruturas para encontrar idRequisicao
+            if (isset($metadata['serpro_response']['idRequisicao'])) {
+                $idRequisicao = $metadata['serpro_response']['idRequisicao'];
+            } elseif (isset($metadata['serpro_response']['id'])) {
+                // Algumas APIs podem usar 'id' em vez de 'idRequisicao'
+                $idRequisicao = $metadata['serpro_response']['id'];
+            } elseif (isset($metadata['idRequisicao'])) {
+                // idRequisicao pode estar diretamente no metadata
+                $idRequisicao = $metadata['idRequisicao'];
+            } elseif (isset($metadata['id'])) {
+                // id pode estar diretamente no metadata
+                $idRequisicao = $metadata['id'];
+            }
+            
+            if ($idRequisicao) {
+                $mensagensComId[] = [
+                    'id' => $mensagem->id,
+                    'serpro_message_id' => $mensagem->serpro_message_id,
+                    'status_entrega' => $mensagem->status_entrega,
+                    'id_requisicao' => $idRequisicao,
+                    'criado_em' => $mensagem->criado_em,
+                    'metadata_structure' => $this->detectarEstrutura($metadata)
+                ];
+            }
+        }
+        
+        return $mensagensComId;
+    }
+    
+    /**
+     * [ detectarEstrutura ] - Detecta a estrutura do metadata para debug
+     * 
+     * @param array $metadata Metadata da mensagem
+     * @return string Descrição da estrutura
+     */
+    private function detectarEstrutura($metadata)
+    {
+        if (isset($metadata['serpro_response']['idRequisicao'])) {
+            return 'serpro_response.idRequisicao';
+        } elseif (isset($metadata['serpro_response']['id'])) {
+            return 'serpro_response.id';
+        } elseif (isset($metadata['idRequisicao'])) {
+            return 'metadata.idRequisicao';
+        } elseif (isset($metadata['id'])) {
+            return 'metadata.id';
+        } elseif (isset($metadata['serpro_response'])) {
+            return 'serpro_response (sem id): ' . implode(', ', array_keys($metadata['serpro_response']));
+        } else {
+            return 'metadata: ' . implode(', ', array_keys($metadata));
+        }
+    }
+    
+    /**
+     * [ atualizarStatusPorSerproId ] - Atualiza status de entrega pelo ID do Serpro
+     * 
+     * @param string $serproId ID da mensagem no Serpro
+     * @param string $status Novo status (enviando, enviado, entregue, lido, erro)
+     * @return bool Resultado da operação
+     */
+    public function atualizarStatusPorSerproId($serproId, $status)
+    {
+        $sql = "UPDATE mensagens SET status_entrega = :status WHERE serpro_message_id = :serpro_id";
+        $this->db->query($sql);
+        $this->db->bind(':status', $status);
+        $this->db->bind(':serpro_id', $serproId);
+        return $this->db->executa();
     }
 } 
