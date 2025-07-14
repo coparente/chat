@@ -866,13 +866,129 @@
                     statusIcon = gerarIconeStatus(mensagem.status_entrega || 'enviando');
                 }
                 
+                // Gerar conteúdo da mensagem baseado no tipo
+                let messageContent = '';
+                
+                // CORREÇÃO: Determinar tipo real da mensagem
+                let tipoReal = mensagem.tipo;
+                if (!tipoReal && mensagem.midia_tipo) {
+                    // Se tipo estiver vazio, determinar baseado no midia_tipo
+                    if (mensagem.midia_tipo.startsWith('image/')) {
+                        tipoReal = 'image';
+                    } else if (mensagem.midia_tipo.startsWith('audio/')) {
+                        tipoReal = 'audio';
+                    } else if (mensagem.midia_tipo.startsWith('video/')) {
+                        tipoReal = 'video';
+                    } else {
+                        tipoReal = 'document';
+                    }
+                }
+                
+                if (tipoReal === 'texto' || tipoReal === 'text') {
+                    messageContent = `<div class="message-text">${mensagem.conteudo}</div>`;
+                } else if (tipoReal === 'image' && mensagem.midia_url) {
+                    // Verificar se é caminho do MinIO (começa com pasta do MinIO)
+                    let imageSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        // É caminho do MinIO, usar media.php
+                        imageSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    messageContent = `
+                        <div class="message-media">
+                            <img src="${imageSrc}" alt="Imagem" class="message-image" 
+                                 onclick="visualizarMidia('${imageSrc}', 'image', '${mensagem.midia_nome || 'Imagem'}')"
+                                 onerror="this.src='<?= Helper::asset('img/image-error.png') ?>'; this.onerror=null;">
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else if (tipoReal === 'audio' && mensagem.midia_url) {
+                    // Verificar se é caminho do MinIO
+                    let audioSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        // É caminho do MinIO, usar media.php
+                        audioSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    messageContent = `
+                        <div class="message-media">
+                            <div class="audio-player">
+                                <audio controls preload="metadata">
+                                    <source src="${audioSrc}" type="${mensagem.midia_tipo || 'audio/mpeg'}">
+                                    Seu navegador não suporta o elemento de áudio.
+                                </audio>
+                                <div class="audio-info">
+                                    <i class="fas fa-music"></i>
+                                    <span>${mensagem.midia_nome || 'Áudio'}</span>
+                                </div>
+                            </div>
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else if (tipoReal === 'video' && mensagem.midia_url) {
+                    // Verificar se é caminho do MinIO
+                    let videoSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        // É caminho do MinIO, usar media.php
+                        videoSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    messageContent = `
+                        <div class="message-media">
+                            <video controls preload="metadata" class="message-video">
+                                <source src="${videoSrc}" type="${mensagem.midia_tipo || 'video/mp4'}">
+                                Seu navegador não suporta o elemento de vídeo.
+                            </video>
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else if (tipoReal === 'document' && mensagem.midia_url) {
+                    // Verificar se é caminho do MinIO
+                    let documentSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        // É caminho do MinIO, usar media.php
+                        documentSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    const fileIcon = obterIconeArquivo(mensagem.midia_tipo || '', mensagem.midia_nome || '');
+                    messageContent = `
+                        <div class="message-media">
+                            <div class="document-preview" onclick="window.open('${documentSrc}', '_blank')">
+                                <div class="document-icon">
+                                    <i class="fas ${fileIcon}"></i>
+                                </div>
+                                <div class="document-info">
+                                    <div class="document-name">${mensagem.midia_nome || 'Documento'}</div>
+                                    <div class="document-type">${obterTipoArquivo(mensagem.midia_tipo || '')}</div>
+                                </div>
+                                <div class="document-action">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                            </div>
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    // Fallback para mensagens sem mídia ou mídia não encontrada
+                    messageContent = `<div class="message-text">${mensagem.conteudo}</div>`;
+                }
+                
                 const messageHtml = `
                     <div class="message ${messageClass}" 
                          data-message-id="${mensagem.id}" 
                          data-serpro-id="${mensagem.serpro_message_id || ''}"
-                         data-status="${mensagem.status_entrega || 'enviando'}">
+                         data-status="${mensagem.status_entrega || 'enviando'}"
+                         data-tipo="${tipoReal}">
                         <div class="message-content">
-                            <div class="message-text">${mensagem.conteudo}</div>
+                            ${messageContent}
                             <div class="message-time">
                                 ${formatarTempo(mensagem.criado_em)}
                                 ${statusIcon}
@@ -897,6 +1013,85 @@
             // }, 500);
         }
         
+        // Função auxiliar para obter ícone do arquivo
+        function obterIconeArquivo(mimeType, fileName) {
+            const extension = fileName.split('.').pop().toLowerCase();
+            
+            if (mimeType.includes('pdf') || extension === 'pdf') {
+                return 'fa-file-pdf text-danger';
+            } else if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) {
+                return 'fa-file-word text-primary';
+            } else if (mimeType.includes('excel') || ['xls', 'xlsx'].includes(extension)) {
+                return 'fa-file-excel text-success';
+            } else if (mimeType.includes('powerpoint') || ['ppt', 'pptx'].includes(extension)) {
+                return 'fa-file-powerpoint text-warning';
+            } else if (mimeType.includes('text') || extension === 'txt') {
+                return 'fa-file-alt text-secondary';
+            } else if (mimeType.includes('zip') || mimeType.includes('rar') || ['zip', 'rar'].includes(extension)) {
+                return 'fa-file-archive text-info';
+            } else {
+                return 'fa-file text-muted';
+            }
+        }
+        
+        // Função auxiliar para obter tipo do arquivo
+        function obterTipoArquivo(mimeType) {
+            if (mimeType.includes('pdf')) return 'PDF';
+            if (mimeType.includes('word')) return 'Word';
+            if (mimeType.includes('excel')) return 'Excel';
+            if (mimeType.includes('powerpoint')) return 'PowerPoint';
+            if (mimeType.includes('text')) return 'Texto';
+            if (mimeType.includes('zip')) return 'ZIP';
+            if (mimeType.includes('rar')) return 'RAR';
+            return 'Arquivo';
+        }
+        
+        // Função para visualizar mídia em modal
+        function visualizarMidia(url, tipo, nome) {
+            const modalHtml = `
+                <div class="modal fade" id="midiaModal" tabindex="-1" aria-labelledby="midiaModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="midiaModalLabel">
+                                    <i class="fas fa-image me-2"></i>
+                                    ${nome}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <img src="${url}" class="img-fluid" alt="${nome}" style="max-height: 70vh;">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-2"></i>
+                                    Fechar
+                                </button>
+                                <a href="${url}" target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-2"></i>
+                                    Abrir em nova aba
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remover modal anterior se existir
+            $('#midiaModal').remove();
+            
+            // Adicionar novo modal
+            $('body').append(modalHtml);
+            
+            // Mostrar modal
+            $('#midiaModal').modal('show');
+            
+            // Remover modal após fechar
+            $('#midiaModal').on('hidden.bs.modal', function() {
+                $(this).remove();
+            });
+        }
+
         // Gerar ícone de status da mensagem
         function gerarIconeStatus(status) {
             switch (status) {
@@ -2082,6 +2277,221 @@
                 height: calc(100% - 60px - 80px);
                 padding: 0.5rem;
             }
+        }
+
+        /* ============================================================================
+           ESTILOS PARA MÍDIAS - MINÍO
+           ============================================================================ */
+        
+        /* Container geral para mídias */
+        .message-media {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Imagens */
+        .message-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: block;
+        }
+
+        .message-image:hover {
+            transform: scale(1.02);
+        }
+
+        /* Vídeos */
+        .message-video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 0.5rem;
+            display: block;
+        }
+
+        /* Player de áudio */
+        .audio-player {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .audio-player audio {
+            width: 100%;
+            max-width: 300px;
+            height: 40px;
+        }
+
+        .audio-info {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .audio-info i {
+            margin-right: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        /* Preview de documentos */
+        .document-preview {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-bottom: 0.5rem;
+        }
+
+        .document-preview:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .document-icon {
+            font-size: 2rem;
+            margin-right: 0.75rem;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            word-break: break-word;
+        }
+
+        .document-type {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .document-action {
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            margin-left: 0.5rem;
+        }
+
+        /* Legendas de mídia */
+        .message-caption {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        /* Mensagens com mídia - ajustes específicos */
+        .message[data-tipo="image"] .message-content,
+        .message[data-tipo="video"] .message-content,
+        .message[data-tipo="audio"] .message-content,
+        .message[data-tipo="document"] .message-content {
+            padding: 0.5rem;
+        }
+
+        /* Mensagens de mídia - largura máxima */
+        .message[data-tipo="image"] .message-content,
+        .message[data-tipo="video"] .message-content {
+            max-width: 400px;
+        }
+
+        .message[data-tipo="audio"] .message-content,
+        .message[data-tipo="document"] .message-content {
+            max-width: 350px;
+        }
+
+        /* Responsividade para mídias */
+        @media (max-width: 768px) {
+            .message-image,
+            .message-video {
+                max-height: 200px;
+            }
+
+            .message[data-tipo="image"] .message-content,
+            .message[data-tipo="video"] .message-content,
+            .message[data-tipo="audio"] .message-content,
+            .message[data-tipo="document"] .message-content {
+                max-width: 90%;
+            }
+
+            .document-icon {
+                font-size: 1.5rem;
+                margin-right: 0.5rem;
+                min-width: 30px;
+            }
+
+            .audio-player audio {
+                max-width: 250px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .message-image,
+            .message-video {
+                max-height: 150px;
+            }
+
+            .message[data-tipo="image"] .message-content,
+            .message[data-tipo="video"] .message-content,
+            .message[data-tipo="audio"] .message-content,
+            .message[data-tipo="document"] .message-content {
+                max-width: 95%;
+            }
+
+            .document-preview {
+                padding: 0.5rem;
+            }
+
+            .document-name {
+                font-size: 0.875rem;
+            }
+
+            .audio-player audio {
+                max-width: 200px;
+                height: 35px;
+            }
+        }
+
+        /* Modal de visualização de mídia */
+        #midiaModal .modal-body {
+            padding: 1rem;
+        }
+
+        #midiaModal .modal-body img {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+        }
+
+        /* Estados de erro para mídias */
+        .message-image[src*="image-error"],
+        .message-video[src*="video-error"] {
+            opacity: 0.6;
+            filter: grayscale(100%);
+        }
+
+        /* Indicadores de loading para mídias */
+        .message-image[src=""],
+        .message-video[src=""] {
+            background: var(--border-color);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message-image[src=""]:before,
+        .message-video[src=""]:before {
+            content: "Carregando...";
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
     </style>
 </body>

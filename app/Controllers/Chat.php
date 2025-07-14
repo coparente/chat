@@ -393,12 +393,34 @@ class Chat extends Controllers
             exit;
         }
 
-        // Fazer upload do arquivo
+        // Determinar tipo de mídia
+        $tipoMidia = $this->determinarTipoMidia($arquivo);
+
+        // ✅ NOVO: Upload para MinIO
+       
+        $uploadMinio = MinioHelper::uploadMidia(
+            file_get_contents($arquivo['tmp_name']),
+            $tipoMidia,
+            $arquivo['type'],
+            $arquivo['name']
+        );
+
+        if (!$uploadMinio['sucesso']) {
+            error_log("❌ Erro ao fazer upload para MinIO: " . $uploadMinio['erro']);
+            // Continuar sem MinIO, mas logar o erro
+            $caminhoMinio = null;
+            $urlMinio = null;
+        } else {
+            $caminhoMinio = $uploadMinio['caminho_minio'];
+            $urlMinio = $uploadMinio['url_minio'];
+            error_log("✅ Mídia ENVIADA salva no MinIO: {$caminhoMinio}");
+        }
+
+        // Fazer upload do arquivo para API Serpro
         $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
 
         if ($uploadResult['status'] >= 200 && $uploadResult['status'] < 300) {
             $idMedia = $uploadResult['response']['id'];
-            $tipoMidia = $this->determinarTipoMidia($arquivo);
 
             // Enviar mídia
             $resultado = $this->serproApi->enviarMidia(
@@ -411,8 +433,8 @@ class Chat extends Controllers
             );
 
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
-                // Salvar mensagem no banco
-                $this->salvarMensagemMidia($conversaId, $conversa->contato_id, $tipoMidia, $arquivo, $caption, $resultado);
+                // Salvar mensagem no banco com caminho do MinIO
+                $this->salvarMensagemMidia($conversaId, $conversa->contato_id, $tipoMidia, $arquivo, $caption, $resultado, $caminhoMinio, $urlMinio);
                 
                 // Atualizar conversa
                 $this->conversaModel->atualizarConversa($conversaId, [
@@ -448,28 +470,83 @@ class Chat extends Controllers
      */
     public function buscarMensagens($conversaId)
     {
+        // Desabilitar exibição de erros em produção
+        if (APP_ENV === 'production') {
+            error_reporting(0);
+        }
+        
         // Limpar qualquer output buffer e definir headers antes de tudo
-        if (ob_get_level()) {
+        while (ob_get_level()) {
             ob_end_clean();
         }
         
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
 
-        if (!$conversaId || !is_numeric($conversaId)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+        try {
+            $mensagens = $this->mensagemModel->getMensagensPorConversa($conversaId);
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'mensagens' => $mensagens
+            ]);
+        } catch (Exception $e) {
+            error_log("Erro no Chat::buscarMensagens: " . $e->getMessage());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro interno do servidor'
+            ]);
+        }
+        
+        exit;
+    }
+
+    /**
+     * [ servirMidia ] - Serve mídia do MinIO
+     */
+    public function servirMidia($caminhoMinio)
+    {
+        // Verificar se usuário está logado
+        if (!isset($_SESSION['usuario_id'])) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Não autorizado']);
             exit;
         }
 
-        $mensagens = $this->mensagemModel->getMensagensPorConversa($conversaId);
+        // Decodificar caminho (caso venha encoded)
+        $caminhoMinio = urldecode($caminhoMinio);
 
-        http_response_code(200);
-        echo json_encode([
-            'success' => true,
-            'mensagens' => $mensagens
-        ]);
-        
+        // Carregar MinioHelper
+        // require_once '/app/Libraries/MinioHelper.php';
+
+        // Tentar baixar arquivo do MinIO
+        $resultado = MinioHelper::baixarArquivo($caminhoMinio);
+
+        if ($resultado['sucesso']) {
+            // Definir headers apropriados
+            header('Content-Type: ' . $resultado['content_type']);
+            header('Content-Length: ' . $resultado['tamanho']);
+            header('Cache-Control: public, max-age=3600'); // Cache por 1 hora
+            
+            // Evitar que seja interpretado como download
+            if (strpos($resultado['content_type'], 'image/') === 0) {
+                header('Content-Disposition: inline');
+            } else {
+                header('Content-Disposition: inline; filename="' . basename($caminhoMinio) . '"');
+            }
+
+            // Enviar dados
+            echo $resultado['dados'];
+        } else {
+            // Erro ao baixar arquivo
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Arquivo não encontrado']);
+        }
+
         exit;
     }
 
@@ -988,7 +1065,7 @@ class Chat extends Controllers
     /**
      * [ salvarMensagemMidia ] - Salva mensagem de mídia no banco
      */
-    private function salvarMensagemMidia($conversaId, $contatoId, $tipoMidia, $arquivo, $caption, $resultado)
+    private function salvarMensagemMidia($conversaId, $contatoId, $tipoMidia, $arquivo, $caption, $resultado, $caminhoMinio = null, $urlMinio = null)
     {
         $conteudo = $caption ?: "Arquivo: {$arquivo['name']}";
 
@@ -1001,6 +1078,7 @@ class Chat extends Controllers
             'conteudo' => $conteudo,
             'midia_nome' => $arquivo['name'],
             'midia_tipo' => $arquivo['type'],
+            'midia_url' => $caminhoMinio, // ✅ CORREÇÃO: Salvar apenas o caminho do MinIO, não a URL completa
             'direcao' => 'saida',
             'status_entrega' => 'enviado',
             'metadata' => json_encode([
@@ -1008,7 +1086,9 @@ class Chat extends Controllers
                 'tipo_midia' => $tipoMidia,
                 'arquivo_original' => $arquivo['name'],
                 'tamanho' => $arquivo['size'],
-                'serpro_response' => $resultado['response']
+                'serpro_response' => $resultado['response'],
+                'minio_caminho' => $caminhoMinio, // Salvar caminho do MinIO nos metadados
+                'minio_url' => $urlMinio // Salvar URL do MinIO nos metadados (para debug)
             ])
         ];
 

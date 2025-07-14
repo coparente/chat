@@ -77,6 +77,9 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/buscar-mensagens/{conversa_id}', 'Chat@buscarMensagens');
         Route::post('/marcar-lida/{mensagem_id}', 'Chat@marcarComoLida');
         
+        // Mídia do MinIO
+        Route::get('/media/{caminho_minio}', 'Chat@servirMidia');
+        
         // Status das conversas e mensagens
         Route::get('/status-conversa/{conversa_id}', 'Chat@statusConversa');
         Route::get('/verificar-status-mensagens/{conversa_id}', 'Chat@verificarStatusMensagens');

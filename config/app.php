@@ -7,7 +7,14 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad(); // safeLoad não gera erro se .env não existir
 
 define('APP', dirname(__FILE__));
-define('APPROOT', dirname(__FILE__));
+
+/**
+ * [ CONFIGURAÇÕES GERAIS DA APLICAÇÃO ]
+ * Definições de constantes e configurações básicas do sistema
+ */
+
+// Definir constante da raiz da aplicação
+define('APPROOT', dirname(__FILE__, 2)); // Volta 2 níveis: config/ -> raiz/
 
 /**
  * Configurações do Banco de Dados
@@ -27,8 +34,7 @@ if ($ambiente === 'local') {
     define('BANCO', 'meu_framework');
     define('USUARIO', 'root');
     define('SENHA', '');
-    //URL do Intranet Judiciária local
-    // define('URL', 'http://10.90.18.141/intranet-judiciaria');
+    //URL do Chat AtendeZap local
     define('URL', 'http://localhost/chat');
 } else {
     define('HOST', 'localhost');
@@ -36,7 +42,7 @@ if ($ambiente === 'local') {
     define('BANCO', 'copare52_chat');
     define('USUARIO', 'copare52_chat');
     define('SENHA', 'YiYDW*3vLLKk');
-    //URL do Intranet Judiciária produção
+    //URL do Chat AtendeZap produção
     define('URL', 'https://coparente.top/chat');
 }
 
@@ -74,6 +80,18 @@ define('SERPRO_BASE_URL', $_ENV['SERPRO_BASE_URL'] ?? 'https://api.whatsapp.serp
 define('SERPRO_WABA_ID', $_ENV['SERPRO_WABA_ID'] ?? '');
 define('SERPRO_PHONE_NUMBER_ID', $_ENV['SERPRO_PHONE_NUMBER_ID'] ?? '');
 define('WEBHOOK_VERIFY_TOKEN', $_ENV['WEBHOOK_VERIFY_TOKEN'] ?? '');
+
+
+/**
+ * Configurações do MinIO
+ */ 
+define('MINIO_ENDPOINT', $_ENV['MINIO_ENDPOINT'] ?? 'https://minioapidj.helpersti.online');
+define('MINIO_REGION', $_ENV['MINIO_REGION'] ?? 'sa-east-1');
+define('MINIO_ACCESS_KEY', $_ENV['MINIO_ACCESS_KEY'] ?? 'pBb2oG0RcNzZfEJJzOrh');
+define('MINIO_SECRET_KEY', $_ENV['MINIO_SECRET_KEY'] ?? 'J401ezyGzLCgNgVLGRmvjPXfZqXeS10OzI0JdI01');
+define('MINIO_BUCKET', $_ENV['MINIO_BUCKET'] ?? 'chat');
+define('MINIO_USE_PATH_STYLE_ENDPOINT', $_ENV['MINIO_USE_PATH_STYLE_ENDPOINT'] ?? true);
+
 
 /**
  * Configurações da API do DataJud
