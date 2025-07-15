@@ -794,5 +794,74 @@ class SerproApi
         
         return $this->enviarTemplate($destinatario, $nomeTemplate, $parametros, $header);
     }
+
+    /**
+     * [ downloadMidia ] - Baixa mídia da API SERPRO
+     * 
+     * @param string $mediaId ID da mídia na API
+     * @return array Resultado da operação
+     */
+    public function downloadMidia($mediaId)
+    {
+        $token = $this->obterTokenValido();
+        if (!$token) {
+            return [
+                'status' => 401,
+                'error' => 'Erro ao obter token: ' . $this->lastError
+            ];
+        }
+
+        // URL seguindo a documentação da API SERPRO
+        $url = $this->baseUrl . "/client/" . $this->phoneNumberId . "/v2/media/{$mediaId}";
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $token,
+                'Accept: application/json'
+            ],
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            $this->lastError = "Erro cURL: " . $error;
+            error_log("ERRO cURL download mídia: " . $error);
+            return [
+                'status' => 500,
+                'error' => 'Erro cURL: ' . $error
+            ];
+        }
+
+        if ($httpCode === 200 && $response) {
+            return [
+                'status' => 200,
+                'data' => $response,
+                'content_type' => $contentType ?: 'application/octet-stream',
+                'size' => strlen($response)
+            ];
+        } else {
+            // Tentar decodificar resposta de erro
+            $errorResponse = json_decode($response, true);
+            $errorMsg = $errorResponse['error']['message'] ?? 'Erro desconhecido';
+            
+            $this->lastError = $errorMsg;
+            error_log("ERRO download mídia - HTTP {$httpCode}: {$errorMsg}");
+            return [
+                'status' => $httpCode,
+                'error' => $errorMsg,
+                'response' => $errorResponse
+            ];
+        }
+    }
 }
 ?> 

@@ -24,7 +24,7 @@ class Webhook extends Controllers
     {
         // NÃO chamar parent::__construct() para evitar verificações de autenticação
         // Webhooks são endpoints públicos que não precisam de autenticação
-        
+
         // Inicializar models diretamente
         $this->conversaModel = $this->model('ConversaModel');
         $this->mensagemModel = $this->model('MensagemModel');
@@ -41,14 +41,14 @@ class Webhook extends Controllers
         while (ob_get_level()) {
             ob_end_clean();
         }
-        
+
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
-        
+
         try {
             // Log da requisição para debug
             $this->logWebhook('serpro', $_SERVER['REQUEST_METHOD'], file_get_contents('php://input'));
-            
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 http_response_code(405);
                 echo json_encode(['success' => false, 'message' => 'Método não permitido']);
@@ -57,7 +57,7 @@ class Webhook extends Controllers
 
             // Obter dados do webhook
             $dados = json_decode(file_get_contents('php://input'), true);
-            
+
             if (!$dados) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
@@ -66,7 +66,7 @@ class Webhook extends Controllers
 
             // Processar cada evento no webhook
             $resultados = [];
-            
+
             // Verificar se é um array de objetos com 'body' (novo formato)
             if (is_array($dados) && isset($dados[0]['body'])) {
                 foreach ($dados as $item) {
@@ -96,18 +96,17 @@ class Webhook extends Controllers
                 'message' => 'Webhook processado com sucesso',
                 'resultados' => $resultados
             ]);
-
         } catch (Exception $e) {
             // Log do erro
             error_log("Erro no webhook Serpro: " . $e->getMessage());
-            
+
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Erro interno do servidor'
             ]);
         }
-        
+
         exit;
     }
 
@@ -117,7 +116,7 @@ class Webhook extends Controllers
     private function processarEvento($evento)
     {
         $resultados = [];
-        
+
         // Processar mensagens recebidas
         if (isset($evento['messages']) && is_array($evento['messages'])) {
             foreach ($evento['messages'] as $mensagem) {
@@ -125,7 +124,7 @@ class Webhook extends Controllers
                 $resultados[] = $resultado;
             }
         }
-        
+
         // Processar status de entrega
         if (isset($evento['statuses']) && is_array($evento['statuses'])) {
             foreach ($evento['statuses'] as $status) {
@@ -133,7 +132,7 @@ class Webhook extends Controllers
                 $resultados[] = $resultado;
             }
         }
-        
+
         // Processar contatos (informações de perfil)
         if (isset($evento['contacts']) && is_array($evento['contacts'])) {
             foreach ($evento['contacts'] as $contato) {
@@ -141,7 +140,7 @@ class Webhook extends Controllers
                 $resultados[] = $resultado;
             }
         }
-        
+
         return $resultados;
     }
 
@@ -151,36 +150,105 @@ class Webhook extends Controllers
     private function processarMensagemRecebida($mensagem, $evento)
     {
         try {
+            // Carregar o helper do MinIO
+            // require_once APPROOT . '/Libraries/MinioHelper.php';
+            
             // Extrair informações da mensagem
             $numeroRemetente = $mensagem['from'] ?? null;
             $messageId = $mensagem['id'] ?? null;
             $timestamp = $mensagem['timestamp'] ?? time();
             $tipo = $mensagem['type'] ?? 'text';
-            
+
             if (!$numeroRemetente || !$messageId) {
                 return ['success' => false, 'message' => 'Dados da mensagem incompletos'];
             }
-            
+
             // Limpar e formatar número
             $numeroLimpo = $this->limparNumero($numeroRemetente);
-            
+
             // Buscar ou criar contato
             $contato = $this->buscarOuCriarContato($numeroLimpo, $evento);
-            
+
             if (!$contato) {
                 return ['success' => false, 'message' => 'Erro ao criar/buscar contato'];
             }
-            
+
             // Buscar ou criar conversa
             $conversa = $this->buscarOuCriarConversa($contato['id']);
-            
+
             if (!$conversa) {
                 return ['success' => false, 'message' => 'Erro ao criar/buscar conversa'];
             }
+
+            // Verificar se a mensagem já existe (evitar duplicatas)
+            $mensagemExistente = $this->verificarMensagemExistente($messageId);
             
-            // Extrair conteúdo baseado no tipo
-            $conteudo = $this->extrairConteudoMensagem($mensagem);
+            if ($mensagemExistente) {
+                return ['success' => true, 'message' => 'Mensagem já processada (duplicata ignorada)'];
+            }
+
+            // Extrair conteúdo e informações de mídia baseado no tipo
+            $conteudo = '';
+            $midiaId = null;
+            $midiaTipo = null;
+            $midiaFilename = null;
+            $midiaUrl = null;
             
+            switch ($tipo) {
+                case 'text':
+                    $conteudo = $mensagem['text']['body'] ?? '';
+                    break;
+                    
+                case 'image':
+                    $midiaId = $mensagem['image']['id'] ?? '';
+                    $midiaTipo = $mensagem['image']['mime_type'] ?? 'image/jpeg';
+                    $conteudo = $mensagem['image']['caption'] ?? '';
+                    break;
+                    
+                case 'audio':
+                    $midiaId = $mensagem['audio']['id'] ?? '';
+                    $midiaTipo = $mensagem['audio']['mime_type'] ?? 'audio/ogg';
+                    $conteudo = $mensagem['audio']['text'] ?? '';
+                    break;
+                    
+                case 'video':
+                    $midiaId = $mensagem['video']['id'] ?? '';
+                    $midiaTipo = $mensagem['video']['mime_type'] ?? 'video/mp4';
+                    $conteudo = $mensagem['video']['caption'] ?? '';
+                    break;
+                    
+                case 'document':
+                    $midiaId = $mensagem['document']['id'] ?? '';
+                    $midiaTipo = $mensagem['document']['mime_type'] ?? 'application/octet-stream';
+                    $midiaFilename = $mensagem['document']['filename'] ?? 'documento';
+                    $conteudo = $mensagem['document']['caption'] ?? '';
+                    break;
+                    
+                case 'button':
+                    $conteudo = $mensagem['button']['text'] ?? '';
+                    break;
+                    
+                default:
+                    $conteudo = $this->extrairConteudoMensagem($mensagem);
+            }
+
+            // Se há mídia, fazer download da API SERPRO e upload para MinIO
+            if ($midiaId && in_array($tipo, ['image', 'audio', 'video', 'document'])) {
+                $resultadoDownload = $this->baixarESalvarMidiaMinIO($midiaId, $tipo, $midiaTipo, $midiaFilename);
+                
+                if ($resultadoDownload['sucesso']) {
+                    // Salvar apenas o caminho no banco, não a URL assinada
+                    $caminhoMinio = $resultadoDownload['caminho_minio'];
+                    $midiaFilename = $resultadoDownload['nome_arquivo'];
+                    $midiaUrl = $caminhoMinio; // Salvar caminho no campo midia_url
+                    
+                    error_log("✅ Mídia baixada e salva no MinIO: {$caminhoMinio}");
+                } else {
+                    error_log("❌ Erro ao baixar/salvar mídia: " . $resultadoDownload['erro']);
+                    // Continua salvando com o ID da mídia mesmo se o download falhar
+                }
+            }
+
             // Salvar mensagem no banco
             $dadosMensagem = [
                 'conversa_id' => $conversa['id'],
@@ -188,6 +256,9 @@ class Webhook extends Controllers
                 'serpro_message_id' => $messageId,
                 'tipo' => $this->mapearTipoMensagem($tipo),
                 'conteudo' => $conteudo,
+                'midia_url' => $midiaUrl,
+                'midia_nome' => $midiaFilename,
+                'midia_tipo' => $midiaTipo,
                 'direcao' => 'entrada',
                 'status_entrega' => 'entregue',
                 'metadata' => json_encode([
@@ -196,27 +267,31 @@ class Webhook extends Controllers
                     'tipo_original' => $tipo
                 ])
             ];
-            
-            // Adicionar dados de mídia se necessário
-            if (isset($mensagem[$tipo])) {
-                $dadosMensagem = array_merge($dadosMensagem, $this->extrairDadosMedia($mensagem[$tipo], $tipo));
-            }
-            
+
             $mensagemId = $this->mensagemModel->criarMensagem($dadosMensagem);
-            
+
             if ($mensagemId) {
                 // Atualizar conversa
                 $this->conversaModel->atualizarConversa($conversa['id'], [
                     'ultima_mensagem' => date('Y-m-d H:i:s'),
                     'status' => 'aberto' // Reativar conversa se estava fechada
                 ]);
-                
+
                 // Atualizar último contato
                 $this->contatoModel->atualizarUltimoContato($contato['id']);
-                
+
                 // CONFIRMAÇÃO AUTOMÁTICA DE ENTREGA E LEITURA
                 $this->confirmarEntregaELeituraAutomatica($messageId, $numeroLimpo);
+
+                // Log de sucesso
+                $tipoLog = $midiaId ? "mídia ($tipo)" : "texto";
+                error_log("✅ Mensagem $tipoLog salva com sucesso: ID={$messageId}, Conversa={$conversa['id']}");
                 
+                // Log específico para mídia
+                if ($midiaId && $midiaUrl) {
+                    error_log("📁 Caminho salvo no banco: {$midiaUrl}");
+                }
+
                 return [
                     'success' => true,
                     'message' => 'Mensagem processada com sucesso',
@@ -226,7 +301,6 @@ class Webhook extends Controllers
             } else {
                 return ['success' => false, 'message' => 'Erro ao salvar mensagem'];
             }
-            
         } catch (Exception $e) {
             error_log("Erro ao processar mensagem recebida: " . $e->getMessage());
             return ['success' => false, 'message' => 'Erro ao processar mensagem: ' . $e->getMessage()];
@@ -242,21 +316,21 @@ class Webhook extends Controllers
             $messageId = $status['id'] ?? null;
             $statusEntrega = $status['status'] ?? null;
             $timestamp = $status['timestamp'] ?? time();
-            
+
             if (!$messageId || !$statusEntrega) {
                 return ['success' => false, 'message' => 'Dados de status incompletos'];
             }
-            
+
             // Buscar mensagem pelo ID do Serpro
             $mensagem = $this->mensagemModel->buscarPorSerproId($messageId);
-            
+
             if ($mensagem) {
                 // Mapear status da API para nosso sistema
                 $statusMapeado = $this->mapearStatusEntrega($statusEntrega);
-                
+
                 // Atualizar status da mensagem
                 $this->mensagemModel->atualizarStatusEntrega($mensagem->id, $statusMapeado);
-                
+
                 return [
                     'success' => true,
                     'message' => 'Status atualizado com sucesso',
@@ -266,7 +340,6 @@ class Webhook extends Controllers
             } else {
                 return ['success' => false, 'message' => 'Mensagem não encontrada'];
             }
-            
         } catch (Exception $e) {
             error_log("Erro ao processar status de entrega: " . $e->getMessage());
             return ['success' => false, 'message' => 'Erro ao processar status: ' . $e->getMessage()];
@@ -281,24 +354,24 @@ class Webhook extends Controllers
         try {
             $waId = $contato['wa_id'] ?? null;
             $nome = $contato['profile']['name'] ?? null;
-            
+
             if (!$waId) {
                 return ['success' => false, 'message' => 'ID do WhatsApp não fornecido'];
             }
-            
+
             // Limpar número
             $numeroLimpo = $this->limparNumero($waId);
-            
+
             // Buscar contato existente
             $contatoExistente = $this->contatoModel->buscarPorNumero($numeroLimpo);
-            
+
             if ($contatoExistente) {
                 // Atualizar nome se fornecido e diferente
                 if ($nome && $nome !== $contatoExistente->nome) {
                     $this->contatoModel->atualizarContato($contatoExistente->id, [
                         'nome' => $nome
                     ]);
-                    
+
                     return [
                         'success' => true,
                         'message' => 'Contato atualizado com sucesso',
@@ -307,9 +380,8 @@ class Webhook extends Controllers
                     ];
                 }
             }
-            
+
             return ['success' => true, 'message' => 'Informação de contato processada'];
-            
         } catch (Exception $e) {
             error_log("Erro ao processar informação de contato: " . $e->getMessage());
             return ['success' => false, 'message' => 'Erro ao processar contato: ' . $e->getMessage()];
@@ -323,11 +395,11 @@ class Webhook extends Controllers
     {
         // Buscar contato existente
         $contato = $this->contatoModel->buscarPorNumero($numero);
-        
+
         if ($contato) {
             return (array) $contato;
         }
-        
+
         // Tentar extrair nome do evento
         $nome = null;
         if (isset($evento['contacts']) && is_array($evento['contacts'])) {
@@ -338,19 +410,19 @@ class Webhook extends Controllers
                 }
             }
         }
-        
+
         // Criar novo contato
         $dadosContato = [
             'nome' => $nome ?: 'Contato ' . $numero,
             'numero' => $numero,
             'sessao_id' => 1 // Assumir sessão padrão
         ];
-        
+
         if ($this->contatoModel->cadastrar($dadosContato)) {
             $novoContato = $this->contatoModel->buscarPorNumero($numero);
             return $novoContato ? (array) $novoContato : false;
         }
-        
+
         return false;
     }
 
@@ -361,25 +433,25 @@ class Webhook extends Controllers
     {
         // Buscar conversa ativa para o contato
         $conversa = $this->conversaModel->buscarConversaAtivaContato($contatoId);
-        
+
         if ($conversa) {
             return (array) $conversa;
         }
-        
+
         // Criar nova conversa
         $dadosConversa = [
             'contato_id' => $contatoId,
             'sessao_id' => 1,
             'status' => 'pendente'
         ];
-        
+
         $conversaId = $this->conversaModel->criarConversa($dadosConversa);
-        
+
         if ($conversaId) {
             $novaConversa = $this->conversaModel->verificarConversaPorId($conversaId);
             return $novaConversa ? (array) $novaConversa : false;
         }
-        
+
         return false;
     }
 
@@ -389,34 +461,47 @@ class Webhook extends Controllers
     private function extrairConteudoMensagem($mensagem)
     {
         $tipo = $mensagem['type'] ?? 'text';
-        
+
         switch ($tipo) {
             case 'text':
                 return $mensagem['text']['body'] ?? '';
-                
+
             case 'image':
+                $id = $mensagem['image']['id'] ?? '';
+                $mimeType = $mensagem['image']['mime_type'] ?? 'image/jpeg';
                 $caption = $mensagem['image']['caption'] ?? '';
                 return $caption ?: 'Imagem enviada';
-                
+
             case 'audio':
-                return 'Áudio enviado';
-                
+                $id = $mensagem['audio']['id'] ?? '';
+                $mimeType = $mensagem['audio']['mime_type'] ?? 'audio/ogg';
+                $text = $mensagem['audio']['text'] ?? '';
+                return $text ?? 'Áudio enviado';
+
+
+            case 'document':
+                $id = $mensagem['document']['id'] ?? '';
+                $mimeType = $mensagem['document']['mime_type'] ?? 'application/pdf';
+                $filename = $mensagem['document']['filename'] ?? 'documento';
+                $caption = $mensagem['document']['caption'] ?? '';
+                return "Documento enviado: {$filename}";
+
+            case 'button':
+                $text = $mensagem['button']['text'] ?? '';
+                return $text ?: 'Botão enviado';
+
             case 'video':
                 $caption = $mensagem['video']['caption'] ?? '';
                 return $caption ?: 'Vídeo enviado';
-                
-            case 'document':
-                $filename = $mensagem['document']['filename'] ?? 'documento';
-                return "Documento enviado: {$filename}";
-                
+
             case 'location':
                 $latitude = $mensagem['location']['latitude'] ?? '';
                 $longitude = $mensagem['location']['longitude'] ?? '';
                 return "Localização enviada: {$latitude}, {$longitude}";
-                
+
             case 'contacts':
                 return 'Contato enviado';
-                
+
             default:
                 return 'Mensagem não suportada';
         }
@@ -428,19 +513,19 @@ class Webhook extends Controllers
     private function extrairDadosMedia($dadosMedia, $tipo)
     {
         $dados = [];
-        
+
         if (isset($dadosMedia['id'])) {
             $dados['midia_url'] = $dadosMedia['id']; // ID da mídia na API
         }
-        
+
         if (isset($dadosMedia['mime_type'])) {
             $dados['midia_tipo'] = $dadosMedia['mime_type'];
         }
-        
+
         if (isset($dadosMedia['filename'])) {
             $dados['midia_nome'] = $dadosMedia['filename'];
         }
-        
+
         return $dados;
     }
 
@@ -458,7 +543,7 @@ class Webhook extends Controllers
             'location' => 'localizacao',
             'contacts' => 'contato'
         ];
-        
+
         return $mapeamento[$tipo] ?? 'texto';
     }
 
@@ -473,7 +558,7 @@ class Webhook extends Controllers
             'read' => 'lido',
             'failed' => 'erro'
         ];
-        
+
         return $mapeamento[$status] ?? 'enviado';
     }
 
@@ -484,17 +569,17 @@ class Webhook extends Controllers
     {
         // Remove tudo que não for número
         $numero = preg_replace('/[^0-9]/', '', $numero);
-        
+
         // Se começar com 0, remove
         if (substr($numero, 0, 1) === '0') {
             $numero = substr($numero, 1);
         }
-        
+
         // Se não começar com 55, adiciona (código do Brasil)
         if (substr($numero, 0, 2) !== '55') {
             $numero = '55' . $numero;
         }
-        
+
         return $numero;
     }
 
@@ -512,16 +597,16 @@ class Webhook extends Controllers
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
                 'dados' => $dados
             ];
-            
+
             // Usar caminho relativo ao diretório atual do projeto
             $logFile = dirname(__DIR__, 2) . '/logs/webhook_' . date('Y-m-d') . '.log';
-            
+
             // Criar diretório de logs se não existir
             $logDir = dirname($logFile);
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
-            
+
             file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND | LOCK_EX);
         }
     }
@@ -534,17 +619,16 @@ class Webhook extends Controllers
         try {
             // Instanciar API Serpro
             $serproApi = new SerproApi();
-            
+
             // Confirmar entrega imediatamente
             $this->confirmarStatusMensagem($messageId, 'delivered', $serproApi);
-            
+
             // Confirmar leitura após 2-5 segundos (delay aleatório para parecer mais natural)
             $delay = rand(2, 5);
-            
+
             // Para simular leitura automática, vamos usar um approach diferente
             // Podemos fazer isso de forma assíncrona ou programar para depois
             $this->programarConfirmacaoLeitura($messageId, $delay, $serproApi);
-            
         } catch (Exception $e) {
             error_log("Erro na confirmação automática: " . $e->getMessage());
         }
@@ -558,7 +642,7 @@ class Webhook extends Controllers
         try {
             // Usar a API real do Serpro para confirmar status
             $resultado = $serproApi->confirmarStatusMensagem($messageId, $status);
-            
+
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
                 $logData = [
                     'message_id' => $messageId,
@@ -567,7 +651,7 @@ class Webhook extends Controllers
                     'action' => 'auto_confirm_success',
                     'response' => $resultado['response']
                 ];
-                
+
                 error_log("Confirmação automática enviada com sucesso: " . json_encode($logData));
                 return true;
             } else {
@@ -578,11 +662,10 @@ class Webhook extends Controllers
                     'action' => 'auto_confirm_error',
                     'error' => $resultado['error']
                 ];
-                
+
                 error_log("Erro na confirmação automática: " . json_encode($logData));
                 return false;
             }
-            
         } catch (Exception $e) {
             error_log("Erro ao confirmar status da mensagem: " . $e->getMessage());
             return false;
@@ -597,14 +680,13 @@ class Webhook extends Controllers
         try {
             // Para implementação simples, vamos usar sleep (não recomendado para produção)
             // Em produção, use um sistema de filas como Redis ou banco de dados
-            
+
             // Método 1: Sleep simples (pode causar timeout)
             // sleep($delay);
             // $this->confirmarStatusMensagem($messageId, 'read', $serproApi);
-            
+
             // Método 2: Salvar para processamento posterior
             $this->salvarConfirmacaoPendente($messageId, $delay);
-            
         } catch (Exception $e) {
             error_log("Erro ao programar confirmação de leitura: " . $e->getMessage());
         }
@@ -623,24 +705,87 @@ class Webhook extends Controllers
                 'scheduled_time' => time() + $delay,
                 'created_at' => date('Y-m-d H:i:s')
             ];
-            
+
             $confirmacaoFile = dirname(__DIR__, 2) . '/logs/confirmacoes_pendentes.json';
-            
+
             // Ler confirmações existentes
             $confirmacoes = [];
             if (file_exists($confirmacaoFile)) {
                 $confirmacoes = json_decode(file_get_contents($confirmacaoFile), true) ?: [];
             }
-            
+
             // Adicionar nova confirmação
             $confirmacoes[] = $confirmacaoData;
-            
+
             // Salvar de volta
             file_put_contents($confirmacaoFile, json_encode($confirmacoes, JSON_PRETTY_PRINT));
-            
         } catch (Exception $e) {
             error_log("Erro ao salvar confirmação pendente: " . $e->getMessage());
         }
+    }
+
+    /**
+     * [ baixarESalvarMidiaMinIO ] - Baixa mídia da API SERPRO e salva no MinIO
+     */
+    private function baixarESalvarMidiaMinIO($midiaId, $tipo, $mimeType, $filename = null)
+    {
+        try {
+            // Passo 1: Baixar mídia da API SERPRO
+            $serproApi = new SerproApi();
+            $resultadoDownload = $serproApi->downloadMidia($midiaId);
+            
+            if ($resultadoDownload['status'] !== 200) {
+                return [
+                    'sucesso' => false,
+                    'erro' => 'Erro ao baixar mídia da API SERPRO: ' . ($resultadoDownload['error'] ?? 'Status ' . $resultadoDownload['status'])
+                ];
+            }
+            
+            // Passo 2: Upload para MinIO
+            $resultadoUpload = MinioHelper::uploadMidia(
+                $resultadoDownload['data'], 
+                $tipo, 
+                $mimeType, 
+                $filename
+            );
+            
+            if (!$resultadoUpload['sucesso']) {
+                return [
+                    'sucesso' => false,
+                    'erro' => 'Erro ao fazer upload para MinIO: ' . $resultadoUpload['erro']
+                ];
+            }
+            
+            // Log de sucesso
+            error_log("📁 Mídia {$midiaId} salva no MinIO: {$resultadoUpload['caminho_minio']} (Tamanho: " . 
+                     number_format($resultadoUpload['tamanho'] / 1024, 2) . " KB)");
+            
+            return [
+                'sucesso' => true,
+                'caminho_minio' => $resultadoUpload['caminho_minio'],
+                'url_minio' => $resultadoUpload['url_minio'],
+                'nome_arquivo' => $resultadoUpload['nome_arquivo'],
+                'tamanho' => $resultadoUpload['tamanho'],
+                'mime_type' => $mimeType,
+                'bucket' => $resultadoUpload['bucket']
+            ];
+            
+        } catch (Exception $e) {
+            error_log("❌ Erro ao baixar/salvar mídia {$midiaId}: " . $e->getMessage());
+            return [
+                'sucesso' => false,
+                'erro' => 'Exceção: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * [ verificarMensagemExistente ] - Verifica se mensagem já existe
+     */
+    private function verificarMensagemExistente($messageId)
+    {
+        $mensagem = $this->mensagemModel->buscarPorSerproId($messageId);
+        return $mensagem !== null;
     }
 
     /**
@@ -652,10 +797,10 @@ class Webhook extends Controllers
         while (ob_get_level()) {
             ob_end_clean();
         }
-        
+
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
-        
+
         // Coletar todas as informações possíveis
         $debugData = [
             'timestamp' => date('Y-m-d H:i:s'),
@@ -670,25 +815,25 @@ class Webhook extends Controllers
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
             'remote_addr' => $_SERVER['REMOTE_ADDR'] ?? null
         ];
-        
+
         // Salvar log detalhado
         $logFile = dirname(__DIR__, 2) . '/logs/webhook_debug_' . date('Y-m-d') . '.log';
-        
+
         // Criar diretório de logs se não existir
         $logDir = dirname($logFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
-        
+
         file_put_contents($logFile, json_encode($debugData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND | LOCK_EX);
-        
+
         // Responder com os dados recebidos
         echo json_encode([
             'success' => true,
             'message' => 'Debug webhook - dados capturados',
             'data_received' => $debugData
         ], JSON_PRETTY_PRINT);
-        
+
         exit;
     }
 
@@ -698,7 +843,7 @@ class Webhook extends Controllers
     public function test()
     {
         header('Content-Type: application/json; charset=utf-8');
-        
+
         echo json_encode([
             'success' => true,
             'message' => 'Webhook está funcionando',
@@ -706,7 +851,7 @@ class Webhook extends Controllers
             'method' => $_SERVER['REQUEST_METHOD'],
             'data' => json_decode(file_get_contents('php://input'), true)
         ]);
-        
+
         exit;
     }
 
@@ -719,19 +864,19 @@ class Webhook extends Controllers
         while (ob_get_level()) {
             ob_end_clean();
         }
-        
+
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Authorization');
-        
+
         // Tratar OPTIONS (preflight)
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             http_response_code(200);
             exit;
         }
-        
+
         // Coletar TODOS os dados possíveis
         $debugData = [
             'timestamp' => date('Y-m-d H:i:s'),
@@ -766,7 +911,7 @@ class Webhook extends Controllers
                 'REQUEST_TIME_FLOAT' => $_SERVER['REQUEST_TIME_FLOAT'] ?? null,
             ]
         ];
-        
+
         // Capturar todos os headers
         if (function_exists('getallheaders')) {
             $debugData['headers'] = getallheaders();
@@ -779,18 +924,18 @@ class Webhook extends Controllers
                 }
             }
         }
-        
+
         // Salvar log super detalhado
         $logFile = dirname(__DIR__, 2) . '/logs/webhook_n8n_debug_' . date('Y-m-d_H-i-s') . '.log';
-        
+
         // Criar diretório de logs se não existir
         $logDir = dirname($logFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
-        
+
         file_put_contents($logFile, json_encode($debugData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
-        
+
         // Responder com dados super detalhados
         $response = [
             'success' => true,
@@ -810,9 +955,8 @@ class Webhook extends Controllers
                 'check_body' => 'Envie dados no formato JSON válido'
             ]
         ];
-        
+
         echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
-?> 
