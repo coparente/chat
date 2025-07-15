@@ -181,11 +181,11 @@ class Webhook extends Controllers
             }
 
             // Verificar se a mensagem já existe (evitar duplicatas)
-            $mensagemExistente = $this->verificarMensagemExistente($messageId);
+            // $mensagemExistente = $this->verificarMensagemExistente($messageId);
             
-            if ($mensagemExistente) {
-                return ['success' => true, 'message' => 'Mensagem já processada (duplicata ignorada)'];
-            }
+            // if ($mensagemExistente) {
+            //     return ['success' => true, 'message' => 'Mensagem já processada (duplicata ignorada)'];
+            // }
 
             // Extrair conteúdo e informações de mídia baseado no tipo
             $conteudo = '';
