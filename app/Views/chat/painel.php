@@ -484,8 +484,8 @@
                     buscarMensagensConversa(conversaAtiva);
                     verificarStatusMensagens();
                 }
-                //a cada 60 segundos, verificar se tem mensagens não lidas
-            }, 60000); // 60 segundos
+                //a cada 30 segundos, verificar se tem mensagens não lidas
+            }, 30000); // 30 segundos
             
             // Garantir que o layout seja recalculado quando a janela for redimensionada
             $(window).on('resize', function() {
