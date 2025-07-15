@@ -407,5 +407,4 @@ class Relatorios extends Controllers
         Helper::mensagem('relatorio', '<i class="fas fa-info-circle"></i> Exportação para PDF em desenvolvimento. Use a exportação Excel por enquanto.', 'alert alert-info');
         Helper::redirecionar("relatorios/{$tipo}");
     }
-}
-?> 
+} 

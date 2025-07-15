@@ -1,7 +1,4 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
 <?php include 'app/Views/include/head.php' ?>
-
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -272,6 +269,11 @@
                                     </div>
                                 </div>
                                 <div class="chat-actions">
+                                    <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
+                                        <button class="btn btn-outline-warning btn-sm" id="btnTransferirConversaHeader" style="display: none;">
+                                            <i class="fas fa-exchange-alt"></i> Transferir
+                                        </button>
+                                    <?php endif; ?>
                                     <button class="btn btn-outline-success btn-sm" id="btnAssumirConversa" style="display: none;">
                                         <i class="fas fa-hand-paper"></i> Assumir
                                     </button>
@@ -336,8 +338,8 @@
                                         <i class="fas fa-phone me-1"></i>
                                         Número do WhatsApp *
                                     </label>
-                                    <input type="text" class="form-control" id="numeroContato" placeholder="(11) 99999-9999" required>
-                                    <div class="form-text">Digite o número com DDD</div>
+                                    <input type="text" class="form-control" id="numeroContato" placeholder="556299999999" required>
+                                    <div class="form-text">Digite o número com DDI + DDD + Celular sem o 9 digito</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -447,11 +449,75 @@
         </div>
     </div>
 
+    <!-- Modal Transferir Conversa -->
+    <div class="modal fade" id="transferirModal" tabindex="-1" aria-labelledby="transferirModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="transferirModalLabel">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Transferir Conversa
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Transferir conversa:</strong> Selecione um atendente para receber esta conversa.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="atendenteSelect" class="form-label">
+                            <i class="fas fa-user me-1"></i>
+                            Selecionar Atendente *
+                        </label>
+                        <select class="form-select" id="atendenteSelect" required>
+                            <option value="">Carregando atendentes...</option>
+                        </select>
+                        <div class="form-text">Apenas atendentes ativos são exibidos</div>
+                    </div>
+
+                    <div class="atendentes-info" id="atendentesInfo" style="display: none;">
+                        <h6 class="mb-2">Informações do Atendente</h6>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Nome:</strong> <span id="atendenteNome"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Email:</strong> <span id="atendenteEmail"></span>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <strong>Conversas Ativas:</strong> <span id="atendenteConversas"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Status:</strong> 
+                                        <span id="atendenteStatus" class="badge"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btnTransferirConversa">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Transferir Conversa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?= Helper::asset('js/app.js') ?>"></script>
-    <script src="<?= Helper::asset('js/dashboard.js') ?>"></script>
+    <?php include 'app/Views/include/linkjs.php' ?>
 
     <script>
         // Variáveis globais
@@ -1837,6 +1903,166 @@
 
             // Verificar status da conversa após abrir
             setTimeout(verificarStatusConversa, 1000);
+        };
+
+        // Funções para transferência de conversas
+        function carregarAtendentesDisponiveis() {
+            $.ajax({
+                url: '<?= URL ?>/chat/atendentes-disponiveis',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const select = $('#atendenteSelect');
+                        select.empty();
+                        select.append('<option value="">Selecione um atendente</option>');
+                        
+                        response.atendentes.forEach(atendente => {
+                            const disponivel = atendente.disponivel ? ' (Disponível)' : ' (Ocupado)';
+                            const badge = atendente.disponivel ? 'success' : 'warning';
+                            select.append(`<option value="${atendente.id}" data-atendente='${JSON.stringify(atendente)}'>
+                                ${atendente.nome}${disponivel} <span class="badge bg-${badge}">${atendente.conversas_ativas} conversas</span>
+                            </option>`);
+                        });
+                    } else {
+                        mostrarToast('Erro ao carregar atendentes', 'error');
+                    }
+                },
+                error: function() {
+                    mostrarToast('Erro ao carregar atendentes', 'error');
+                }
+            });
+        }
+
+        function mostrarInfoAtendente(atendente) {
+            $('#atendenteNome').text(atendente.nome);
+            $('#atendenteEmail').text(atendente.email);
+            $('#atendenteConversas').text(atendente.conversas_ativas);
+            
+            const statusClass = atendente.status === 'ativo' ? 'bg-success' : 'bg-secondary';
+            $('#atendenteStatus').removeClass().addClass(`badge ${statusClass}`).text(atendente.status);
+            
+            $('#atendentesInfo').show();
+        }
+
+        function transferirConversa() {
+            console.log('🔄 Iniciando transferência de conversa');
+            
+            const atendenteId = $('#atendenteSelect').val();
+            console.log('👤 Atendente selecionado:', atendenteId);
+            
+            if (!atendenteId) {
+                mostrarToast('Selecione um atendente', 'error');
+                return;
+            }
+
+            if (!conversaAtiva) {
+                mostrarToast('Nenhuma conversa ativa', 'error');
+                return;
+            }
+
+            console.log('📞 Conversa ativa:', conversaAtiva);
+            console.log('📤 Enviando requisição para transferir...');
+
+            $('#btnTransferirConversa').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Transferindo...');
+
+            $.ajax({
+                url: `<?= URL ?>/chat/transferir/${conversaAtiva}`,
+                method: 'POST',
+                data: JSON.stringify({ atendente_id: atendenteId }),
+                contentType: 'application/json',
+                success: function(response) {
+                    console.log('✅ Resposta de sucesso:', response);
+                    if (response.success) {
+                        mostrarToast(response.message, 'success');
+                        $('#transferirModal').modal('hide');
+                        
+                        // Atualizar interface
+                        $(`.chat-item[data-conversa-id="${conversaAtiva}"]`).data('status', 'aberto');
+                        $('#btnTransferirConversaHeader').hide();
+                        $('#btnAssumirConversa').hide();
+                        
+                        // Recarregar conversa para mostrar novo atendente
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        mostrarToast(response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.log('❌ Erro na transferência:', xhr);
+                    let mensagem = 'Erro ao transferir conversa';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            mensagem = response.message;
+                        }
+                    } catch (e) {
+                        // Usar mensagem padrão
+                    }
+                    mostrarToast(mensagem, 'error');
+                },
+                complete: function() {
+                    $('#btnTransferirConversa').prop('disabled', false).html('<i class="fas fa-exchange-alt me-2"></i>Transferir Conversa');
+                }
+            });
+        }
+
+        // Event listeners para transferência
+        $('#transferirModal').on('show.bs.modal', function() {
+            carregarAtendentesDisponiveis();
+        });
+
+        $('#atendenteSelect').on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            if (selectedOption.val()) {
+                const atendente = selectedOption.data('atendente');
+                mostrarInfoAtendente(atendente);
+            } else {
+                $('#atendentesInfo').hide();
+            }
+        });
+
+        // Event listener para o botão de transferir no modal
+        $(document).on('click', '#btnTransferirConversa', function() {
+            console.log('🔘 Botão Transferir no modal clicado');
+            transferirConversa();
+        });
+
+        // Event listener para abrir modal de transferência (botão no header)
+        $(document).on('click', '#btnTransferirConversaHeader', function() {
+            console.log('🔘 Botão Transferir no header clicado');
+            $('#transferirModal').modal('show');
+        });
+
+        // Mostrar botão de transferir para admin/supervisor
+        function atualizarBotoesConversa() {
+            const perfil = '<?= $usuario_logado['perfil'] ?>';
+            const status = $('.chat-item.active').data('status');
+            
+            if (perfil === 'admin' || perfil === 'supervisor') {
+                if (status === 'pendente') {
+                    $('#btnTransferirConversaHeader').show();
+                    $('#btnAssumirConversa').show();
+                } else if (status === 'aberto') {
+                    $('#btnTransferirConversaHeader').show();
+                    $('#btnAssumirConversa').hide();
+                }
+            } else {
+                $('#btnTransferirConversaHeader').hide();
+                if (status === 'pendente') {
+                    $('#btnAssumirConversa').show();
+                } else {
+                    $('#btnAssumirConversa').hide();
+                }
+            }
+        }
+
+        // Atualizar botões quando abrir conversa
+        const abrirConversaComBotoes = abrirConversa;
+        abrirConversa = function(conversaId) {
+            abrirConversaComBotoes(conversaId);
+            setTimeout(atualizarBotoesConversa, 100);
         };
     </script>
 </body>

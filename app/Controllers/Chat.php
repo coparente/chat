@@ -632,6 +632,160 @@ class Chat extends Controllers
     }
 
     /**
+     * [ transferirConversa ] - Transfere conversa para outro atendente (Admin/Supervisor)
+     */
+    public function transferirConversa($conversaId)
+    {
+        // Verificar permissão (apenas admin e supervisor)
+        if (!in_array($_SESSION['usuario_perfil'], ['admin', 'supervisor'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acesso negado. Apenas administradores e supervisores podem transferir conversas.']);
+            exit;
+        }
+
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        if (!$conversaId || !is_numeric($conversaId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+            exit;
+        }
+
+        // Obter dados do JSON
+        $dados = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$dados || !isset($dados['atendente_id']) || !is_numeric($dados['atendente_id'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID do atendente é obrigatório']);
+            exit;
+        }
+
+        $atendenteId = $dados['atendente_id'];
+
+        // Verificar se a conversa existe
+        $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        // Verificar se o atendente existe e é um atendente
+        $atendente = $this->usuarioModel->lerUsuarioPorId($atendenteId);
+        if (!$atendente || $atendente->perfil !== 'atendente') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Atendente não encontrado ou inválido']);
+            exit;
+        }
+
+        // Verificar se o atendente está ativo
+        if ($atendente->status !== 'ativo') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Atendente não está ativo']);
+            exit;
+        }
+
+        // Transferir conversa
+        $resultado = $this->conversaModel->atualizarConversa($conversaId, [
+            'atendente_id' => $atendenteId,
+            'status' => 'aberto'
+        ]);
+
+        if ($resultado) {
+            // Log da transferência
+            error_log("🔄 Conversa {$conversaId} transferida para atendente {$atendente->nome} (ID: {$atendenteId}) por {$_SESSION['usuario_nome']}");
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true, 
+                'message' => "Conversa transferida com sucesso para {$atendente->nome}",
+                'atendente' => [
+                    'id' => $atendente->id,
+                    'nome' => $atendente->nome,
+                    'email' => $atendente->email
+                ]
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro ao transferir conversa']);
+        }
+        
+        exit;
+    }
+
+    /**
+     * [ listarAtendentesDisponiveis ] - Lista atendentes disponíveis para transferência
+     */
+    public function listarAtendentesDisponiveis()
+    {
+        // Verificar permissão (apenas admin e supervisor)
+        if (!in_array($_SESSION['usuario_perfil'], ['admin', 'supervisor'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acesso negado']);
+            exit;
+        }
+
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        try {
+            // Buscar atendentes ativos
+            $atendentes = $this->usuarioModel->listarPorPerfil('atendente');
+            
+            // Filtrar apenas atendentes ativos
+            $atendentesAtivos = array_filter($atendentes, function($atendente) {
+                return $atendente->status === 'ativo';
+            });
+
+            // Adicionar estatísticas de cada atendente
+            $atendentesComStats = [];
+            foreach ($atendentesAtivos as $atendente) {
+                $conversasAtivas = $this->conversaModel->contarConversasPorAtendente($atendente->id);
+                
+                $atendentesComStats[] = [
+                    'id' => $atendente->id,
+                    'nome' => $atendente->nome,
+                    'email' => $atendente->email,
+                    'status' => $atendente->status,
+                    'conversas_ativas' => $conversasAtivas,
+                    'disponivel' => $conversasAtivas < 5 // Considerar disponível se tem menos de 5 conversas
+                ];
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'atendentes' => $atendentesComStats
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro ao listar atendentes'
+            ]);
+        }
+        
+        exit;
+    }
+
+    /**
      * [ conversasAtivas ] - Lista conversas ativas
      */
     public function conversasAtivas()
@@ -832,7 +986,7 @@ class Chat extends Controllers
             exit;
         }
 
-        $conversa = $this->conversaModel->buscarPorId($conversaId);
+        $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
         if (!$conversa) {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);

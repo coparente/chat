@@ -1,30 +1,12 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= APP_NOME ?> - Relatório de Conversas</title>
-    <link rel="icon" href="<?= Helper::asset('img/logo.png') ?>">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- DataTables CSS -->
-    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- CSS -->
-    <link rel="stylesheet" href="<?= Helper::asset('css/app.css') ?>">
-    <link rel="stylesheet" href="<?= Helper::asset('css/dashboard.css') ?>">
-</head>
+<?php include 'app/Views/include/head.php' ?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Relatórios</span>
+            <div class="sidebar-brand">
+                    <i class="fab fa-whatsapp"></i>
+                    <?= APP_NOME ?>
                 </div>
             </div>
             
@@ -556,12 +538,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    <script src="<?= Helper::asset('js/app.js') ?>"></script>
-    <script src="<?= Helper::asset('js/dashboard.js') ?>"></script>
+    <?php include 'app/Views/include/linkjs.php' ?>
     
     <script>
         let dataTable = null;
@@ -593,30 +570,7 @@
                 });
             }
 
-            // Menu toggle
-            $('#menuToggle').on('click', function() {
-                $('#sidebar').toggleClass('collapsed');
-                $('#mainContent').toggleClass('expanded');
-                $('.topbar').toggleClass('expanded');
-            });
-
-            // Theme toggle
-            $('#toggleTheme').on('click', function() {
-                $('body').toggleClass('dark-mode');
-                const icon = $(this).find('i');
-                icon.toggleClass('fa-moon fa-sun');
-                
-                // Salvar preferência
-                localStorage.setItem('theme', $('body').hasClass('dark-mode') ? 'dark' : 'light');
-            });
-
-            // Carregar tema salvo
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                $('body').addClass('dark-mode');
-                $('#toggleTheme i').removeClass('fa-moon').addClass('fa-sun');
-            }
-
+            
             // Inicializar tooltips
             initTooltips();
 

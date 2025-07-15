@@ -271,10 +271,10 @@ class Webhook extends Controllers
             $mensagemId = $this->mensagemModel->criarMensagem($dadosMensagem);
 
             if ($mensagemId) {
-                // Atualizar conversa
+                // Atualizar conversa - apenas última mensagem, NÃO alterar status
                 $this->conversaModel->atualizarConversa($conversa['id'], [
-                    'ultima_mensagem' => date('Y-m-d H:i:s'),
-                    'status' => 'aberto' // Reativar conversa se estava fechada
+                    'ultima_mensagem' => date('Y-m-d H:i:s')
+                    // NÃO alterar status aqui - manter status atual da conversa
                 ]);
 
                 // Atualizar último contato
@@ -435,14 +435,17 @@ class Webhook extends Controllers
         $conversa = $this->conversaModel->buscarConversaAtivaContato($contatoId);
 
         if ($conversa) {
+            // Se já existe conversa ativa, retornar sem alterar status
+            // O status será mantido (aberto ou pendente)
             return (array) $conversa;
         }
 
-        // Criar nova conversa
+        // Se não existe conversa ativa, criar nova conversa como PENDENTE
+        // (porque é um número novo)
         $dadosConversa = [
             'contato_id' => $contatoId,
             'sessao_id' => 1,
-            'status' => 'pendente'
+            'status' => 'pendente' // Número novo = pendente
         ];
 
         $conversaId = $this->conversaModel->criarConversa($dadosConversa);

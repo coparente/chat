@@ -2,10 +2,10 @@
 
 /**
  * ============================================================================
- * SISTEMA DE ROTAS - CHATSERPRO MULTIATENDIMENTO
+ * SISTEMA DE ROTAS - CHAT MULTIATENDIMENTO
  * ============================================================================
  * 
- * Sistema de rotas estilo Laravel para o ChatSerpro
+ * Sistema de rotas estilo Laravel
  * Todas as rotas devem ser definidas aqui para funcionar corretamente
  */
 
@@ -71,6 +71,9 @@ Route::group(['middleware' => ['auth']], function() {
         Route::post('/transferir/{conversa_id}', 'Chat@transferirConversa');
         Route::post('/fechar/{conversa_id}', 'Chat@fecharConversa');
         
+        // Listar atendentes para transferência (Admin/Supervisor)
+        Route::get('/atendentes-disponiveis', 'Chat@listarAtendentesDisponiveis');
+        
         // Mensagens
         Route::post('/enviar-mensagem', 'Chat@enviarMensagem');
         Route::post('/enviar-midia', 'Chat@enviarMidia');
@@ -121,7 +124,11 @@ Route::group(['middleware' => ['auth']], function() {
     // ========================================================================
     Route::group(['prefix' => 'relatorios', 'middleware' => ['supervisor_ou_admin']], function() {
         Route::get('/', 'Relatorios@index');
+        Route::get('/dashboard', 'Relatorios@dashboard');
         Route::get('/atendimentos', 'Relatorios@atendimentos');
+        Route::get('/atendentes', 'Relatorios@atendentes');
+        Route::get('/templates', 'Relatorios@templates');
+        Route::get('/tempo-resposta', 'Relatorios@tempo_resposta');
         Route::get('/conversas', 'Relatorios@conversas');
         Route::get('/performance', 'Relatorios@performance');
         Route::get('/mensagens', 'Relatorios@mensagens');

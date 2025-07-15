@@ -137,14 +137,10 @@ class RelatorioModel
                 SUM(CASE WHEN c.status = 'aberto' THEN 1 ELSE 0 END) as conversas_abertas,
                 SUM(CASE WHEN c.status = 'fechado' THEN 1 ELSE 0 END) as conversas_fechadas,
                 COUNT(DISTINCT m.id) as total_mensagens,
-                AVG(CASE 
-                    WHEN m.direcao = 'saida' AND m.tempo_resposta > 0 
-                    THEN m.tempo_resposta 
-                    ELSE NULL 
-                END) as tempo_medio_resposta,
-                SUM(CASE WHEN c.avaliacao >= 4 THEN 1 ELSE 0 END) as avaliacoes_positivas,
-                COUNT(CASE WHEN c.avaliacao IS NOT NULL THEN 1 ELSE NULL END) as total_avaliacoes,
-                AVG(c.avaliacao) as avaliacao_media,
+                AVG(c.tempo_resposta_medio) as tempo_medio_resposta,
+                0 as avaliacoes_positivas,
+                0 as total_avaliacoes,
+                0 as avaliacao_media,
                 MAX(c.atualizado_em) as ultima_atividade
             FROM usuarios u
             LEFT JOIN conversas c ON u.id = c.atendente_id
@@ -190,14 +186,10 @@ class RelatorioModel
                 u.nome,
                 COUNT(DISTINCT c.id) as conversas,
                 COUNT(DISTINCT m.id) as mensagens,
-                AVG(c.avaliacao) as avaliacao_media,
-                AVG(CASE 
-                    WHEN m.direcao = 'saida' AND m.tempo_resposta > 0 
-                    THEN m.tempo_resposta 
-                    ELSE NULL 
-                END) as tempo_medio,
+                0 as avaliacao_media,
+                AVG(c.tempo_resposta_medio) as tempo_medio,
                 RANK() OVER (ORDER BY COUNT(DISTINCT c.id) DESC) as ranking_conversas,
-                RANK() OVER (ORDER BY AVG(c.avaliacao) DESC) as ranking_avaliacao
+                RANK() OVER (ORDER BY COUNT(DISTINCT m.id) DESC) as ranking_mensagens
             FROM usuarios u
             LEFT JOIN conversas c ON u.id = c.atendente_id
             LEFT JOIN mensagens m ON u.id = m.atendente_id
@@ -237,7 +229,7 @@ class RelatorioModel
                 JSON_EXTRACT(metadata, '$.template') as template,
                 COUNT(*) as total_utilizacoes,
                 SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) as sucessos,
-                SUM(CASE WHEN status_entrega = 'falha' THEN 1 ELSE 0 END) as falhas,
+                SUM(CASE WHEN status_entrega = 'erro' THEN 1 ELSE 0 END) as falhas,
                 (SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) / COUNT(*) * 100) as taxa_sucesso,
                 MAX(criado_em) as ultima_utilizacao,
                 COUNT(DISTINCT conversa_id) as conversas_unicas
@@ -283,7 +275,7 @@ class RelatorioModel
                 COUNT(DISTINCT JSON_EXTRACT(metadata, '$.template')) as templates_diferentes,
                 COUNT(*) as total_envios,
                 SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) as sucessos,
-                SUM(CASE WHEN status_entrega = 'falha' THEN 1 ELSE 0 END) as falhas,
+                SUM(CASE WHEN status_entrega = 'erro' THEN 1 ELSE 0 END) as falhas,
                 (SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) / COUNT(*) * 100) as taxa_sucesso_geral
             FROM mensagens m
             WHERE JSON_EXTRACT(metadata, '$.tipo') = 'template'
@@ -322,7 +314,7 @@ class RelatorioModel
                 SUM(CASE WHEN direcao = 'entrada' THEN 1 ELSE 0 END) as entrada,
                 SUM(CASE WHEN direcao = 'saida' THEN 1 ELSE 0 END) as saida,
                 SUM(CASE WHEN tipo = 'texto' THEN 1 ELSE 0 END) as texto,
-                SUM(CASE WHEN tipo IN ('image', 'audio', 'video', 'document') THEN 1 ELSE 0 END) as midia,
+                SUM(CASE WHEN tipo IN ('imagem', 'audio', 'video', 'documento') THEN 1 ELSE 0 END) as midia,
                 SUM(CASE WHEN JSON_EXTRACT(metadata, '$.tipo') = 'template' THEN 1 ELSE 0 END) as templates
             FROM mensagens m
             WHERE 1=1
@@ -447,7 +439,7 @@ class RelatorioModel
     }
 
     /**
-     * [ getTempoResposta ] - Análise de tempo de resposta
+     * [ getTempoResposta ] - Relatório de tempo de resposta
      */
     public function getTempoResposta($filtros = [])
     {
@@ -455,31 +447,24 @@ class RelatorioModel
             SELECT 
                 u.nome as atendente_nome,
                 COUNT(DISTINCT c.id) as total_conversas,
-                AVG(CASE 
-                    WHEN m.tempo_resposta > 0 THEN m.tempo_resposta 
-                    ELSE NULL 
-                END) as tempo_medio,
-                MIN(CASE 
-                    WHEN m.tempo_resposta > 0 THEN m.tempo_resposta 
-                    ELSE NULL 
-                END) as tempo_minimo,
-                MAX(m.tempo_resposta) as tempo_maximo,
-                SUM(CASE WHEN m.tempo_resposta <= 5 THEN 1 ELSE 0 END) / COUNT(*) * 100 as dentro_sla
+                AVG(c.tempo_resposta_medio) as tempo_medio,
+                MIN(c.tempo_resposta_medio) as tempo_minimo,
+                MAX(c.tempo_resposta_medio) as tempo_maximo,
+                SUM(CASE WHEN c.tempo_resposta_medio <= 5 THEN 1 ELSE 0 END) / COUNT(*) * 100 as dentro_sla
             FROM usuarios u
             LEFT JOIN conversas c ON u.id = c.atendente_id
-            LEFT JOIN mensagens m ON u.id = m.atendente_id AND m.direcao = 'saida'
-            WHERE u.perfil = 'atendente'
+            WHERE u.perfil = 'atendente' AND c.tempo_resposta_medio > 0
         ";
 
         $params = [];
 
         if (!empty($filtros['data_inicio'])) {
-            $sql .= " AND (c.criado_em IS NULL OR DATE(c.criado_em) >= :data_inicio)";
+            $sql .= " AND DATE(c.criado_em) >= :data_inicio";
             $params['data_inicio'] = $filtros['data_inicio'];
         }
 
         if (!empty($filtros['data_fim'])) {
-            $sql .= " AND (c.criado_em IS NULL OR DATE(c.criado_em) <= :data_fim)";
+            $sql .= " AND DATE(c.criado_em) <= :data_fim";
             $params['data_fim'] = $filtros['data_fim'];
         }
 
@@ -506,28 +491,28 @@ class RelatorioModel
     {
         $sql = "
             SELECT 
-                u.nome,
-                DATE(m.criado_em) as data,
-                AVG(m.tempo_resposta) as tempo_medio_dia,
-                COUNT(*) as mensagens_dia
+                u.nome as atendente_nome,
+                DATE(c.criado_em) as data,
+                AVG(c.tempo_resposta_medio) as tempo_medio,
+                COUNT(*) as conversas_dia
             FROM usuarios u
-            LEFT JOIN mensagens m ON u.id = m.atendente_id AND m.direcao = 'saida'
-            WHERE u.perfil = 'atendente' AND m.tempo_resposta > 0
+            LEFT JOIN conversas c ON u.id = c.atendente_id
+            WHERE u.perfil = 'atendente' AND c.tempo_resposta_medio > 0
         ";
 
         $params = [];
 
         if (!empty($filtros['data_inicio'])) {
-            $sql .= " AND DATE(m.criado_em) >= :data_inicio";
+            $sql .= " AND DATE(c.criado_em) >= :data_inicio";
             $params['data_inicio'] = $filtros['data_inicio'];
         }
 
         if (!empty($filtros['data_fim'])) {
-            $sql .= " AND DATE(m.criado_em) <= :data_fim";
+            $sql .= " AND DATE(c.criado_em) <= :data_fim";
             $params['data_fim'] = $filtros['data_fim'];
         }
 
-        $sql .= " GROUP BY u.id, DATE(m.criado_em) ORDER BY data DESC";
+        $sql .= " GROUP BY u.id, DATE(c.criado_em) ORDER BY data DESC";
 
         $this->db->query($sql);
         
@@ -545,26 +530,26 @@ class RelatorioModel
     {
         $sql = "
             SELECT 
-                DATE(m.criado_em) as data,
-                AVG(m.tempo_resposta) as tempo_medio,
-                COUNT(*) as total_respostas
-            FROM mensagens m
-            WHERE m.direcao = 'saida' AND m.tempo_resposta > 0
+                DATE(c.criado_em) as data,
+                AVG(c.tempo_resposta_medio) as tempo_medio,
+                COUNT(*) as total_conversas
+            FROM conversas c
+            WHERE c.tempo_resposta_medio > 0
         ";
 
         $params = [];
 
         if (!empty($filtros['data_inicio'])) {
-            $sql .= " AND DATE(m.criado_em) >= :data_inicio";
+            $sql .= " AND DATE(c.criado_em) >= :data_inicio";
             $params['data_inicio'] = $filtros['data_inicio'];
         }
 
         if (!empty($filtros['data_fim'])) {
-            $sql .= " AND DATE(m.criado_em) <= :data_fim";
+            $sql .= " AND DATE(c.criado_em) <= :data_fim";
             $params['data_fim'] = $filtros['data_fim'];
         }
 
-        $sql .= " GROUP BY DATE(m.criado_em) ORDER BY data ASC";
+        $sql .= " GROUP BY DATE(c.criado_em) ORDER BY data ASC";
 
         $this->db->query($sql);
         
@@ -630,7 +615,7 @@ class RelatorioModel
             SELECT 
                 u.nome,
                 COUNT(DISTINCT c.id) as conversas,
-                AVG(c.avaliacao) as avaliacao_media
+                0 as avaliacao_media
             FROM usuarios u
             LEFT JOIN conversas c ON u.id = c.atendente_id
             WHERE u.perfil = 'atendente'
@@ -679,14 +664,13 @@ class RelatorioModel
     {
         $sql = "
             SELECT 
-                AVG(tempo_resposta) as tempo_medio,
-                MIN(tempo_resposta) as tempo_minimo,
-                MAX(tempo_resposta) as tempo_maximo,
-                COUNT(*) as total_respostas
-            FROM mensagens
-            WHERE direcao = 'saida' 
-            AND tempo_resposta > 0
-            AND DATE(criado_em) BETWEEN :data_inicio AND :data_fim
+                AVG(c.tempo_resposta_medio) as tempo_medio,
+                MIN(c.tempo_resposta_medio) as tempo_minimo,
+                MAX(c.tempo_resposta_medio) as tempo_maximo,
+                COUNT(*) as total_conversas
+            FROM conversas c
+            WHERE c.tempo_resposta_medio > 0
+            AND DATE(c.criado_em) BETWEEN :data_inicio AND :data_fim
         ";
 
         $this->db->query($sql);
