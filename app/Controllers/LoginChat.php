@@ -246,7 +246,7 @@ class LoginChat extends Controllers
         session_destroy();
 
         // Redirecionar para login
-        Helper::redirecionar('login-chat');
+        Helper::redirecionar('login');
     }
 
     /**

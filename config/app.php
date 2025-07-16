@@ -104,7 +104,7 @@ define('URL_DATAJUD', $_ENV['DATAJUD_URL'] ?? 'https://api-publica.datajud.cnj.j
  * Rotas Padrão
  */
 define('CONTROLLER', 'Login');
-define('METODO', 'login');
+define('METODO', 'login-chat');
 
 /**
  * Configurações de Email

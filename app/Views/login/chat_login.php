@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= APP_NOME ?> - Login</title>
-    
+    <link rel="icon" href="<?= Helper::asset('img/logo.png') ?>">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -15,10 +15,11 @@
     <!-- CSS -->
      <link rel="stylesheet" href="<?= Helper::asset('css/login.css') ?>">
 
+
 </head>
 <body>
     <!-- Toggle de tema -->
-    <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">
+    <button class="theme-toggle"  id="toggleTheme" data-toggle="tooltip" title="Alternar tema">
         <i class="fas fa-moon"></i>
     </button>
 
@@ -58,6 +59,9 @@
                             value="<?= $dados['email'] ?? '' ?>" 
                             placeholder="Digite seu email"
                             required
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Digite seu email"
                         >
                         <?php if (!empty($dados['email_erro'])): ?>
                             <div class="invalid-feedback"><?= $dados['email_erro'] ?></div>
@@ -77,6 +81,9 @@
                             id="senha"
                             placeholder="Digite sua senha"
                             required
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Digite sua senha"
                         >
                         <button type="button" class="password-toggle" onclick="togglePassword()">
                             <i class="fas fa-eye"></i>
@@ -121,5 +128,6 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?= Helper::asset('js/login.js') ?>"></script>
+    <script src="<?= Helper::asset('js/dashboard.js') ?>"></script>
 </body>
 </html> 

@@ -14,6 +14,17 @@ function togglePassword() {
     }
 }
 
+// Inicializa tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-toggle="tooltip"]'))
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, {
+    html: true,
+    container: 'body',
+    delay: {
+        show: 200,
+        hide: 100
+    }
+}));
+
 // Seleção de status
 document.querySelectorAll('.status-option').forEach(option => {
     option.addEventListener('click', function() {
@@ -34,15 +45,61 @@ document.getElementById('loginForm').addEventListener('submit', function() {
     submitBtn.disabled = true;
 });
 
-// Toggle de tema (futuro)
+// Dark Mode - Sistema Bootstrap 5
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    localStorage.setItem('darkMode', theme);
+    
+    // Atualizar ícone do botão
+    const icon = document.querySelector('#toggleTheme i');
+    if (icon) {
+        if (theme === 'dark') {
+            icon.className = 'fas fa-sun';
+        } else {
+            icon.className = 'fas fa-moon';
+        }
+    }
+}
+
 function toggleTheme() {
-    // Implementar posteriormente
-    console.log('Toggle tema');
+    const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
 }
 
 // Auto-focus no primeiro campo
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('email').focus();
+    
+    // Inicializar tema
+    const savedTheme = localStorage.getItem('darkMode');
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else {
+        // Verificar preferência do sistema
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+    }
+
+    // Adicionar evento ao botão de tema
+    const toggleButton = document.getElementById('toggleTheme');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', toggleTheme);
+    }
+
+    // Monitorar mudanças na preferência do sistema
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!localStorage.getItem('darkMode')) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    }
+
+    console.log('Dark mode inicializado com sucesso na página de login!');
 });
 
 // Validação em tempo real

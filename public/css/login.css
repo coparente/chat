@@ -1,10 +1,51 @@
 :root {
+    /* Modo Claro */
     --primary-color: #25D366;
     --primary-dark: #128C7E;
     --secondary-color: #34495e;
     --background-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --card-shadow: 0 20px 40px rgba(0,0,0,0.1);
     --border-radius: 16px;
+    
+    /* Cores do modo claro */
+    --body-bg: var(--background-gradient);
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-border: rgba(255, 255, 255, 0.2);
+    --text-primary: var(--secondary-color);
+    --text-secondary: #6c757d;
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --input-border: #e9ecef;
+    --input-text: #495057;
+    --input-focus-border: var(--primary-color);
+    --input-focus-bg: white;
+    --status-option-bg: white;
+    --status-option-border: #e9ecef;
+    --status-option-active-bg: rgba(37, 211, 102, 0.1);
+    --status-option-active-border: var(--primary-color);
+    --alert-bg: rgba(255, 255, 255, 0.9);
+    --theme-toggle-bg: rgba(255, 255, 255, 0.2);
+    --theme-toggle-color: white;
+}
+
+[data-bs-theme="dark"] {
+    /* Modo Escuro */
+    --body-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    --card-bg: rgba(45, 45, 45, 0.95);
+    --card-border: rgba(64, 64, 64, 0.3);
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --input-bg: rgba(51, 51, 51, 0.8);
+    --input-border: #404040;
+    --input-text: #e4e4e4;
+    --input-focus-border: var(--primary-color);
+    --input-focus-bg: #3d3d3d;
+    --status-option-bg: #333333;
+    --status-option-border: #404040;
+    --status-option-active-bg: rgba(37, 211, 102, 0.2);
+    --status-option-active-border: var(--primary-color);
+    --alert-bg: rgba(51, 51, 51, 0.9);
+    --theme-toggle-bg: rgba(255, 255, 255, 0.1);
+    --theme-toggle-color: #ffffff;
 }
 
 * {
@@ -15,13 +56,14 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: var(--background-gradient);
+    background: var(--body-bg);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     overflow: hidden;
+    transition: background 0.3s ease;
 }
 
 /* Animação de fundo */
@@ -34,6 +76,10 @@ body::before {
     bottom: 0;
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
     animation: float 20s ease-in-out infinite;
+}
+
+[data-bs-theme="dark"] body::before {
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
 }
 
 @keyframes float {
@@ -50,15 +96,16 @@ body::before {
 }
 
 .login-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--card-bg);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--card-border);
     border-radius: var(--border-radius);
     box-shadow: var(--card-shadow);
     padding: 3rem 2.5rem;
     text-align: center;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s ease;
 }
 
 .login-card::before {
@@ -102,14 +149,16 @@ body::before {
 .app-title {
     font-size: 1.8rem;
     font-weight: 700;
-    color: var(--secondary-color);
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
+    transition: color 0.3s ease;
 }
 
 .app-subtitle {
-    color: #6c757d;
+    color: var(--text-secondary);
     font-size: 0.95rem;
     margin-bottom: 2rem;
+    transition: color 0.3s ease;
 }
 
 .form-group {
@@ -120,26 +169,29 @@ body::before {
 
 .form-label {
     font-weight: 600;
-    color: var(--secondary-color);
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
+    transition: color 0.3s ease;
 }
 
 .form-control {
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--input-border);
     border-radius: 12px;
     padding: 0.875rem 1rem;
     font-size: 1rem;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--input-bg);
     position: relative;
     padding-left: 3rem;
+    color: var(--input-text);
 }
 
 .form-control:focus {
-    border-color: var(--primary-color);
+    border-color: var(--input-focus-border);
     box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
-    background: white;
+    background: var(--input-focus-bg);
+    color: var(--input-text);
 }
 
 .input-icon {
@@ -147,8 +199,9 @@ body::before {
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #6c757d;
+    color: var(--text-secondary);
     z-index: 2;
+    transition: color 0.3s ease;
 }
 
 .btn-login {
@@ -189,13 +242,14 @@ body::before {
 .status-option {
     flex: 1;
     padding: 0.5rem;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--status-option-border);
     border-radius: 8px;
-    background: white;
+    background: var(--status-option-bg);
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
     font-size: 0.85rem;
+    color: var(--text-primary);
 }
 
 .status-option input[type="radio"] {
@@ -203,8 +257,8 @@ body::before {
 }
 
 .status-option.active {
-    border-color: var(--primary-color);
-    background: rgba(37, 211, 102, 0.1);
+    border-color: var(--status-option-active-border);
+    background: var(--status-option-active-bg);
 }
 
 .status-indicator {
@@ -224,6 +278,9 @@ body::before {
     border: none;
     font-size: 0.9rem;
     margin-bottom: 1.5rem;
+    background: var(--alert-bg);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
 }
 
 .password-toggle {
@@ -233,9 +290,10 @@ body::before {
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: #6c757d;
+    color: var(--text-secondary);
     cursor: pointer;
     z-index: 2;
+    transition: color 0.3s ease;
 }
 
 .loading {
@@ -274,16 +332,49 @@ body::before {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--theme-toggle-bg);
     border: none;
     border-radius: 50%;
     width: 50px;
     height: 50px;
-    color: white;
+    color: var(--theme-toggle-color);
     cursor: pointer;
     transition: all 0.3s ease;
+    z-index: 10;
 }
 
 .theme-toggle:hover {
     background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
 }
+
+[data-bs-theme="dark"] .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Invalid feedback no modo escuro */
+[data-bs-theme="dark"] .invalid-feedback {
+    color: #ff6b6b;
+}
+
+[data-bs-theme="dark"] .form-control.is-invalid {
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+}
+
+/* Tooltip no modo escuro */
+[data-bs-theme="dark"] .tooltip-inner {
+    background-color: #333333 !important;
+    color: #ffffff !important;
+    border: 1px solid #404040;
+}
+
+[data-bs-theme="dark"] .tooltip.bs-tooltip-top .arrow::before,
+[data-bs-theme="dark"] .tooltip.bs-tooltip-bottom .arrow::before,
+[data-bs-theme="dark"] .tooltip.bs-tooltip-start .arrow::before,
+[data-bs-theme="dark"] .tooltip.bs-tooltip-end .arrow::before {
+    border-color: #333333 !important;
+}
+
+
+
