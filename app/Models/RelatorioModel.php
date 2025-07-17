@@ -187,9 +187,7 @@ class RelatorioModel
                 COUNT(DISTINCT c.id) as conversas,
                 COUNT(DISTINCT m.id) as mensagens,
                 0 as avaliacao_media,
-                AVG(c.tempo_resposta_medio) as tempo_medio,
-                RANK() OVER (ORDER BY COUNT(DISTINCT c.id) DESC) as ranking_conversas,
-                RANK() OVER (ORDER BY COUNT(DISTINCT m.id) DESC) as ranking_mensagens
+                AVG(c.tempo_resposta_medio) as tempo_medio
             FROM usuarios u
             LEFT JOIN conversas c ON u.id = c.atendente_id
             LEFT JOIN mensagens m ON u.id = m.atendente_id
@@ -208,7 +206,7 @@ class RelatorioModel
             $params['data_fim'] = $filtros['data_fim'];
         }
 
-        $sql .= " GROUP BY u.id HAVING COUNT(DISTINCT c.id) > 0 ORDER BY conversas DESC";
+        $sql .= " GROUP BY u.id HAVING COUNT(DISTINCT c.id) > 0 ORDER BY conversas DESC, mensagens DESC";
 
         $this->db->query($sql);
         
@@ -216,7 +214,29 @@ class RelatorioModel
             $this->db->bind(":$key", $value);
         }
 
-        return $this->db->resultados();
+        $resultados = $this->db->resultados();
+        
+        // Calcular ranking no PHP
+        $ranking_conversas = [];
+        $ranking_mensagens = [];
+        
+        // Separar dados para ranking
+        foreach ($resultados as $row) {
+            $ranking_conversas[] = $row->conversas;
+            $ranking_mensagens[] = $row->mensagens;
+        }
+        
+        // Ordenar para calcular ranking
+        rsort($ranking_conversas);
+        rsort($ranking_mensagens);
+        
+        // Aplicar ranking aos resultados
+        foreach ($resultados as $row) {
+            $row->ranking_conversas = array_search($row->conversas, $ranking_conversas) + 1;
+            $row->ranking_mensagens = array_search($row->mensagens, $ranking_mensagens) + 1;
+        }
+        
+        return $resultados;
     }
 
     /**
@@ -226,7 +246,7 @@ class RelatorioModel
     {
         $sql = "
             SELECT 
-                JSON_EXTRACT(metadata, '$.template') as template,
+                SUBSTRING_INDEX(SUBSTRING_INDEX(metadata, '\"template\":\"', -1), '\"', 1) as template,
                 COUNT(*) as total_utilizacoes,
                 SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) as sucessos,
                 SUM(CASE WHEN status_entrega = 'erro' THEN 1 ELSE 0 END) as falhas,
@@ -234,7 +254,7 @@ class RelatorioModel
                 MAX(criado_em) as ultima_utilizacao,
                 COUNT(DISTINCT conversa_id) as conversas_unicas
             FROM mensagens m
-            WHERE JSON_EXTRACT(metadata, '$.tipo') = 'template'
+            WHERE metadata LIKE '%\"tipo\":\"template\"%'
         ";
 
         $params = [];
@@ -250,11 +270,11 @@ class RelatorioModel
         }
 
         if (!empty($filtros['template'])) {
-            $sql .= " AND JSON_EXTRACT(metadata, '$.template') = :template";
-            $params['template'] = $filtros['template'];
+            $sql .= " AND metadata LIKE :template";
+            $params['template'] = '%"template":"' . $filtros['template'] . '"%';
         }
 
-        $sql .= " GROUP BY JSON_EXTRACT(metadata, '$.template') ORDER BY total_utilizacoes DESC";
+        $sql .= " GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(metadata, '\"template\":\"', -1), '\"', 1) ORDER BY total_utilizacoes DESC";
 
         $this->db->query($sql);
         
@@ -272,13 +292,13 @@ class RelatorioModel
     {
         $sql = "
             SELECT 
-                COUNT(DISTINCT JSON_EXTRACT(metadata, '$.template')) as templates_diferentes,
+                COUNT(DISTINCT SUBSTRING_INDEX(SUBSTRING_INDEX(metadata, '\"template\":\"', -1), '\"', 1)) as templates_diferentes,
                 COUNT(*) as total_envios,
                 SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) as sucessos,
                 SUM(CASE WHEN status_entrega = 'erro' THEN 1 ELSE 0 END) as falhas,
                 (SUM(CASE WHEN status_entrega = 'entregue' THEN 1 ELSE 0 END) / COUNT(*) * 100) as taxa_sucesso_geral
             FROM mensagens m
-            WHERE JSON_EXTRACT(metadata, '$.tipo') = 'template'
+            WHERE metadata LIKE '%\"tipo\":\"template\"%'
         ";
 
         $params = [];
@@ -315,7 +335,7 @@ class RelatorioModel
                 SUM(CASE WHEN direcao = 'saida' THEN 1 ELSE 0 END) as saida,
                 SUM(CASE WHEN tipo = 'texto' THEN 1 ELSE 0 END) as texto,
                 SUM(CASE WHEN tipo IN ('imagem', 'audio', 'video', 'documento') THEN 1 ELSE 0 END) as midia,
-                SUM(CASE WHEN JSON_EXTRACT(metadata, '$.tipo') = 'template' THEN 1 ELSE 0 END) as templates
+                SUM(CASE WHEN metadata LIKE '%\"tipo\":\"template\"%' THEN 1 ELSE 0 END) as templates
             FROM mensagens m
             WHERE 1=1
         ";
@@ -385,8 +405,7 @@ class RelatorioModel
         $sql = "
             SELECT 
                 HOUR(criado_em) as hora,
-                COUNT(*) as total,
-                AVG(COUNT(*)) OVER() as media_por_hora
+                COUNT(*) as total
             FROM mensagens m
             WHERE DATE(m.criado_em) BETWEEN :data_inicio AND :data_fim
             GROUP BY HOUR(criado_em)
@@ -397,7 +416,24 @@ class RelatorioModel
         $this->db->bind(':data_inicio', $filtros['data_inicio']);
         $this->db->bind(':data_fim', $filtros['data_fim']);
 
-        return $this->db->resultados();
+        $resultados = $this->db->resultados();
+        
+        // Calcular média no PHP
+        $total_mensagens = 0;
+        $total_horas = count($resultados);
+        
+        foreach ($resultados as $row) {
+            $total_mensagens += $row->total;
+        }
+        
+        $media_por_hora = $total_horas > 0 ? $total_mensagens / $total_horas : 0;
+        
+        // Adicionar média a cada resultado
+        foreach ($resultados as $row) {
+            $row->media_por_hora = round($media_por_hora, 2);
+        }
+
+        return $resultados;
     }
 
     /**
@@ -591,8 +627,7 @@ class RelatorioModel
         $sql = "
             SELECT 
                 status,
-                COUNT(*) as total,
-                COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() as percentual
+                COUNT(*) as total
             FROM conversas
             WHERE DATE(criado_em) BETWEEN :data_inicio AND :data_fim
             GROUP BY status
@@ -603,7 +638,19 @@ class RelatorioModel
         $this->db->bind(':data_inicio', $filtros['data_inicio']);
         $this->db->bind(':data_fim', $filtros['data_fim']);
 
-        return $this->db->resultados();
+        $resultados = $this->db->resultados();
+        
+        // Calcular percentual no PHP
+        $total_conversas = 0;
+        foreach ($resultados as $row) {
+            $total_conversas += $row->total;
+        }
+        
+        foreach ($resultados as $row) {
+            $row->percentual = $total_conversas > 0 ? round(($row->total / $total_conversas) * 100, 2) : 0;
+        }
+
+        return $resultados;
     }
 
     /**
@@ -640,12 +687,12 @@ class RelatorioModel
     {
         $sql = "
             SELECT 
-                JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.template')) as template,
+                SUBSTRING_INDEX(SUBSTRING_INDEX(metadata, '\"template\":\"', -1), '\"', 1) as template,
                 COUNT(*) as utilizacoes
             FROM mensagens m
-            WHERE JSON_EXTRACT(metadata, '$.tipo') = 'template'
+            WHERE metadata LIKE '%\"tipo\":\"template\"%'
             AND DATE(m.criado_em) BETWEEN :data_inicio AND :data_fim
-            GROUP BY JSON_EXTRACT(metadata, '$.template')
+            GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(metadata, '\"template\":\"', -1), '\"', 1)
             ORDER BY utilizacoes DESC
             LIMIT 10
         ";
