@@ -241,27 +241,60 @@ class MensagemModel
     }
 
     /**
-     * [ contatoJaRespondeu ] - Verifica se o contato já respondeu ao template
+     * [ contatoJaRespondeu ] - Verifica se o contato já respondeu ao template mais recente
      * 
      * @param int $conversaId ID da conversa
-     * @return bool True se já respondeu
+     * @return bool True se o contato respondeu ao template mais recente
      */
     public function contatoJaRespondeu($conversaId)
     {
+        // Primeiro, buscar o template mais recente enviado (verificando metadata)
+        $sql = "
+            SELECT MAX(criado_em) as ultimo_template_enviado
+            FROM mensagens 
+            WHERE conversa_id = :conversa_id 
+            AND direcao = 'saida'
+            AND metadata LIKE '%\"tipo\":\"template\"%'
+        ";
+
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        $resultado = $this->db->resultado();
+
+        if (!$resultado || !$resultado->ultimo_template_enviado) {
+            // Se não há template enviado, verificar se há qualquer resposta
+            $sql = "
+                SELECT COUNT(*) as total
+                FROM mensagens 
+                WHERE conversa_id = :conversa_id 
+                AND direcao = 'entrada'
+            ";
+
+            $this->db->query($sql);
+            $this->db->bind(':conversa_id', $conversaId);
+            return $this->db->resultado()->total > 0;
+        }
+
+        // Se há template enviado, verificar se há resposta após o template
         $sql = "
             SELECT COUNT(*) as total
             FROM mensagens 
             WHERE conversa_id = :conversa_id 
             AND direcao = 'entrada'
+            AND criado_em > :ultimo_template_enviado
         ";
 
         $this->db->query($sql);
         $this->db->bind(':conversa_id', $conversaId);
+        $this->db->bind(':ultimo_template_enviado', $resultado->ultimo_template_enviado);
         return $this->db->resultado()->total > 0;
     }
 
     /**
      * [ buscarPorSerproId ] - Busca mensagem pelo ID do Serpro
+     * 
+     * @param string $serproId ID da mensagem no Serpro
+     * @return object|null Dados da mensagem
      */
     public function buscarPorSerproId($serproId)
     {
@@ -269,6 +302,20 @@ class MensagemModel
         $this->db->query($sql);
         $this->db->bind(':serpro_id', $serproId);
         return $this->db->resultado();
+    }
+
+    /**
+     * [ contarMensagensConversa ] - Conta mensagens de uma conversa
+     * 
+     * @param int $conversaId ID da conversa
+     * @return int Número de mensagens
+     */
+    public function contarMensagensConversa($conversaId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM mensagens WHERE conversa_id = :conversa_id";
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        return $this->db->resultado()->total;
     }
     
     /**

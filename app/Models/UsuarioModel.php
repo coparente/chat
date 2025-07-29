@@ -78,6 +78,26 @@ class UsuarioModel
     }
 
     /**
+     * [ buscarAtendentesAtivos ] - Busca atendentes ativos para mensagens automáticas
+     * 
+     * @return array Lista de atendentes ativos
+     */
+    public function buscarAtendentesAtivos()
+    {
+        $sql = "
+            SELECT id, nome, email, status, ultimo_acesso
+            FROM usuarios 
+            WHERE perfil IN ('atendente', 'supervisor', 'admin')
+            AND status IN ('ativo', 'ausente', 'ocupado')
+            AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+            ORDER BY status ASC, ultimo_acesso DESC
+        ";
+        
+        $this->db->query($sql);
+        return $this->db->resultados();
+    }
+
+    /**
      * [ lerUsuarioPorId ] - Busca usuário por ID
      * 
      * @param int $id ID do usuário

@@ -87,9 +87,12 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/status-conversa/{conversa_id}', 'Chat@statusConversa');
         Route::get('/verificar-status-mensagens/{conversa_id}', 'Chat@verificarStatusMensagens');
         Route::post('/atualizar-status-mensagem', 'Chat@atualizarStatusMensagem');
+        Route::get('/verificar-conversa-reativada/{conversa_id}', 'Chat@verificarConversaReativada');
+        Route::get('/verificar-resposta-template/{conversa_id}', 'Chat@verificarRespostaTemplate');
         
         // Templates
         Route::post('/iniciar/{contato_id}', 'Chat@iniciarConversa');
+        Route::post('/reenviar-template', 'Chat@reenviarTemplate');
     });
 
     // ========================================================================
@@ -133,6 +136,15 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/performance', 'Relatorios@performance');
         Route::get('/mensagens', 'Relatorios@mensagens');
         Route::get('/exportar/{tipo}', 'Relatorios@exportar');
+        
+        // Alterar status das conversas
+        Route::post('/alterar-status-conversa', 'Relatorios@alterarStatusConversa');
+        
+        // Alterar atendente das conversas
+        Route::post('/alterar-atendente-conversa', 'Relatorios@alterarAtendenteConversa');
+        
+        // Buscar mensagens de uma conversa
+        Route::get('/conversa/{conversa_id}/mensagens', 'Relatorios@buscarMensagensConversa');
     });
 
     // ========================================================================
@@ -188,6 +200,7 @@ Route::group(['middleware' => ['auth']], function() {
         // Mensagens Automáticas
         Route::get('/mensagens', 'Configuracoes@mensagens');
         Route::post('/mensagens/salvar', 'Configuracoes@salvarMensagens');
+
     });
 
     // ========================================================================

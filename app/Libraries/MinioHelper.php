@@ -8,6 +8,13 @@
  * @version 1.0.0
  */
 
+// Suprimir avisos de depreciação do AWS SDK
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+ini_set('display_errors', 0);
+
+// Definir variável de ambiente para suprimir aviso do AWS SDK
+putenv('AWS_SUPPRESS_PHP_DEPRECATION_WARNING=true');
+
 require_once 'vendor/autoload.php';
 
 use Aws\S3\S3Client;
@@ -55,6 +62,8 @@ class MinioHelper
                     'timeout' => 60,
                     'connect_timeout' => 30,
                 ],
+                // Suprimir avisos de depreciação
+                'suppress_php_deprecation_warning' => true,
             ]);
 
             // Verificar se o bucket existe

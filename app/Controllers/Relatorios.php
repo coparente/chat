@@ -21,6 +21,7 @@ class Relatorios extends Controllers
     private $conversaModel;
     private $mensagemModel;
     private $usuarioModel;
+    private $contatoModel;
 
     public function __construct()
     {
@@ -44,6 +45,7 @@ class Relatorios extends Controllers
         $this->conversaModel = $this->model('ConversaModel');
         $this->mensagemModel = $this->model('MensagemModel');
         $this->usuarioModel = $this->model('UsuarioModel');
+        $this->contatoModel = $this->model('ContatoModel');
     }
 
     /**
@@ -298,6 +300,247 @@ class Relatorios extends Controllers
                 'message' => 'Erro ao buscar dados do dashboard'
             ]);
         }
+    }
+
+    /**
+     * [ alterarStatusConversa ] - Altera o status de uma conversa
+     */
+    public function alterarStatusConversa()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!$input || !isset($input['conversa_id']) || !isset($input['status'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
+            exit;
+        }
+
+        $conversaId = $input['conversa_id'];
+        $novoStatus = $input['status'];
+
+        // Validar status
+        $statusValidos = ['pendente', 'aberto', 'fechado'];
+        if (!in_array($novoStatus, $statusValidos)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Status inválido']);
+            exit;
+        }
+
+        try {
+            // Verificar se a conversa existe
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // Se estiver fechando a conversa, enviar mensagem de encerramento
+            $mensagemEnviada = false;
+            if ($novoStatus === 'fechado') {
+                try {
+                    // Carregar helper de mensagens automáticas
+                    $mensagensHelper = new MensagensAutomaticasHelper();
+                    
+                    // Buscar informações do contato
+                    $contato = $this->contatoModel->lerContatoPorId($conversa->contato_id);
+                    
+                    if ($contato) {
+                        // Obter mensagem de encerramento
+                        $mensagemEncerramento = $mensagensHelper->obterMensagemAutomatica('encerramento', [
+                            'nome' => $contato->nome ?? 'Cliente'
+                        ]);
+                        
+                        if ($mensagemEncerramento) {
+                            // Enviar mensagem de encerramento
+                            $resultadoEnvio = $mensagensHelper->enviarMensagemAutomatica(
+                                $contato->numero,
+                                $mensagemEncerramento,
+                                $conversaId
+                            );
+                            
+                            if ($resultadoEnvio['success']) {
+                                $mensagemEnviada = true;
+                            }
+                        }
+                    }
+                } catch (Exception $e) {
+                    // Log do erro, mas não falhar a alteração do status
+                    error_log("Erro ao enviar mensagem de encerramento: " . $e->getMessage());
+                }
+            }
+
+            // Atualizar status da conversa
+            $resultado = $this->conversaModel->atualizarConversa($conversaId, [
+                'status' => $novoStatus
+            ]);
+
+            if ($resultado) {
+                // Log da ação
+                error_log("🔄 Status da conversa {$conversaId} alterado para '{$novoStatus}' por {$_SESSION['usuario_nome']} (ID: {$_SESSION['usuario_id']})");
+                
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Status da conversa alterado com sucesso',
+                    'novo_status' => $novoStatus,
+                    'mensagem_encerramento_enviada' => $mensagemEnviada
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Erro ao alterar status da conversa']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Erro ao alterar status da conversa: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+        }
+        
+        exit;
+    }
+
+    /**
+     * [ buscarMensagensConversa ] - Busca mensagens de uma conversa específica
+     */
+    public function buscarMensagensConversa($conversaId)
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        try {
+            // Verificar se a conversa existe
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // Buscar mensagens da conversa
+            $mensagens = $this->mensagemModel->getMensagensPorConversa($conversaId);
+
+            // Formatar mensagens para exibição
+            $mensagensFormatadas = [];
+            foreach ($mensagens as $mensagem) {
+                $mensagensFormatadas[] = [
+                    'id' => $mensagem->id,
+                    'texto' => $mensagem->conteudo,
+                    'tipo_mensagem' => $mensagem->direcao === 'entrada' ? 'recebida' : 'enviada',
+                    'criado_em' => date('d/m/Y H:i', strtotime($mensagem->criado_em)),
+                    'status' => $mensagem->status_entrega ?? 'enviada',
+                    'tipo' => $mensagem->tipo ?? 'texto'
+                ];
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'mensagens' => $mensagensFormatadas,
+                'total_mensagens' => count($mensagensFormatadas)
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Erro ao buscar mensagens da conversa: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+        }
+        
+        exit;
+    }
+
+    /**
+     * [ alterarAtendenteConversa ] - Altera o atendente de uma conversa
+     */
+    public function alterarAtendenteConversa()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!$input || !isset($input['conversa_id']) || !isset($input['atendente_id'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
+            exit;
+        }
+
+        $conversaId = $input['conversa_id'];
+        $novoAtendenteId = $input['atendente_id'];
+
+        try {
+            // Verificar se a conversa existe
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // Verificar se o novo atendente existe e é um atendente
+            $novoAtendente = $this->usuarioModel->lerUsuarioPorId($novoAtendenteId);
+            if (!$novoAtendente || $novoAtendente->perfil !== 'atendente') {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Atendente não encontrado ou inválido']);
+                exit;
+            }
+
+            // Verificar se o atendente está ativo
+            if ($novoAtendente->status !== 'ativo') {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Atendente não está ativo']);
+                exit;
+            }
+
+            // Atualizar atendente da conversa
+            $resultado = $this->conversaModel->atualizarConversa($conversaId, [
+                'atendente_id' => $novoAtendenteId
+            ]);
+
+            if ($resultado) {
+                // Log da ação
+                error_log("🔄 Atendente da conversa {$conversaId} alterado para '{$novoAtendente->nome}' (ID: {$novoAtendenteId}) por {$_SESSION['usuario_nome']} (ID: {$_SESSION['usuario_id']})");
+                
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Atendente da conversa alterado com sucesso',
+                    'novo_atendente' => [
+                        'id' => $novoAtendente->id,
+                        'nome' => $novoAtendente->nome,
+                        'email' => $novoAtendente->email
+                    ]
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Erro ao alterar atendente da conversa']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Erro ao alterar atendente da conversa: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+        }
+        
+        exit;
     }
 
     /**

@@ -851,6 +851,9 @@
         // Abrir conversa
         function abrirConversa(conversaId) {
             conversaAtiva = conversaId;
+            
+            // Resetar contador de toast para nova conversa
+            contatoJaRespondeuVerificado = false;
 
             // Marcar como ativa na lista
             $('.chat-item').removeClass('active');
@@ -926,6 +929,9 @@
                 success: function(response) {
                     if (response.success) {
                         renderizarMensagens(response.mensagens);
+                        
+                        // Verificar se o contato respondeu ao template
+                        verificarStatusConversa();
                     }
                 },
                 error: function() {
@@ -1306,6 +1312,9 @@
                     // Verificar códigos HTTP específicos
                     if (xhr.status === 410) {
                         mensagemErro = mensagemErro || 'Conversa expirada. Envie um novo template para reiniciar o contato.';
+                        
+                        // Mostrar opção de reenvio de template
+                        mostrarOpcaoReenvioTemplate();
                     } else if (xhr.status === 400) {
                         mensagemErro = mensagemErro || 'Aguarde o contato responder ao template antes de enviar mensagens.';
                     } else if (xhr.status === 404) {
@@ -1509,7 +1518,7 @@
                         $('#formUpload')[0].reset();
                         $('#uploadPreview').hide();
                         buscarMensagensConversa(conversaAtiva);
-                        mostrarToast('Arquivo enviado!', 'success');
+                        mostrarToast('Enviada com sucesso!', 'success');
                     } else {
                         mostrarToast(response.message, 'error');
                     }
@@ -1559,6 +1568,9 @@
                     // Verificar códigos HTTP específicos
                     if (xhr.status === 410) {
                         mensagemErro = mensagemErro || 'Conversa expirada. Envie um novo template para reiniciar o contato.';
+                        
+                        // Mostrar opção de reenvio de template
+                        mostrarOpcaoReenvioTemplate();
                     } else if (xhr.status === 400) {
                         mensagemErro = mensagemErro || 'Aguarde o contato responder ao template antes de enviar arquivos.';
                     } else if (xhr.status === 404) {
@@ -1849,16 +1861,16 @@
                     if (response.success) {
                         const status = response.status;
 
-                        // Se conversa não está mais ativa, alertar
+                        // Se conversa não está mais ativa, mostrar opção de reenvio
                         if (!status.conversa_ativa) {
-                            mostrarToast('Conversa expirada! Envie um novo template para reiniciar o contato.', 'error');
-
-                            // Remover conversa da lista
-                            $(`.chat-item[data-conversa-id="${conversaAtiva}"]`).fadeOut();
-                            $('#chatActive').hide();
-                            $('#chatWelcome').show();
-                            conversaAtiva = null;
+                            mostrarOpcaoReenvioTemplate();
                             return;
+                        } else {
+                            // Se conversa está ativa, esconder área de reenvio se estiver visível
+                            if ($('#reenviarTemplateArea').is(':visible')) {
+                                $('#reenviarTemplateArea').hide();
+                                $('#chatInputArea').show();
+                            }
                         }
 
                         // Alertar se está próximo de expirar (menos de 1 hora)
@@ -1876,18 +1888,234 @@
 
                         // Atualizar indicador visual se o contato ainda não respondeu
                         if (!status.contato_respondeu) {
-                            $('#messageInput').attr('placeholder', 'Aguardando resposta do contato ao template...');
+                            $('#messageInput').attr('placeholder', 'Aguarde o contato responder ao template antes de enviar mensagens...');
                             $('#messageInput').prop('disabled', true);
-                            $('#btnEnviarMensagem').prop('disabled', true);
+                            $('#btnEnviar').prop('disabled', true);
+                            
+                            // Mostrar aviso visual
+                            if ($('#avisoTemplate').length === 0) {
+                                const avisoHtml = `
+                                    <div class="alert alert-info mb-3" id="avisoTemplate">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <div>
+                                                <strong>Atenção:</strong> Esta conversa foi iniciada com um template. 
+                                                Você só poderá enviar mensagens após o contato responder ao template.
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                $('#chatMessages').prepend(avisoHtml);
+                            }
                         } else {
                             $('#messageInput').attr('placeholder', 'Digite sua mensagem...');
                             $('#messageInput').prop('disabled', false);
-                            $('#btnEnviarMensagem').prop('disabled', false);
+                            $('#btnEnviar').prop('disabled', false);
+                            
+                            // Remover aviso se existir
+                            $('#avisoTemplate').remove();
                         }
                     }
                 },
                 error: function() {
                     // Ignorar erros na verificação de status
+                }
+            });
+        }
+
+        // Função para mostrar opção de reenvio de template
+        function mostrarOpcaoReenvioTemplate() {
+            // Esconder área de input normal
+            $('#chatInputArea').hide();
+            
+            // Mostrar área de reenvio de template
+            if ($('#reenviarTemplateArea').length === 0) {
+                const reenviarArea = `
+                    <div class="chat-input-area" id="reenviarTemplateArea">
+                        <div class="alert alert-warning">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">Conversa Expirada</h6>
+                                    <p class="mb-2">Esta conversa expirou após 24 horas. Para continuar, você precisa reenviar um template.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="reenviar-template-form">
+                            <div class="mb-3">
+                                <label for="templateReenvio" class="form-label">
+                                    <i class="fas fa-file-alt me-1"></i>
+                                    Selecionar Template *
+                                </label>
+                                <select class="form-select" id="templateReenvio" required>
+                                    <option value="">Selecione um template</option>
+                                    <?php foreach ($templates as $template): ?>
+                                        <option value="<?= $template['nome'] ?>" data-parametros='<?= json_encode($template['parametros']) ?>'>
+                                            <?= $template['titulo'] ?> - <?= $template['descricao'] ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="parametros-reenvio-container" id="parametrosReenvioContainer" style="display: none;">
+                                <h6 class="mb-3">Parâmetros do Template</h6>
+                                <div id="parametrosReenvioInputs">
+                                    <!-- Inputs dos parâmetros serão adicionados aqui -->
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-primary" id="btnReenviarTemplate">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Reenviar Template
+                                </button>
+                                </div>
+                                </div>
+                                </div>
+                                `;
+                                // <button type="button" class="btn btn-secondary" id="btnCancelarReenvio">
+                                //     <i class="fas fa-times me-2"></i>
+                                //     Cancelar
+                                // </button>
+                $('.chat-active').append(reenviarArea);
+                
+                // Event listeners para o formulário de reenvio
+                setupReenvioTemplateEvents();
+            }
+            
+            $('#reenviarTemplateArea').show();
+        }
+
+        // Configurar eventos para reenvio de template
+        function setupReenvioTemplateEvents() {
+            // Mudança de template
+            $('#templateReenvio').on('change', function() {
+                const selectedOption = $(this).find('option:selected');
+                const parametros = selectedOption.data('parametros') || [];
+
+                if (parametros.length > 0) {
+                    $('#parametrosReenvioContainer').show();
+                    gerarInputsParametrosReenvio(parametros);
+                } else {
+                    $('#parametrosReenvioContainer').hide();
+                }
+            });
+
+            // Botão de reenviar template
+            $('#btnReenviarTemplate').on('click', function() {
+                reenviarTemplate();
+            });
+
+            // Botão de cancelar
+            $('#btnCancelarReenvio').on('click', function() {
+                $('#reenviarTemplateArea').hide();
+                $('#chatInputArea').show();
+            });
+        }
+
+        // Gerar inputs de parâmetros para reenvio
+        function gerarInputsParametrosReenvio(parametros) {
+            const container = $('#parametrosReenvioInputs');
+            container.empty();
+
+            parametros.forEach((param, index) => {
+                const input = `
+                    <div class="mb-3">
+                        <label class="form-label">${param}</label>
+                        <input type="text" class="form-control" placeholder="Digite o valor para ${param}" required>
+                    </div>
+                `;
+                container.append(input);
+            });
+        }
+
+        // Função para reenviar template
+        function reenviarTemplate() {
+            const template = $('#templateReenvio').val();
+            
+            if (!template) {
+                mostrarToast('Selecione um template', 'error');
+                return;
+            }
+
+            // Coletar parâmetros
+            const parametros = [];
+            $('#parametrosReenvioInputs input').each(function() {
+                parametros.push($(this).val().trim());
+            });
+
+            const dados = {
+                conversa_id: conversaAtiva,
+                template: template,
+                parametros: parametros
+            };
+
+            $('#btnReenviarTemplate').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Reenviando...');
+
+            $.ajax({
+                url: '<?= URL ?>/chat/reenviar-template',
+                method: 'POST',
+                data: JSON.stringify(dados),
+                contentType: 'application/json',
+                success: function(response) {
+                    if (response.success) {
+                        mostrarToast(response.message, 'success');
+                        
+                        // Esconder área de reenvio e mostrar área normal
+                        $('#reenviarTemplateArea').hide();
+                        $('#chatInputArea').show();
+                        
+                        // Verificar status da conversa após reenvio
+                        setTimeout(() => {
+                            verificarStatusConversa();
+                        }, 1000);
+                        
+                        // Recarregar mensagens da conversa
+                        setTimeout(() => {
+                            buscarMensagensConversa(conversaAtiva);
+                        }, 2000);
+                        
+                        // Verificar se a conversa foi reativada imediatamente
+                        setTimeout(() => {
+                            $.ajax({
+                                url: `<?= URL ?>/chat/verificar-conversa-reativada/${conversaAtiva}`,
+                                method: 'GET',
+                                success: function(statusResponse) {
+                                    if (statusResponse.success && statusResponse.conversa_ativa) {
+                                        // Se a conversa está ativa, esconder área de reenvio
+                                        $('#reenviarTemplateArea').hide();
+                                        $('#chatInputArea').show();
+                                        
+                                        // Resetar contador de toast para novo template
+                                        contatoJaRespondeuVerificado = false;
+                                        
+                                        // Verificar se o contato respondeu ao novo template
+                                        setTimeout(() => {
+                                            verificarRespostaTemplate();
+                                        }, 2000);
+                                    }
+                                }
+                            });
+                        }, 500);
+                    } else {
+                        mostrarToast(response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    let mensagem = 'Erro ao reenviar template';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            mensagem = response.message;
+                        }
+                    } catch (e) {
+                        // Usar mensagem padrão
+                    }
+                    mostrarToast(mensagem, 'error');
+                },
+                complete: function() {
+                    $('#btnReenviarTemplate').prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Reenviar Template');
                 }
             });
         }
@@ -2064,6 +2292,61 @@
             abrirConversaComBotoes(conversaId);
             setTimeout(atualizarBotoesConversa, 100);
         };
+
+        // Verificar se o contato respondeu ao template periodicamente
+        let contatoJaRespondeuVerificado = false; // Flag para controlar se já verificamos
+        
+        function verificarRespostaTemplate() {
+            if (!conversaAtiva) {
+                return;
+            }
+
+            // Se já verificamos que o contato respondeu e o input está habilitado, parar verificação
+            if (contatoJaRespondeuVerificado && !$('#messageInput').prop('disabled')) {
+                return;
+            }
+
+            $.ajax({
+                url: `<?= URL ?>/chat/verificar-resposta-template/${conversaAtiva}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        if (response.contato_respondeu) {
+                            // Se o contato respondeu, habilitar envio de mensagens
+                            $('#messageInput').attr('placeholder', 'Digite sua mensagem...');
+                            $('#messageInput').prop('disabled', false);
+                            $('#btnEnviar').prop('disabled', false);
+                            
+                            // Remover aviso se existir
+                            $('#avisoTemplate').remove();
+                            
+                            // Marcar como verificado
+                            contatoJaRespondeuVerificado = true;
+                            
+                            // Mostrar toast de sucesso apenas algumas vezes
+                            // if (contadorToastResposta < maxToastResposta) {
+                            //     mostrarToast('Contato respondeu ao template! Agora você pode enviar mensagens.', 'success');
+                            //     contadorToastResposta++;
+                            // }
+                        } else {
+                            // Se o contato não respondeu, manter desabilitado
+                            $('#messageInput').attr('placeholder', 'Aguarde o contato responder ao template antes de enviar mensagens...');
+                            $('#messageInput').prop('disabled', true);
+                            $('#btnEnviar').prop('disabled', true);
+                            
+                            // Resetar contador quando não há resposta
+                            contatoJaRespondeuVerificado = false;
+                        }
+                    }
+                },
+                error: function() {
+                    // Ignorar erros na verificação
+                }
+            });
+        }
+
+        // Verificar resposta ao template a cada 10 segundos
+        setInterval(verificarRespostaTemplate, 10000);
     </script>
 </body>
 

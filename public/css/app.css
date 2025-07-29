@@ -517,3 +517,125 @@ body.dark-mode .tooltip {
 .destinatario-item:last-child {
     border-bottom: none;
 }
+
+/* Estilos para área de reenvio de template */
+#reenviarTemplateArea {
+    background: #fff;
+    border-top: 1px solid #e9ecef;
+    padding: 20px;
+}
+
+#reenviarTemplateArea .alert {
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+#reenviarTemplateArea .alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.reenviar-template-form {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.reenviar-template-form .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.reenviar-template-form .form-select,
+.reenviar-template-form .form-control {
+    border-radius: 6px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.reenviar-template-form .form-select:focus,
+.reenviar-template-form .form-control:focus {
+    border-color: #25D366;
+    box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
+}
+
+.parametros-reenvio-container {
+    background: #fff;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+    border: 1px solid #e9ecef;
+}
+
+.parametros-reenvio-container h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* Modo escuro para área de reenvio */
+body.dark-mode #reenviarTemplateArea {
+    background: #2d2d2d;
+    border-top-color: #404040;
+}
+
+body.dark-mode #reenviarTemplateArea .alert-warning {
+    background-color: #332701;
+    border-color: #4a3c00;
+    color: #fbbf24;
+}
+
+body.dark-mode .reenviar-template-form {
+    background: #333333;
+    border-color: #404040;
+}
+
+body.dark-mode .reenviar-template-form .form-label {
+    color: #e4e4e4;
+}
+
+body.dark-mode .reenviar-template-form .form-select,
+body.dark-mode .reenviar-template-form .form-control {
+    background-color: #404040;
+    border-color: #555555;
+    color: #e4e4e4;
+}
+
+body.dark-mode .reenviar-template-form .form-select:focus,
+body.dark-mode .reenviar-template-form .form-control:focus {
+    background-color: #3d3d3d;
+    border-color: #25D366;
+    color: #ffffff;
+}
+
+body.dark-mode .parametros-reenvio-container {
+    background: #404040;
+    border-color: #555555;
+}
+
+body.dark-mode .parametros-reenvio-container h6 {
+    color: #e4e4e4;
+}
+
+/* Estilos para aviso de template */
+#avisoTemplate {
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #17a2b8;
+}
+
+#avisoTemplate .alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+/* Modo escuro para aviso de template */
+body.dark-mode #avisoTemplate .alert-info {
+    background-color: #1a3a3f;
+    border-color: #2a5a5f;
+    color: #a0d8e8;
+}

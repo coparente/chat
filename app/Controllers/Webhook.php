@@ -283,6 +283,9 @@ class Webhook extends Controllers
                 // CONFIRMAÇÃO AUTOMÁTICA DE ENTREGA E LEITURA
                 $this->confirmarEntregaELeituraAutomatica($messageId, $numeroLimpo);
 
+                // PROCESSAR MENSAGENS AUTOMÁTICAS
+                $this->processarMensagensAutomaticas($numeroLimpo, $conversa['id'], $contato);
+
                 // Log de sucesso
                 $tipoLog = $midiaId ? "mídia ($tipo)" : "texto";
                 error_log("✅ Mensagem $tipoLog salva com sucesso: ID={$messageId}, Conversa={$conversa['id']}");
@@ -304,6 +307,52 @@ class Webhook extends Controllers
         } catch (Exception $e) {
             error_log("Erro ao processar mensagem recebida: " . $e->getMessage());
             return ['success' => false, 'message' => 'Erro ao processar mensagem: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * [ processarMensagensAutomaticas ] - Processa e envia mensagens automáticas
+     * 
+     * @param string $numero Número do remetente
+     * @param int $conversaId ID da conversa
+     * @param array $contato Dados do contato
+     */
+    private function processarMensagensAutomaticas($numero, $conversaId, $contato)
+    {
+        try {
+            // Carregar helper de mensagens automáticas
+            // require_once APPROOT . '/Libraries/MensagensAutomaticasHelper.php';
+            $mensagensHelper = new MensagensAutomaticasHelper();
+            
+            // Dados para processamento
+            $dadosMensagem = [
+                'numero' => $numero,
+                'conversa_id' => $conversaId,
+                'nome_contato' => $contato['nome'] ?? 'Cliente',
+                'conteudo' => '' // Não é necessário para mensagens automáticas
+            ];
+            
+            // Processar mensagem recebida
+            $resultado = $mensagensHelper->processarMensagemRecebida($dadosMensagem);
+            
+            if ($resultado['success'] && $resultado['mensagem_enviada']) {
+                error_log("🤖 Mensagem automática enviada: {$resultado['tipo_mensagem']} - {$resultado['conteudo_mensagem']}");
+                
+                // Log detalhado do resultado
+                if (isset($resultado['resultado_envio'])) {
+                    $envio = $resultado['resultado_envio'];
+                    if ($envio['success']) {
+                        error_log("✅ Mensagem automática enviada com sucesso via API Serpro");
+                    } else {
+                        error_log("❌ Erro ao enviar mensagem automática: " . $envio['message']);
+                    }
+                }
+            } else {
+                error_log("ℹ️ Nenhuma mensagem automática necessária: " . ($resultado['motivo'] ?? 'Motivo não especificado'));
+            }
+            
+        } catch (Exception $e) {
+            error_log("❌ Erro ao processar mensagens automáticas: " . $e->getMessage());
         }
     }
 

@@ -403,7 +403,9 @@ class Configuracoes extends Controllers
             'horario_funcionamento' => $mensagens->horario_funcionamento ?? 'Segunda a Sexta: 08:00 às 18:00',
             'ativar_boas_vindas' => $mensagens->ativar_boas_vindas ?? true,
             'ativar_ausencia' => $mensagens->ativar_ausencia ?? true,
-            'ativar_encerramento' => $mensagens->ativar_encerramento ?? true
+            'ativar_encerramento' => $mensagens->ativar_encerramento ?? true,
+            'ativar_fora_horario' => $mensagens->ativar_fora_horario ?? true,
+            'ativar_sem_atendentes' => $mensagens->ativar_sem_atendentes ?? true
         ];
 
         $dados['usuario_logado'] = [
@@ -442,7 +444,9 @@ class Configuracoes extends Controllers
             'horario_funcionamento' => trim($formulario['horario_funcionamento']),
             'ativar_boas_vindas' => isset($formulario['ativar_boas_vindas']),
             'ativar_ausencia' => isset($formulario['ativar_ausencia']),
-            'ativar_encerramento' => isset($formulario['ativar_encerramento'])
+            'ativar_encerramento' => isset($formulario['ativar_encerramento']),
+            'ativar_fora_horario' => isset($formulario['ativar_fora_horario']),
+            'ativar_sem_atendentes' => isset($formulario['ativar_sem_atendentes'])
         ];
 
         if ($this->configuracaoModel->salvarMensagensAutomaticas($dados)) {
@@ -515,4 +519,6 @@ class Configuracoes extends Controllers
             ]);
         }
     }
+
+  
 } 

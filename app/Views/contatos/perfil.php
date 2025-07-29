@@ -130,10 +130,10 @@
                                 </div>
                                 
                                 <div class="d-grid gap-2">
-                                    <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $contato->telefone) ?>" 
+                                    <!-- <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $contato->telefone) ?>" 
                                        target="_blank" class="btn btn-success">
                                         <i class="fab fa-whatsapp me-2"></i>Abrir WhatsApp
-                                    </a>
+                                    </a> -->
                                     
                                     <a href="<?= URL ?>/contatos/editar/<?= $contato->id ?>" class="btn btn-primary">
                                         <i class="fas fa-edit me-2"></i>Editar Contato

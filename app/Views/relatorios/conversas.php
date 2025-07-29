@@ -384,11 +384,70 @@
                                                                 <i class="fas fa-user-tie me-1"></i>
                                                                 <?= $conversa->atendente_nome ?>
                                                             </div>
+                                                            <!-- Dropdown para alterar atendente -->
+                                                            <div class="dropdown mt-1">
+                                                                <button class="btn btn-sm btn-outline-info dropdown-toggle" 
+                                                                        type="button" 
+                                                                        data-bs-toggle="dropdown" 
+                                                                        aria-expanded="false"
+                                                                        title="Alterar atendente">
+                                                                    <i class="fas fa-exchange-alt"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu">
+                                                                    <li><h6 class="dropdown-header">Transferir para:</h6></li>
+                                                                    <?php foreach ($atendentes as $atendente): ?>
+                                                                        <?php if ($atendente->id != $conversa->atendente_id): ?>
+                                                                            <li>
+                                                                                <a class="dropdown-item" href="#" 
+                                                                                   onclick="alterarAtendente(<?= $conversa->id ?>, <?= $atendente->id ?>, '<?= htmlspecialchars($atendente->nome) ?>')">
+                                                                                    <i class="fas fa-user-tie text-primary me-2"></i>
+                                                                                    <?= $atendente->nome ?>
+                                                                                    <?php if ($atendente->status !== 'ativo'): ?>
+                                                                                        <span class="badge bg-warning ms-1">Inativo</span>
+                                                                                    <?php endif; ?>
+                                                                                </a>
+                                                                            </li>
+                                                                        <?php endif; ?>
+                                                                    <?php endforeach; ?>
+                                                                    <?php if (empty($atendentes) || count($atendentes) <= 1): ?>
+                                                                        <li><hr class="dropdown-divider"></li>
+                                                                        <li><span class="dropdown-item-text text-muted">Nenhum outro atendente disponível</span></li>
+                                                                    <?php endif; ?>
+                                                                </ul>
+                                                            </div>
                                                         <?php else: ?>
                                                             <span class="badge bg-secondary">
                                                                 <i class="fas fa-user-slash me-1"></i>
                                                                 Sem atendente
                                                             </span>
+                                                            <!-- Dropdown para atribuir atendente -->
+                                                            <div class="dropdown mt-1">
+                                                                <button class="btn btn-sm btn-outline-success dropdown-toggle" 
+                                                                        type="button" 
+                                                                        data-bs-toggle="dropdown" 
+                                                                        aria-expanded="false"
+                                                                        title="Atribuir atendente">
+                                                                    <i class="fas fa-user-plus"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu">
+                                                                    <li><h6 class="dropdown-header">Atribuir para:</h6></li>
+                                                                    <?php foreach ($atendentes as $atendente): ?>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="#" 
+                                                                               onclick="alterarAtendente(<?= $conversa->id ?>, <?= $atendente->id ?>, '<?= htmlspecialchars($atendente->nome) ?>')">
+                                                                                <i class="fas fa-user-tie text-primary me-2"></i>
+                                                                                <?= $atendente->nome ?>
+                                                                                <?php if ($atendente->status !== 'ativo'): ?>
+                                                                                    <span class="badge bg-warning ms-1">Inativo</span>
+                                                                                <?php endif; ?>
+                                                                            </a>
+                                                                        </li>
+                                                                    <?php endforeach; ?>
+                                                                    <?php if (empty($atendentes)): ?>
+                                                                        <li><span class="dropdown-item-text text-muted">Nenhum atendente disponível</span></li>
+                                                                    <?php endif; ?>
+                                                                </ul>
+                                                            </div>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
@@ -417,6 +476,43 @@
                                                                     <i class="fas fa-exclamation-triangle text-danger" title="Prioridade Alta"></i>
                                                                 </div>
                                                             <?php endif; ?>
+                                                            
+                                                            <!-- Dropdown para alterar status -->
+                                                            <div class="dropdown mt-1">
+                                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                                        type="button" 
+                                                                        data-bs-toggle="dropdown" 
+                                                                        aria-expanded="false"
+                                                                        title="Alterar status">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu">
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="#" 
+                                                                           onclick="alterarStatus(<?= $conversa->id ?>, 'pendente')">
+                                                                            <i class="fas fa-clock text-warning me-2"></i>
+                                                                            Marcar como Pendente
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="#" 
+                                                                           onclick="alterarStatus(<?= $conversa->id ?>, 'aberto')">
+                                                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                                                            Marcar como Aberto
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <hr class="dropdown-divider">
+                                                                    </li>
+                                                                    <li>
+                                                                        <a class="dropdown-item text-danger" href="#" 
+                                                                           onclick="alterarStatus(<?= $conversa->id ?>, 'fechado')">
+                                                                            <i class="fas fa-times-circle me-2"></i>
+                                                                            Fechar Conversa
+                                                                        </a>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td>
@@ -467,16 +563,22 @@
                                                     </td>
                                                     <td>
                                                         <div class="btn-group btn-group-sm">
-                                                            <a href="<?= URL ?>/chat/conversa/<?= $conversa->id ?>" 
+                                                            <!-- <a href="<?= URL ?>/chat/conversa/<?= $conversa->id ?>" 
                                                                class="btn btn-primary btn-sm" 
                                                                title="Visualizar conversa">
                                                                 <i class="fas fa-eye"></i>
-                                                            </a>
+                                                            </a> -->
+                                                            <button class="btn btn-outline-success btn-sm" 
+                                                                    onclick="visualizarConversa(<?= $conversa->id ?>, '<?= htmlspecialchars($conversa->contato_nome ?? 'Sem nome') ?>', '<?= $conversa->numero ?>', '<?= htmlspecialchars($conversa->atendente_nome ?? 'Sem atendente') ?>', '<?= $conversa->status ?>')"
+                                                                    title="Visualizar conversa">
+                                                                <i class="fas fa-comments"></i>
+                                                            </button>
                                                             <button class="btn btn-outline-info btn-sm" 
                                                                     onclick="verDetalhes(<?= $conversa->id ?>)"
                                                                     title="Ver detalhes">
                                                                 <i class="fas fa-info-circle"></i>
                                                             </button>
+                                                            
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -527,6 +629,78 @@
         </div>
     </div>
 
+    <!-- Modal Visualizar Conversa -->
+    <div class="modal fade" id="modalVisualizarConversa" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-comments me-2"></i>
+                        Visualizar Conversa
+                        <span id="conversaIdTitle" class="badge bg-primary ms-2"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Informações da conversa -->
+                    <div class="conversation-info mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <strong><i class="fas fa-user me-2"></i>Contato:</strong>
+                                    <span id="conversaContato"></span>
+                                </div>
+                                <div class="info-item">
+                                    <strong><i class="fas fa-phone me-2"></i>Número:</strong>
+                                    <span id="conversaNumero"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <strong><i class="fas fa-user-tie me-2"></i>Atendente:</strong>
+                                    <span id="conversaAtendente"></span>
+                                </div>
+                                <div class="info-item">
+                                    <strong><i class="fas fa-info-circle me-2"></i>Status:</strong>
+                                    <span id="conversaStatus"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Área de mensagens -->
+                    <div class="messages-container">
+                        <div class="messages-header">
+                            <h6><i class="fas fa-envelope me-2"></i>Mensagens</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="refreshMessages()">
+                                <i class="fas fa-sync-alt"></i>
+                                Atualizar
+                            </button>
+                        </div>
+                        <div class="messages-area" id="messagesArea">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                <p class="mt-2">Carregando mensagens...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        Fechar
+                    </button>
+                    <!-- <a href="#" class="btn btn-primary" id="btnAbrirChat" target="_blank">
+                        <i class="fas fa-external-link-alt me-2"></i>
+                        Abrir no Chat
+                    </a> -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
@@ -539,6 +713,9 @@
 
     <!-- Scripts -->
     <?php include 'app/Views/include/linkjs.php' ?>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         let dataTable = null;
@@ -586,6 +763,10 @@
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+        }
+
+        function ucfirst(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
         }
 
         function showAutoSubmitMessage() {
@@ -670,6 +851,272 @@
                 dataTable.ajax.reload();
             } else {
                 location.reload();
+            }
+        }
+
+        function alterarStatus(conversaId, novoStatus) {
+            // Confirmar ação
+            let mensagemConfirmacao = '';
+            let iconClass = '';
+            let title = '';
+            
+            switch(novoStatus) {
+                case 'pendente':
+                    title = 'Marcar como Pendente';
+                    mensagemConfirmacao = 'Deseja marcar esta conversa como pendente?';
+                    iconClass = 'fas fa-clock text-warning';
+                    break;
+                case 'aberto':
+                    title = 'Marcar como Aberto';
+                    mensagemConfirmacao = 'Deseja marcar esta conversa como aberta?';
+                    iconClass = 'fas fa-check-circle text-success';
+                    break;
+                case 'fechado':
+                    title = 'Fechar Conversa';
+                    mensagemConfirmacao = 'Deseja fechar esta conversa? Uma mensagem de encerramento será enviada automaticamente.';
+                    iconClass = 'fas fa-times-circle text-danger';
+                    break;
+            }
+            
+            // Usar SweetAlert2 para confirmação
+            Swal.fire({
+                title: title,
+                text: mensagemConfirmacao,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sim, alterar!',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar loading
+                    const loadingOverlay = $('#loadingOverlay');
+                    loadingOverlay.fadeIn(200);
+                    
+                    // Fazer requisição
+                    fetch('<?= URL ?>/relatorios/alterar-status-conversa', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            conversa_id: conversaId,
+                            status: novoStatus
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingOverlay.fadeOut(200);
+                        
+                        if (data.success) {
+                            // Mostrar mensagem de sucesso
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Status Alterado!',
+                                text: data.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            
+                            // Se foi fechada e enviou mensagem de encerramento
+                            if (novoStatus === 'fechado' && data.mensagem_encerramento_enviada) {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Mensagem de Encerramento',
+                                    text: 'A mensagem de encerramento foi enviada automaticamente para o cliente.',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                            
+                            // Recarregar a página após um delay
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                            
+                        } else {
+                            // Mostrar erro
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro!',
+                                text: data.message || 'Erro ao alterar status da conversa',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        loadingOverlay.fadeOut(200);
+                        console.error('Erro:', error);
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro!',
+                            text: 'Erro de conexão. Tente novamente.',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                }
+            });
+        }
+
+        function alterarAtendente(conversaId, novoAtendenteId, novoAtendenteNome) {
+            // Confirmar ação
+            Swal.fire({
+                title: 'Transferir Conversa',
+                text: `Deseja transferir esta conversa para ${novoAtendenteNome}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sim, transferir!',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar loading
+                    const loadingOverlay = $('#loadingOverlay');
+                    loadingOverlay.fadeIn(200);
+                    
+                    // Fazer requisição
+                    fetch('<?= URL ?>/relatorios/alterar-atendente-conversa', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            conversa_id: conversaId,
+                            atendente_id: novoAtendenteId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingOverlay.fadeOut(200);
+                        
+                        if (data.success) {
+                            // Mostrar mensagem de sucesso
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Conversa Transferida!',
+                                text: data.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            
+                            // Recarregar a página após um delay
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                            
+                        } else {
+                            // Mostrar erro
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro!',
+                                text: data.message || 'Erro ao transferir conversa',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        loadingOverlay.fadeOut(200);
+                        console.error('Erro:', error);
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro!',
+                            text: 'Erro de conexão. Tente novamente.',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                }
+            });
+        }
+
+        function visualizarConversa(conversaId, contatoNome, numero, atendenteNome, status) {
+            // Armazenar ID da conversa no modal
+            $('#modalVisualizarConversa').data('conversa-id', conversaId);
+            
+            // Atualizar informações da conversa
+            $('#conversaIdTitle').text(`#${conversaId}`);
+            $('#conversaContato').text(contatoNome || 'Sem nome');
+            $('#conversaNumero').text(numero || 'N/A');
+            $('#conversaAtendente').text(atendenteNome || 'Sem atendente');
+            $('#conversaStatus').text(status ? ucfirst(status) : 'N/A');
+            
+            // Atualizar link para abrir no chat
+            $('#btnAbrirChat').attr('href', `<?= URL ?>/chat/conversa/${conversaId}`);
+
+            // Limpar e mostrar mensagens anteriores
+            $('#messagesArea').empty();
+            $('#messagesArea').append(`
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Carregando mensagens...</p>
+                </div>
+            `);
+
+            // Mostrar modal
+            $('#modalVisualizarConversa').modal('show');
+
+            // Carregar mensagens da API
+            fetch(`<?= URL ?>/relatorios/conversa/${conversaId}/mensagens`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        $('#messagesArea').empty();
+                        if (data.mensagens.length > 0) {
+                            data.mensagens.forEach(mensagem => {
+                                const messageDiv = document.createElement('div');
+                                messageDiv.classList.add('message-item');
+                                messageDiv.innerHTML = `
+                                    <div class="message-bubble ${mensagem.tipo_mensagem === 'recebida' ? 'received' : 'sent'}">
+                                        <div class="message-content">
+                                            <p class="message-text">${mensagem.texto}</p>
+                                            <div class="message-meta">
+                                                <small class="message-time">${mensagem.criado_em}</small>
+                                                ${mensagem.tipo_mensagem === 'enviada' ? `<small class="message-status">${mensagem.status}</small>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                $('#messagesArea').append(messageDiv);
+                            });
+                        } else {
+                            $('#messagesArea').html(`
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>Nenhuma mensagem encontrada nesta conversa.</p>
+                                </div>
+                            `);
+                        }
+                        // Reaplicar tooltips após carregar mensagens
+                        initTooltips();
+                    } else {
+                        $('#messagesArea').html(`
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle me-2"></i>
+                                Erro ao carregar mensagens: ${data.message || 'Desconhecido'}
+                            </div>
+                        `);
+                    }
+                })
+                .catch(error => {
+                    $('#messagesArea').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Erro de conexão: ${error.message}
+                        </div>
+                    `);
+                });
+        }
+
+        function refreshMessages() {
+            const conversaId = $('#modalVisualizarConversa').data('conversa-id');
+            if (conversaId) {
+                visualizarConversa(conversaId, $('#conversaContato').text(), $('#conversaNumero').text(), $('#conversaAtendente').text(), $('#conversaStatus').text());
             }
         }
     </script>
@@ -804,6 +1251,7 @@
             border-radius: 15px;
             font-size: 0.8rem;
             font-weight: 500;
+            margin-bottom: 0.5rem;
         }
         
         .status-container {
@@ -819,6 +1267,171 @@
         
         .priority-indicator {
             text-align: center;
+        }
+        
+        /* Estilo do dropdown de status */
+        .status-container .dropdown {
+            margin-top: 0.5rem;
+        }
+        
+        .status-container .dropdown-toggle {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+        
+        .status-container .dropdown-menu {
+            font-size: 0.8rem;
+            min-width: 180px;
+        }
+        
+        .status-container .dropdown-item {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .status-container .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-container .dropdown-item.text-danger:hover {
+            background-color: #f8d7da;
+        }
+        
+        /* Estilo do dropdown de atendente */
+        .agent-badge {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            padding: 0.25rem 0.5rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .agent-badge .dropdown {
+            margin-top: 0.5rem;
+        }
+        
+        .agent-badge .dropdown-toggle {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+        
+        .agent-badge .dropdown-menu {
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        
+        .agent-badge .dropdown-item {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .agent-badge .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .agent-badge .dropdown-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6c757d;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        /* Estilos para o modal de visualização de conversa */
+        .conversation-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .info-item {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .info-item strong {
+            min-width: 100px;
+            color: #495057;
+        }
+        
+        .messages-container {
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .messages-header {
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .messages-header h6 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .messages-area {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #fff;
+        }
+        
+        .message-item {
+            margin-bottom: 1rem;
+        }
+        
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            position: relative;
+        }
+        
+        .message-bubble.received {
+            background: #e3f2fd;
+            color: #1565c0;
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+        }
+        
+        .message-bubble.sent {
+            background: #e8f5e8;
+            color: #2e7d32;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+        }
+        
+        .message-content {
+            word-wrap: break-word;
+        }
+        
+        .message-text {
+            margin: 0 0 0.5rem 0;
+            line-height: 1.4;
+        }
+        
+        .message-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+        
+        .message-time {
+            color: #6c757d;
+        }
+        
+        .message-status {
+            color: #28a745;
+            font-weight: 500;
         }
         
         .message-stats {
@@ -912,7 +1525,7 @@
             text-align: center;
         }
         
-        /* Responsividade */
+        /* Responsividade do modal */
         @media (max-width: 768px) {
             .page-header .row {
                 text-align: center;
@@ -939,6 +1552,18 @@
             
             .table-responsive {
                 font-size: 0.9rem;
+            }
+
+            .modal-xl {
+                max-width: 95%;
+            }
+            
+            .messages-area {
+                height: 300px;
+            }
+            
+            .message-bubble {
+                max-width: 90%;
             }
         }
 

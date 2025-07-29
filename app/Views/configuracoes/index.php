@@ -177,7 +177,7 @@
                     </div>
 
                     <!-- Configurações Gerais -->
-                    <div class="col-md-6 col-lg-4">
+                    <!-- <div class="col-md-6 col-lg-4">
                         <div class="content-card h-100">
                             <div class="content-card-body text-center">
                                 <div class="config-icon mb-3">
@@ -195,10 +195,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Backup & Restore -->
-                    <div class="col-md-6 col-lg-4">
+                    <!-- <div class="col-md-6 col-lg-4">
                         <div class="content-card h-100">
                             <div class="content-card-body text-center">
                                 <div class="config-icon mb-3">
@@ -216,7 +216,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Logs do Sistema -->
                     <div class="col-md-6 col-lg-4">

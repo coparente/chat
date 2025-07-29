@@ -310,24 +310,23 @@ class ConversaModel
         $agora = time();
         $criadoEm = strtotime($conversa->criado_em);
         
-        // Buscar a última mensagem recebida (entrada) para resetar o timer
+        // Buscar a última mensagem (enviada ou recebida) para resetar o timer
         $sql = "
-            SELECT MAX(criado_em) as ultima_mensagem_recebida
+            SELECT MAX(criado_em) as ultima_mensagem_geral
             FROM mensagens 
-            WHERE conversa_id = :conversa_id 
-            AND direcao = 'entrada'
+            WHERE conversa_id = :conversa_id
         ";
         
         $this->db->query($sql);
         $this->db->bind(':conversa_id', $conversa->id);
         $resultado = $this->db->resultado();
         
-        // Se há mensagem recebida, usar ela como referência
-        if ($resultado && $resultado->ultima_mensagem_recebida) {
-            $ultimaMensagemRecebida = strtotime($resultado->ultima_mensagem_recebida);
-            $tempoLimite = $ultimaMensagemRecebida + (24 * 60 * 60); // 24 horas da última mensagem recebida
+        // Se há mensagem, usar ela como referência
+        if ($resultado && $resultado->ultima_mensagem_geral) {
+            $ultimaMensagem = strtotime($resultado->ultima_mensagem_geral);
+            $tempoLimite = $ultimaMensagem + (24 * 60 * 60); // 24 horas da última mensagem
         } else {
-            // Se não há mensagem recebida, usar a criação da conversa
+            // Se não há mensagem, usar a criação da conversa
             $tempoLimite = $criadoEm + (24 * 60 * 60); // 24 horas da criação
         }
         
@@ -390,6 +389,51 @@ class ConversaModel
         }
         
         return false;
+    }
+
+    /**
+     * [ reativarConversa ] - Reativa uma conversa expirada
+     * 
+     * @param int $conversaId ID da conversa
+     * @return bool Sucesso da operação
+     */
+    public function reativarConversa($conversaId)
+    {
+        $sql = "
+            UPDATE conversas 
+            SET status = 'aberto', 
+                ultima_mensagem = NOW(),
+                atualizado_em = NOW()
+            WHERE id = :id
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':id', $conversaId);
+        
+        return $this->db->executa();
+    }
+
+    /**
+     * [ verificarConversaReativada ] - Verifica se uma conversa foi reativada recentemente
+     * 
+     * @param int $conversaId ID da conversa
+     * @return bool True se foi reativada recentemente
+     */
+    public function verificarConversaReativada($conversaId)
+    {
+        $sql = "
+            SELECT COUNT(*) as total
+            FROM mensagens 
+            WHERE conversa_id = :conversa_id 
+            AND direcao = 'saida'
+            AND criado_em >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        $resultado = $this->db->resultado();
+        
+        return $resultado && $resultado->total > 0;
     }
 
     /**

@@ -109,11 +109,11 @@
                         <p class="text-muted">Gerencie todos os seus contatos do ChatSerpro</p>
                     </div>
                     
-                    <div>
+                    <!-- <div>
                         <a href="<?= URL ?>/contatos/cadastrar" class="btn btn-primary">
                             <i class="fas fa-plus me-2"></i>Novo Contato
                         </a>
-                    </div>
+                    </div> -->
                 </div>
 
                 <!-- Estatísticas -->
@@ -280,10 +280,10 @@
                                             </td>
                                             <td>
                                                 <span class="text-monospace"><?= htmlspecialchars($contato->telefone) ?></span>
-                                                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $contato->telefone) ?>" 
+                                                <!-- <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $contato->telefone) ?>" 
                                                    target="_blank" class="btn btn-sm btn-success ms-2" title="Abrir no WhatsApp">
                                                     <i class="fab fa-whatsapp"></i>
-                                                </a>
+                                                </a> -->
                                             </td>
                                             <td>
                                                 <?php if ($contato->email): ?>

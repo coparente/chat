@@ -202,7 +202,37 @@
                                                placeholder="Ex: Segunda a Sexta: 08:00 às 18:00">
                                         <div class="form-text">
                                             <i class="fas fa-info-circle me-1"></i>
-                                            Informado nas mensagens automáticas quando necessário.
+                                            Formatos aceitos: "Segunda a Sexta: 08:00 às 18:00", "Segunda a Sexta das 08:00 às 18:00", "Segunda a Sexta: 08:00 às 18:00, Sábado: 09:00 às 12:00"
+                                        </div>
+                                    </div>
+
+                                    <!-- Configurações Avançadas -->
+                                    <div class="mb-4">
+                                        <h6 class="form-label">
+                                            <i class="fas fa-cogs me-2"></i>
+                                            Configurações Avançadas
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="ativar_fora_horario" 
+                                                           name="ativar_fora_horario" <?= ($ativar_fora_horario ?? true) ? 'checked' : '' ?>>
+                                                    <label class="form-check-label" for="ativar_fora_horario">
+                                                        <i class="fas fa-clock text-warning me-1"></i>
+                                                        Enviar mensagem fora do horário
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="ativar_sem_atendentes" 
+                                                           name="ativar_sem_atendentes" <?= ($ativar_sem_atendentes ?? true) ? 'checked' : '' ?>>
+                                                    <label class="form-check-label" for="ativar_sem_atendentes">
+                                                        <i class="fas fa-user-slash text-danger me-1"></i>
+                                                        Enviar quando sem atendentes
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -223,6 +253,7 @@
                                             <i class="fas fa-eye me-2"></i>
                                             Visualizar Mensagens
                                         </button>
+
                                     </div>
                                 </form>
                             </div>
@@ -409,6 +440,8 @@
             // Mostrar modal
             new bootstrap.Modal(document.getElementById('previewModal')).show();
         });
+
+
     </script>
     
     <style>

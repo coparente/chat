@@ -32,21 +32,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Atualizar estatísticas em tempo real (opcional)
-    function atualizarEstatisticas() {
-        const baseUrl = window.location.origin + window.location.pathname.replace('/dashboard', '');
+    // // Atualizar estatísticas em tempo real (opcional)
+    // function atualizarEstatisticas() {
+    //     const baseUrl = window.location.origin + window.location.pathname.replace('/dashboard', '');
         
-        fetch(baseUrl + '/dashboard/estatisticas')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Atualizar valores na tela
-                    console.log('Estatísticas atualizadas:', data.dados);
-                }
-            })
-            .catch(error => console.error('Erro ao atualizar estatísticas:', error));
-    }
+    //     fetch(baseUrl + '/dashboard/estatisticas')
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             if (data.success) {
+    //                 // Atualizar valores na tela
+    //                 console.log('Estatísticas atualizadas:', data.dados);
+    //             }
+    //         })
+    //         .catch(error => console.error('Erro ao atualizar estatísticas:', error));
+    // }
 
-    // Atualizar a cada 30 segundos
-    setInterval(atualizarEstatisticas, 30000);
+    // // Atualizar a cada 30 segundos
+    // setInterval(atualizarEstatisticas, 30000);
 });

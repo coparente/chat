@@ -330,6 +330,13 @@ class Chat extends Controllers
      */
     public function enviarMidia()
     {
+        // Suprimir avisos de depreciação do AWS SDK
+        error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+        ini_set('display_errors', 0);
+        
+        // Definir variável de ambiente para suprimir aviso do AWS SDK
+        putenv('AWS_SUPPRESS_PHP_DEPRECATION_WARNING=true');
+        
         // Limpar qualquer output buffer e definir headers antes de tudo
         if (ob_get_level()) {
             ob_end_clean();
@@ -441,6 +448,11 @@ class Chat extends Controllers
                     'ultima_mensagem' => date('Y-m-d H:i:s')
                 ]);
 
+                // Limpar qualquer output antes de retornar JSON
+                while (ob_get_level()) {
+                    ob_end_clean();
+                }
+
                 http_response_code(200);
                 echo json_encode([
                     'success' => true,
@@ -448,6 +460,11 @@ class Chat extends Controllers
                     'dados' => $resultado['response']
                 ]);
             } else {
+                // Limpar qualquer output antes de retornar JSON
+                while (ob_get_level()) {
+                    ob_end_clean();
+                }
+                
                 http_response_code(500);
                 echo json_encode([
                     'success' => false,
@@ -455,6 +472,11 @@ class Chat extends Controllers
                 ]);
             }
         } else {
+            // Limpar qualquer output antes de retornar JSON
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -616,16 +638,76 @@ class Chat extends Controllers
             exit;
         }
 
-        $resultado = $this->conversaModel->atualizarConversa($conversaId, [
-            'status' => 'fechado'
-        ]);
+        try {
+            // Buscar informações da conversa
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
 
-        if ($resultado) {
-            http_response_code(200);
-            echo json_encode(['success' => true, 'message' => 'Conversa fechada com sucesso']);
-        } else {
+            // Buscar informações do contato
+            $contato = $this->contatoModel->lerContatoPorId($conversa->contato_id);
+            if (!$contato) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Contato não encontrado']);
+                exit;
+            }
+
+            // Enviar mensagem de encerramento
+            $mensagemEnviada = false;
+            $mensagemEncerramento = '';
+            
+            try {
+                // Carregar helper de mensagens automáticas
+                // require_once APPROOT . '/Libraries/MensagensAutomaticasHelper.php';
+                $mensagensHelper = new MensagensAutomaticasHelper();
+                
+                // Obter mensagem de encerramento
+                $mensagemEncerramento = $mensagensHelper->obterMensagemAutomatica('encerramento', [
+                    'nome' => $contato->nome ?? 'Cliente'
+                ]);
+                
+                if ($mensagemEncerramento) {
+                    // Enviar mensagem de encerramento
+                    $resultadoEnvio = $mensagensHelper->enviarMensagemAutomatica(
+                        $contato->numero,
+                        $mensagemEncerramento,
+                        $conversaId
+                    );
+                    
+                    if ($resultadoEnvio['success']) {
+                        $mensagemEnviada = true;
+                    }
+                }
+            } catch (Exception $e) {
+                // Log do erro, mas não falhar o fechamento da conversa
+                error_log("Erro ao enviar mensagem de encerramento: " . $e->getMessage());
+            }
+
+            // Fechar a conversa
+            $resultado = $this->conversaModel->atualizarConversa($conversaId, [
+                'status' => 'fechado'
+            ]);
+
+            if ($resultado) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Conversa fechada com sucesso',
+                    'mensagem_encerramento_enviada' => $mensagemEnviada,
+                    'conteudo_mensagem' => $mensagemEncerramento
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Erro ao fechar conversa']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Erro ao fechar conversa: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erro ao fechar conversa']);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
         }
         
         exit;
@@ -1387,6 +1469,182 @@ class Chat extends Controllers
             //     'parametros' => ['nome', 'assunto', 'detalhes']
             // ]
         ];
+    }
+
+    /**
+     * [ verificarConversaReativada ] - Verifica se uma conversa foi reativada recentemente
+     */
+    public function verificarConversaReativada($conversaId)
+    {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if (!$conversaId || !is_numeric($conversaId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+            exit;
+        }
+
+        $conversa = $this->verificarConversa($conversaId);
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        $foiReativada = $this->conversaModel->verificarConversaReativada($conversaId);
+        $conversaAtiva = $this->conversaAindaAtiva($conversa);
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'foi_reativada' => $foiReativada,
+            'conversa_ativa' => $conversaAtiva
+        ]);
+        
+        exit;
+    }
+
+    /**
+     * [ verificarRespostaTemplate ] - Verifica se o contato respondeu ao template mais recente
+     */
+    public function verificarRespostaTemplate($conversaId)
+    {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if (!$conversaId || !is_numeric($conversaId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+            exit;
+        }
+
+        $conversa = $this->verificarConversa($conversaId);
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        $contatoRespondeu = $this->contatoJaRespondeu($conversaId);
+
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'contato_respondeu' => $contatoRespondeu
+        ]);
+        
+        exit;
+    }
+
+    /**
+     * [ reenviarTemplate ] - Reenvia template para conversa expirada
+     */
+    public function reenviarTemplate()
+    {
+        // Desabilitar exibição de erros em produção
+        if (APP_ENV === 'production') {
+            error_reporting(0);
+        }
+        
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+        
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Método inválido']);
+                exit;
+            }
+
+            $dados = json_decode(file_get_contents('php://input'), true);
+
+            if (!$dados || empty($dados['conversa_id']) || empty($dados['template'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'ID da conversa e template são obrigatórios']);
+                exit;
+            }
+
+            $conversaId = $dados['conversa_id'];
+            $template = $dados['template'];
+            $parametrosRaw = $dados['parametros'] ?? [];
+
+            // Verificar se a conversa existe
+            $conversa = $this->verificarConversa($conversaId);
+            
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // Verificar se a conversa realmente está expirada
+            if ($this->conversaAindaAtiva($conversa)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Conversa ainda está ativa. Não é necessário reenviar template.']);
+                exit;
+            }
+
+            // Converter parâmetros para formato correto da API Serpro
+            $parametros = [];
+            foreach ($parametrosRaw as $parametro) {
+                if (!empty($parametro)) {
+                    $parametros[] = [
+                        'tipo' => 'text',
+                        'valor' => $parametro
+                    ];
+                }
+            }
+
+            // Enviar template via API Serpro
+            $resultado = $this->serproApi->enviarTemplate($conversa->numero, $template, $parametros);
+
+            if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
+                // Salvar mensagem no banco
+                $this->salvarMensagemTemplate($conversaId, $conversa->contato_id, $template, $parametros, $resultado);
+                
+                // Reativar a conversa
+                $this->conversaModel->reativarConversa($conversaId);
+
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Template reenviado com sucesso! A conversa foi reativada.',
+                    'conversa_id' => $conversaId
+                ]);
+            } else {
+                http_response_code($resultado['status']);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Erro ao reenviar template: ' . ($resultado['error'] ?? 'Erro desconhecido')
+                ]);
+            }
+
+        } catch (Exception $e) {
+            error_log('Erro ao reenviar template: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro interno do servidor'
+            ]);
+        }
+        
+        exit;
     }
 }
 ?> 

@@ -1,4 +1,5 @@
 <?php include 'app/Views/include/head.php' ?>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -9,7 +10,7 @@
                     <?= APP_NOME ?>
                 </div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <div class="nav-item">
                     <a href="<?= URL ?>/dashboard" class="nav-link active">
@@ -17,46 +18,46 @@
                         Dashboard
                     </a>
                 </div>
-                
+
                 <?php if (in_array($usuario['perfil'], ['admin', 'supervisor', 'atendente'])): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        Chat
-                    </a>
-                </div>
+                    <div class="nav-item">
+                        <a href="<?= URL ?>/chat" class="nav-link">
+                            <i class="fas fa-comments"></i>
+                            Chat
+                        </a>
+                    </div>
                 <?php endif; ?>
-                
+
                 <div class="nav-item">
                     <a href="<?= URL ?>/contatos" class="nav-link">
                         <i class="fas fa-address-book"></i>
                         Contatos
                     </a>
                 </div>
-                
+
                 <?php if (in_array($usuario['perfil'], ['admin', 'supervisor'])): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link">
-                        <i class="fas fa-chart-bar"></i>
-                        Relatórios
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        Usuários
-                    </a>
-                </div>
+                    <div class="nav-item">
+                        <a href="<?= URL ?>/relatorios" class="nav-link">
+                            <i class="fas fa-chart-bar"></i>
+                            Relatórios
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a href="<?= URL ?>/usuarios" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            Usuários
+                        </a>
+                    </div>
                 <?php endif; ?>
-                
+
                 <?php if ($usuario['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link">
-                        <i class="fas fa-cog"></i>
-                        Configurações
-                    </a>
-                </div>
+                    <div class="nav-item">
+                        <a href="<?= URL ?>/configuracoes" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            Configurações
+                        </a>
+                    </div>
                 <?php endif; ?>
             </nav>
         </aside>
@@ -71,26 +72,26 @@
                     </button>
                     <h1 class="topbar-title">Dashboard</h1>
                 </div>
-                
+
                 <div class="topbar-right">
                     <!-- Toggle Dark Mode -->
                     <button class="btn btn-outline-secondary btn-sm me-2" id="toggleTheme" title="Alternar tema">
                         <i class="fas fa-moon"></i>
                     </button>
-                    
+
                     <!-- Status do usuário -->
                     <div class="status-badge status-<?= $usuario['status'] === 'ativo' ? 'online' : ($usuario['status'] === 'ausente' ? 'away' : 'busy') ?>">
                         <span class="status-indicator"></span>
                         <?= ucfirst($usuario['status']) ?>
                     </div>
-                    
+
                     <!-- Menu do usuário -->
                     <div class="user-menu">
                         <div class="user-avatar" title="<?= $usuario['nome'] ?>">
                             <?= strtoupper(substr($usuario['nome'], 0, 2)) ?>
                         </div>
                     </div>
-                    
+
                     <!-- Logout -->
                     <a href="<?= URL ?>/sair" class="btn btn-outline-danger btn-sm">
                         <i class="fas fa-sign-out-alt"></i>
@@ -319,5 +320,31 @@
     <!-- Scripts -->
     <?php include 'app/Views/include/linkjs.php' ?>
 
+    <script>
+  
+
+            // Atualizar estatísticas em tempo real (opcional)
+            function atualizarEstatisticas() {
+                const baseUrl = window.location.origin + window.location.pathname.replace('/dashboard', '');
+
+                fetch(baseUrl + '/dashboard/estatisticas')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Atualizar valores na tela
+                            console.log('Estatísticas atualizadas:', data.dados);
+                        }
+                    })
+                    .catch(error => console.error('Erro ao atualizar estatísticas:', error));
+            }
+
+            // Atualizar a cada 30 segundos
+            setInterval(atualizarEstatisticas, 30000);
+   
+    </script>
+
+
+
 </body>
-</html> 
+
+</html>
