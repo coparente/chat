@@ -25,27 +25,18 @@ class SerproApi
     private $clientSecret;
     private $lastError = '';
 
-    public function __construct()
+    /**
+     * [ __construct ] - Construtor da classe
+     * 
+     * @param object|null $credencial Credencial específica do departamento
+     */
+    public function __construct($credencial = null)
     {
         $this->configuracaoModel = new ConfiguracaoModel();
-        $this->carregarConfiguracoes();
-    }
-
-    /**
-     * [ carregarConfiguracoes ] - Carrega configurações da API Serpro
-     * 
-     * @return void
-     */
-    private function carregarConfiguracoes()
-    {
-        $this->configuracoes = $this->configuracaoModel->buscarConfiguracaoSerpro();
         
-        if ($this->configuracoes) {
-            $this->baseUrl = rtrim($this->configuracoes->base_url, '/');
-            $this->wabaId = $this->configuracoes->waba_id;
-            $this->phoneNumberId = $this->configuracoes->phone_number_id;
-            $this->clientId = $this->configuracoes->client_id;
-            $this->clientSecret = $this->configuracoes->client_secret;
+        // Se uma credencial específica foi fornecida, configurar com ela
+        if ($credencial) {
+            $this->configurarComCredencial($credencial);
         }
     }
 
@@ -56,7 +47,37 @@ class SerproApi
      */
     public function isConfigured()
     {
-        return $this->configuracoes !== null;
+        return isset($this->credencialEspecifica) || 
+               (!empty($this->baseUrl) && !empty($this->clientId) && !empty($this->clientSecret));
+    }
+
+    /**
+     * [ configurarComCredencial ] - Configura a API com credenciais específicas
+     * 
+     * @param object $credencial Objeto com as credenciais do departamento
+     * @return void
+     */
+    public function configurarComCredencial($credencial)
+    {
+        if ($credencial) {
+            $this->baseUrl = rtrim($credencial->base_url ?? $this->baseUrl, '/');
+            $this->wabaId = $credencial->waba_id ?? $this->wabaId;
+            $this->phoneNumberId = $credencial->phone_number_id ?? $this->phoneNumberId;
+            $this->clientId = $credencial->client_id ?? $this->clientId;
+            $this->clientSecret = $credencial->client_secret ?? $this->clientSecret;
+            
+            // Armazenar credencial específica para uso no obterTokenValido
+            $this->credencialEspecifica = $credencial;
+            
+            // Log para debug
+            $this->logDebug('API configurada com credencial específica', [
+                'departamento_id' => $credencial->departamento_id ?? 'N/A',
+                'nome_credencial' => $credencial->nome ?? 'N/A',
+                'base_url' => $this->baseUrl,
+                'waba_id' => $this->wabaId,
+                'phone_number_id' => $this->phoneNumberId
+            ]);
+        }
     }
 
     /**
@@ -70,7 +91,14 @@ class SerproApi
             return '';
         }
 
-        return $this->configuracaoModel->obterTokenValido();
+        // Se foi configurado com credencial específica, usar CredencialSerproModel
+        if (isset($this->credencialEspecifica)) {
+            $credencialModel = new CredencialSerproModel();
+            return $credencialModel->obterTokenValido($this->credencialEspecifica->id);
+        }
+
+        // Se não há credencial específica, retornar vazio
+        return '';
     }
 
     /**

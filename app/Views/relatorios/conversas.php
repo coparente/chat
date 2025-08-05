@@ -1,62 +1,20 @@
 <?php include 'app/Views/include/head.php' ?>
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $_SESSION['usuario_id'],
+    'nome' => $_SESSION['usuario_nome'],
+    'email' => $_SESSION['usuario_email'],
+    'perfil' => $_SESSION['usuario_perfil'],
+    'status' => $_SESSION['usuario_status']
+];
+?>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-            <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        <span>Chat</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        <span>Contatos</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link active">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Relatórios</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        <span>Usuários</span>
-                    </a>
-                </div>
-                
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
-                    </a>
-                </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
-
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
+        
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
             <!-- Header -->
@@ -84,8 +42,8 @@
                     
                     <!-- Menu do usuário -->
                     <div class="user-menu">
-                        <div class="user-avatar" title="<?= $usuario_logado['nome'] ?>">
-                            <?= strtoupper(substr($usuario_logado['nome'], 0, 2)) ?>
+                        <div class="user-avatar" title="<?= $usuario['nome'] ?>">
+                            <?= strtoupper(substr($usuario['nome'], 0, 2)) ?>
                         </div>
                     </div>
                     
@@ -363,10 +321,12 @@
                                                                 <div class="contact-name">
                                                                     <?= $conversa->contato_nome ?? 'Sem nome' ?>
                                                                 </div>
-                                                                <?php if ($conversa->departamento): ?>
+                                                                <?php if ($conversa->departamento_nome): ?>
                                                                     <div class="contact-department">
                                                                         <i class="fas fa-building me-1"></i>
-                                                                        <?= $conversa->departamento ?>
+                                                                        <span style="color: <?= $conversa->departamento_cor ?? '#6c757d' ?>;">
+                                                                            <?= $conversa->departamento_nome ?>
+                                                                        </span>
                                                                     </div>
                                                                 <?php endif; ?>
                                                             </div>
@@ -721,31 +681,31 @@
         let dataTable = null;
 
         $(document).ready(function() {
-            // Inicializar DataTable
-            if ($('#tabelaConversas').length) {
-                dataTable = $('#tabelaConversas').DataTable({
-                    language: {
-                        url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
-                    },
-                    order: [[0, 'desc']],
-                    pageLength: 25,
-                    responsive: true,
-                    columnDefs: [
-                        { targets: [-1], orderable: false, searchable: false },
-                        { targets: [0], className: 'text-center' },
-                        { targets: [4], className: 'text-center' },
-                        { targets: [5], className: 'text-center' },
-                        { targets: [8], className: 'text-center' }
-                    ],
-                    dom: '<"table-controls"<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>>' +
-                         '<"table-wrapper"t>' +
-                         '<"table-footer"<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>>',
-                    drawCallback: function() {
-                        // Reaplicar tooltips após redraw
-                        initTooltips();
-                    }
-                });
-            }
+        //     // Inicializar DataTable
+        //     if ($('#tabelaConversas').length) {
+        //         dataTable = $('#tabelaConversas').DataTable({
+        //             language: {
+        //                 url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+        //             },
+        //             order: [[0, 'desc']],
+        //             pageLength: 25,
+        //             responsive: true,
+        //             columnDefs: [
+        //                 { targets: [-1], orderable: false, searchable: false },
+        //                 { targets: [0], className: 'text-center' },
+        //                 { targets: [4], className: 'text-center' },
+        //                 { targets: [5], className: 'text-center' },
+        //                 { targets: [8], className: 'text-center' }
+        //             ],
+        //             dom: '<"table-controls"<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>>' +
+        //                  '<"table-wrapper"t>' +
+        //                  '<"table-footer"<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>>',
+        //             drawCallback: function() {
+        //                 // Reaplicar tooltips após redraw
+        //                 initTooltips();
+        //             }
+        //         });
+        //     }
 
             
             // Inicializar tooltips
@@ -1120,453 +1080,6 @@
             }
         }
     </script>
-    
-    <style>
-        /* Estilos personalizados */
-        .page-header {
-            margin-bottom: 2rem;
-        }
-        
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--secondary-color);
-            margin-bottom: 0.5rem;
-        }
-        
-        .page-subtitle {
-            color: #6c757d;
-            font-size: 1.1rem;
-            margin-bottom: 0;
-        }
-        
-        .filter-section {
-            margin-bottom: 2rem;
-        }
-        
-        .filter-actions {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        .stats-section {
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
-        }
-        
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            margin-right: 1rem;
-        }
-        
-        .stat-icon.primary { background: linear-gradient(135deg, #007bff, #0056b3); }
-        .stat-icon.success { background: linear-gradient(135deg, #28a745, #1e7e34); }
-        .stat-icon.warning { background: linear-gradient(135deg, #ffc107, #d39e00); }
-        .stat-icon.info { background: linear-gradient(135deg, #17a2b8, #138496); }
-        
-        .stat-content {
-            flex: 1;
-        }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--secondary-color);
-            margin-bottom: 0.25rem;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-trend {
-            font-size: 0.8rem;
-        }
-        
-        .conversations-table {
-            margin-bottom: 2rem;
-        }
-        
-        .conversation-id {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        
-        .contact-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .contact-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
-        
-        .contact-name {
-            font-weight: 600;
-            color: var(--secondary-color);
-        }
-        
-        .contact-department {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-        
-        .phone-number {
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-        
-        .agent-badge {
-            background: rgba(40, 167, 69, 0.1);
-            color: #28a745;
-            padding: 0.25rem 0.5rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-        
-        .status-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-        
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 0.4rem 0.8rem;
-        }
-        
-        .priority-indicator {
-            text-align: center;
-        }
-        
-        /* Estilo do dropdown de status */
-        .status-container .dropdown {
-            margin-top: 0.5rem;
-        }
-        
-        .status-container .dropdown-toggle {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-        }
-        
-        .status-container .dropdown-menu {
-            font-size: 0.8rem;
-            min-width: 180px;
-        }
-        
-        .status-container .dropdown-item {
-            padding: 0.5rem 0.75rem;
-        }
-        
-        .status-container .dropdown-item:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .status-container .dropdown-item.text-danger:hover {
-            background-color: #f8d7da;
-        }
-        
-        /* Estilo do dropdown de atendente */
-        .agent-badge {
-            background: rgba(40, 167, 69, 0.1);
-            color: #28a745;
-            padding: 0.25rem 0.5rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-        
-        .agent-badge .dropdown {
-            margin-top: 0.5rem;
-        }
-        
-        .agent-badge .dropdown-toggle {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-        }
-        
-        .agent-badge .dropdown-menu {
-            font-size: 0.8rem;
-            min-width: 200px;
-        }
-        
-        .agent-badge .dropdown-item {
-            padding: 0.5rem 0.75rem;
-        }
-        
-        .agent-badge .dropdown-item:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .agent-badge .dropdown-header {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #6c757d;
-            padding: 0.5rem 0.75rem;
-        }
-        
-        /* Estilos para o modal de visualização de conversa */
-        .conversation-info {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #e9ecef;
-        }
-        
-        .info-item {
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-        }
-        
-        .info-item strong {
-            min-width: 100px;
-            color: #495057;
-        }
-        
-        .messages-container {
-            border: 1px solid #e9ecef;
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-        
-        .messages-header {
-            background: #f8f9fa;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .messages-header h6 {
-            margin: 0;
-            color: #495057;
-        }
-        
-        .messages-area {
-            height: 400px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: #fff;
-        }
-        
-        .message-item {
-            margin-bottom: 1rem;
-        }
-        
-        .message-bubble {
-            max-width: 80%;
-            padding: 0.75rem;
-            border-radius: 1rem;
-            position: relative;
-        }
-        
-        .message-bubble.received {
-            background: #e3f2fd;
-            color: #1565c0;
-            margin-right: auto;
-            border-bottom-left-radius: 0.25rem;
-        }
-        
-        .message-bubble.sent {
-            background: #e8f5e8;
-            color: #2e7d32;
-            margin-left: auto;
-            border-bottom-right-radius: 0.25rem;
-        }
-        
-        .message-content {
-            word-wrap: break-word;
-        }
-        
-        .message-text {
-            margin: 0 0 0.5rem 0;
-            line-height: 1.4;
-        }
-        
-        .message-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.75rem;
-        }
-        
-        .message-time {
-            color: #6c757d;
-        }
-        
-        .message-status {
-            color: #28a745;
-            font-weight: 500;
-        }
-        
-        .message-stats {
-            text-align: center;
-        }
-        
-        .total-messages {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--secondary-color);
-        }
-        
-        .message-breakdown {
-            margin-top: 0.25rem;
-        }
-        
-        .date-info {
-            text-align: center;
-        }
-        
-        .date-primary {
-            font-weight: 500;
-        }
-        
-        .date-secondary {
-            margin-top: 0.25rem;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-        
-        .empty-icon {
-            font-size: 4rem;
-            color: #dee2e6;
-            margin-bottom: 1rem;
-        }
-        
-        .empty-title {
-            color: var(--secondary-color);
-            margin-bottom: 1rem;
-        }
-        
-        .empty-text {
-            color: #6c757d;
-            margin-bottom: 2rem;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .table-controls {
-            margin-bottom: 1rem;
-        }
-        
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        
-        .table-footer {
-            margin-top: 1rem;
-        }
-        
-        .conversation-details .detail-item {
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .conversation-details .detail-item:last-child {
-            border-bottom: none;
-        }
-        
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            display: none;
-            z-index: 9999;
-        }
-        
-        .loading-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-        
-        /* Responsividade do modal */
-        @media (max-width: 768px) {
-            .page-header .row {
-                text-align: center;
-            }
-            
-            .page-header .col-md-4 {
-                margin-top: 1rem;
-            }
-            
-            .stat-card .d-flex {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .stat-icon {
-                margin-right: 0;
-                margin-bottom: 1rem;
-            }
-            
-            .contact-info {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .table-responsive {
-                font-size: 0.9rem;
-            }
 
-            .modal-xl {
-                max-width: 95%;
-            }
-            
-            .messages-area {
-                height: 300px;
-            }
-            
-            .message-bubble {
-                max-width: 90%;
-            }
-        }
-
-    </style>
 </body>
 </html> 

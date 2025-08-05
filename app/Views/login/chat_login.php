@@ -42,6 +42,9 @@
                 </div>
             <?php endif; ?>
 
+            <!-- Exibir mensagens do Helper -->
+            <?= Helper::mensagem('usuario') ?>
+
             <!-- Formulário de login -->
             <form action="<?= URL ?>/login" method="POST" id="loginForm">
                 <?= Helper::csrfField() ?>

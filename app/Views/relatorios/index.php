@@ -1,61 +1,17 @@
 <?php include 'app/Views/include/head.php' ?>
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $usuario_logado['id'],
+    'nome' => $usuario_logado['nome'],
+    'email' => $usuario_logado['email'],
+    'perfil' => $usuario_logado['perfil']
+];
+?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-            <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        <span>Chat</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        <span>Contatos</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link active">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Relatórios</span>
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        <span>Usuários</span>
-                    </a>
-                </div>
-                
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
-                    </a>
-                </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
 
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">

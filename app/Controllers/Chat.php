@@ -23,6 +23,7 @@ class Chat extends Controllers
     private $usuarioModel;
     private $serproApi;
     private $configuracaoModel;
+    private $departamentoHelper; // Nova propriedade para departamentos
 
     public function __construct()
     {
@@ -41,6 +42,7 @@ class Chat extends Controllers
         $this->usuarioModel = $this->model('UsuarioModel');
         $this->configuracaoModel = $this->model('ConfiguracaoModel');
         $this->serproApi = new SerproApi();
+        $this->departamentoHelper = new DepartamentoHelper(); // Inicializar helper de departamentos
         
         // Atualizar último acesso
         $this->usuarioModel->atualizarUltimoAcesso($_SESSION['usuario_id']);
@@ -59,19 +61,11 @@ class Chat extends Controllers
      */
     public function painel()
     {
-        // Verificar se API Serpro está configurada
-        if (!$this->serproApi->isConfigured()) {
-            Helper::mensagem('chat', '<i class="fas fa-exclamation-triangle"></i> Configure a API Serpro antes de usar o chat', 'alert alert-warning');
-            if ($_SESSION['usuario_perfil'] === 'admin') {
-                Helper::redirecionar('configuracoes/serpro');
-            } else {
-                Helper::redirecionar('dashboard');
-            }
-            return;
-        }
-
         $perfil = $_SESSION['usuario_perfil'];
         $usuarioId = $_SESSION['usuario_id'];
+        
+        // Buscar departamentos do usuário
+        $departamentosUsuario = $this->usuarioModel->getDepartamentosUsuario($usuarioId);
         
         // Buscar dados baseados no perfil
         $dados = [
@@ -82,27 +76,37 @@ class Chat extends Controllers
                 'perfil' => $perfil,
                 'status' => $_SESSION['usuario_status']
             ],
+            'departamentos_usuario' => $departamentosUsuario,
             'api_status' => $this->serproApi->obterStatusConexao(),
             'token_status' => $this->serproApi->obterStatusToken()
         ];
 
-        // Dados específicos por perfil
+        // Dados específicos por perfil com suporte a departamentos
         if ($perfil === 'atendente') {
-            $dados['minhas_conversas'] = $this->conversaModel->getConversasPorAtendente($usuarioId);
-            $dados['conversas_pendentes'] = $this->conversaModel->getConversasPendentes(5);
+            // Filtrar conversas por departamentos do usuário
+            $dados['minhas_conversas'] = $this->getConversasPorDepartamentosUsuario($usuarioId);
+            $dados['conversas_pendentes'] = $this->getConversasPendentesPorDepartamentosUsuario($usuarioId);
         } else {
-            $dados['conversas_ativas'] = $this->conversaModel->getConversasAtivas(20);
-            $dados['conversas_pendentes'] = $this->conversaModel->getConversasPendentes(10);
+            // Admin/supervisor pode ver todas as conversas ou filtrar por departamento
+            $departamentoFiltro = $_GET['departamento'] ?? null;
+            if ($departamentoFiltro) {
+                $dados['conversas_ativas'] = $this->conversaModel->getConversasAtivasPorDepartamento($departamentoFiltro, 20);
+                $dados['conversas_pendentes'] = $this->conversaModel->getConversasPendentesPorDepartamento($departamentoFiltro, 10);
+            } else {
+                $dados['conversas_ativas'] = $this->conversaModel->getConversasAtivas(20);
+                $dados['conversas_pendentes'] = $this->conversaModel->getConversasPendentes(10);
+            }
         }
 
         // Templates disponíveis
         $dados['templates'] = $this->getTemplatesDisponiveis();
 
+        // Carregar view
         $this->view('chat/painel', $dados);
     }
 
     /**
-     * [ iniciarConversa ] - Inicia nova conversa com template
+     * [ iniciarConversa ] - Inicia uma nova conversa
      */
     public function iniciarConversa()
     {
@@ -137,6 +141,7 @@ class Chat extends Controllers
             $numero = $this->limparNumero($dados['numero']);
             $template = $dados['template'];
             $parametrosRaw = $dados['parametros'] ?? [];
+            $departamentoIdEnviado = $dados['departamento_id'] ?? null;
 
             // Converter parâmetros para formato correto da API Serpro
             $parametros = [];
@@ -170,8 +175,52 @@ class Chat extends Controllers
                 exit;
             }
 
-            // Criar conversa
-            $conversaId = $this->criarConversa($contato['id'], $_SESSION['usuario_id']);
+            // Determinar departamento para a conversa
+            $departamentoId = null;
+            
+            if ($_SESSION['usuario_perfil'] === 'atendente') {
+                // Para atendentes, usar o departamento enviado pelo frontend
+                if ($departamentoIdEnviado) {
+                    // Verificar se o usuário tem permissão para este departamento
+                    $temPermissao = $this->usuarioModel->verificarAtendenteDepartamento($_SESSION['usuario_id'], $departamentoIdEnviado);
+                    if ($temPermissao) {
+                        $departamentoId = $departamentoIdEnviado;
+                        error_log("✅ Usando departamento selecionado pelo usuário: ID {$departamentoId}");
+                    } else {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => 'Você não tem permissão para iniciar conversas neste departamento']);
+                        exit;
+                    }
+                } else {
+                    // Fallback: usar o primeiro departamento do usuário
+                    $departamentosUsuario = $this->usuarioModel->getDepartamentosUsuario($_SESSION['usuario_id']);
+                    if (!empty($departamentosUsuario)) {
+                        $departamentoId = $departamentosUsuario[0]->id;
+                        error_log("✅ Usando primeiro departamento do usuário: {$departamentosUsuario[0]->nome} (ID: {$departamentoId})");
+                    } else {
+                        // Fallback: identificar automaticamente
+                        $departamentoId = $this->conversaModel->determinarDepartamentoConversa($numero, $dados['mensagem_inicial'] ?? '');
+                        error_log("⚠️ Usuário não tem departamento associado, usando identificação automática: {$departamentoId}");
+                    }
+                }
+            } else {
+                // Para admin/supervisor, usar identificação automática
+                $departamentoId = $this->conversaModel->determinarDepartamentoConversa($numero, $dados['mensagem_inicial'] ?? '');
+                error_log("✅ Admin/Supervisor usando identificação automática: {$departamentoId}");
+            }
+            
+            // Verificar se o usuário tem permissão para o departamento
+            if ($_SESSION['usuario_perfil'] === 'atendente') {
+                $temPermissao = $this->usuarioModel->verificarAtendenteDepartamento($_SESSION['usuario_id'], $departamentoId);
+                if (!$temPermissao) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Você não tem permissão para iniciar conversas neste departamento']);
+                    exit;
+                }
+            }
+
+            // Criar conversa com departamento
+            $conversaId = $this->criarConversaComDepartamento($contato['id'], $_SESSION['usuario_id'], $departamentoId);
             
             if (!$conversaId) {
                 http_response_code(500);
@@ -179,8 +228,41 @@ class Chat extends Controllers
                 exit;
             }
 
-            // Enviar template via API Serpro
-            $resultado = $this->serproApi->enviarTemplate($numero, $template, $parametros);
+            // ✅ NOVO: Obter credencial específica do departamento
+            $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
+            $resultado = null;
+            $credencialUsada = null;
+            
+            if ($credencial) {
+                // ✅ Usar SerproApi com credenciais específicas do departamento
+                try {
+                    $serproApiDepartamento = new SerproApi();
+                    
+                    // Configurar com credenciais específicas do departamento
+                    $serproApiDepartamento->configurarComCredencial($credencial);
+                    
+                    $resultado = $serproApiDepartamento->enviarTemplate($numero, $template, $parametros);
+                    $credencialUsada = [
+                        'id' => $credencial->id,
+                        'nome' => $credencial->nome,
+                        'departamento_id' => $credencial->departamento_id,
+                        'client_id' => $credencial->client_id
+                    ];
+                    
+                    error_log("✅ Usando credencial específica do departamento: {$credencial->nome} (ID: {$credencial->id}) para departamento {$departamentoId}");
+                    
+                } catch (Exception $e) {
+                    error_log("❌ Erro ao usar credencial específica do departamento: " . $e->getMessage());
+                    // Fallback para API padrão
+                    $resultado = $this->serproApi->enviarTemplate($numero, $template, $parametros);
+                    $credencialUsada = ['fallback' => 'API padrão'];
+                }
+            } else {
+                // ✅ Usar API padrão se não houver credencial específica
+                $resultado = $this->serproApi->enviarTemplate($numero, $template, $parametros);
+                $credencialUsada = ['fallback' => 'API padrão - sem credencial específica'];
+                error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+            }
 
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
                 // Salvar mensagem no banco
@@ -192,32 +274,30 @@ class Chat extends Controllers
                     'ultima_mensagem' => date('Y-m-d H:i:s')
                 ]);
 
-                http_response_code(200);
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Template enviado com sucesso!',
+                    'message' => 'Conversa iniciada com sucesso!',
                     'conversa_id' => $conversaId,
-                    'dados' => $resultado['response']
+                    'departamento_id' => $departamentoId,
+                    'credencial_usada' => $credencialUsada
                 ]);
             } else {
+                // Se falhou o envio, deletar a conversa criada
+                $this->conversaModel->atualizarConversa($conversaId, ['status' => 'fechado']);
+                
                 http_response_code(500);
                 echo json_encode([
-                    'success' => false,
-                    'message' => 'Erro ao enviar template: ' . ($resultado['error'] ?? 'Erro desconhecido')
+                    'success' => false, 
+                    'message' => 'Erro ao enviar template: ' . ($resultado['message'] ?? 'Erro desconhecido'),
+                    'credencial_usada' => $credencialUsada
                 ]);
             }
+
         } catch (Exception $e) {
-            // Log do erro para debug mas não exibir
-            error_log("Erro no Chat::iniciarConversa: " . $e->getMessage());
-            
+            error_log("Erro em iniciarConversa: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erro interno do servidor'
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
         }
-        
-        exit;
     }
 
     /**
@@ -286,8 +366,45 @@ class Chat extends Controllers
                 exit;
             }
 
-            // Enviar mensagem via API Serpro
-            $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
+            // Determinar qual API usar baseado no departamento da conversa
+            $departamentoId = $conversa->departamento_id;
+            $resultado = null;
+            
+            if ($departamentoId) {
+                // Tentar usar credenciais específicas do departamento
+                try {
+                    $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
+                    
+                    if ($credencial) {
+                        // ✅ NOVA ABORDAGEM: Usar SerproApi existente com credenciais do departamento
+                        $serproApiDepartamento = new SerproApi();
+                        
+                        // Configurar temporariamente com as credenciais do departamento
+                        $serproApiDepartamento->configurarComCredencial($credencial);
+                        
+                        $resultado = $serproApiDepartamento->enviarMensagemTexto($conversa->numero, $mensagem);
+                        
+                        if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
+                            error_log("✅ Mensagem enviada usando credenciais do departamento ID: {$departamentoId}");
+                        } else {
+                            error_log("⚠️ Falha com credenciais do departamento, tentando API padrão");
+                            // Se falhar, tentar API padrão
+                            $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
+                        }
+                    } else {
+                        // Se não há credencial específica, usar API padrão
+                        $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
+                        error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                    }
+                } catch (Exception $e) {
+                    error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
+                    // Em caso de erro, usar API padrão
+                    $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
+                }
+            } else {
+                // Se não há departamento, usar API padrão
+                $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
+            }
 
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
                 // Salvar mensagem no banco
@@ -424,20 +541,120 @@ class Chat extends Controllers
         }
 
         // Fazer upload do arquivo para API Serpro
-        $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
+        $departamentoId = $conversa->departamento_id;
+        $uploadResult = null;
+        
+        if ($departamentoId) {
+            // Tentar usar credenciais específicas do departamento
+            try {
+                $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
+                
+                if ($credencial) {
+                    // ✅ NOVA ABORDAGEM: Usar SerproApi existente com credenciais do departamento
+                    $serproApiDepartamento = new SerproApi();
+                    
+                    // Configurar temporariamente com as credenciais do departamento
+                    $serproApiDepartamento->configurarComCredencial($credencial);
+                    
+                    $uploadResult = $serproApiDepartamento->uploadMidia($arquivo, $arquivo['type']);
+                    
+                    if ($uploadResult['status'] >= 200 && $uploadResult['status'] < 300) {
+                        error_log("✅ Upload de mídia usando credenciais do departamento ID: {$departamentoId}");
+                    } else {
+                        error_log("⚠️ Falha no upload com credenciais do departamento, tentando API padrão");
+                        // Se falhar, tentar API padrão
+                        $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
+                    }
+                } else {
+                    // Se não há credencial específica, usar API padrão
+                    $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
+                    error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                }
+            } catch (Exception $e) {
+                error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
+                // Em caso de erro, usar API padrão
+                $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
+            }
+        } else {
+            // Se não há departamento, usar API padrão
+            $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
+        }
 
         if ($uploadResult['status'] >= 200 && $uploadResult['status'] < 300) {
             $idMedia = $uploadResult['response']['id'];
 
-            // Enviar mídia
-            $resultado = $this->serproApi->enviarMidia(
-                $conversa->numero, 
-                $tipoMidia, 
-                $idMedia, 
-                $caption, 
-                null, 
-                $tipoMidia === 'document' ? $arquivo['name'] : null
-            );
+            // Enviar mídia usando credenciais do departamento
+            $resultado = null;
+            
+            if ($departamentoId) {
+                try {
+                    $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
+                    
+                    if ($credencial) {
+                        // ✅ NOVA ABORDAGEM: Usar SerproApi existente com credenciais do departamento
+                        $serproApiDepartamento = new SerproApi();
+                        
+                        // Configurar temporariamente com as credenciais do departamento
+                        $serproApiDepartamento->configurarComCredencial($credencial);
+                        
+                        $resultado = $serproApiDepartamento->enviarMidia(
+                            $conversa->numero, 
+                            $tipoMidia, 
+                            $idMedia, 
+                            $caption, 
+                            null, 
+                            $tipoMidia === 'document' ? $arquivo['name'] : null
+                        );
+                        
+                        if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
+                            error_log("✅ Mídia enviada usando credenciais do departamento ID: {$departamentoId}");
+                        } else {
+                            error_log("⚠️ Falha no envio com credenciais do departamento, tentando API padrão");
+                            // Se falhar, tentar API padrão
+                            $resultado = $this->serproApi->enviarMidia(
+                                $conversa->numero, 
+                                $tipoMidia, 
+                                $idMedia, 
+                                $caption, 
+                                null, 
+                                $tipoMidia === 'document' ? $arquivo['name'] : null
+                            );
+                        }
+                    } else {
+                        // Se não há credencial específica, usar API padrão
+                        $resultado = $this->serproApi->enviarMidia(
+                            $conversa->numero, 
+                            $tipoMidia, 
+                            $idMedia, 
+                            $caption, 
+                            null, 
+                            $tipoMidia === 'document' ? $arquivo['name'] : null
+                        );
+                        error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                    }
+                } catch (Exception $e) {
+                    error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
+                    // Em caso de erro, usar API padrão
+                    $resultado = $this->serproApi->enviarMidia(
+                        $conversa->numero, 
+                        $tipoMidia, 
+                        $idMedia, 
+                        $caption, 
+                        null, 
+                        $tipoMidia === 'document' ? $arquivo['name'] : null
+                    );
+                }
+            } else {
+                // Se não há departamento, usar API padrão
+                $resultado = $this->serproApi->enviarMidia(
+                    $conversa->numero, 
+                    $tipoMidia, 
+                    $idMedia, 
+                    $caption, 
+                    null, 
+                    $tipoMidia === 'document' ? $arquivo['name'] : null
+                );
+            }
 
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
                 // Salvar mensagem no banco com caminho do MinIO
@@ -828,18 +1045,26 @@ class Chat extends Controllers
         header('Cache-Control: no-cache, must-revalidate');
 
         try {
-            // Buscar atendentes ativos
-            $atendentes = $this->usuarioModel->listarPorPerfil('atendente');
+            $departamentoId = $_GET['departamento'] ?? null;
             
-            // Filtrar apenas atendentes ativos
-            $atendentesAtivos = array_filter($atendentes, function($atendente) {
-                return $atendente->status === 'ativo';
-            });
+            if ($departamentoId) {
+                // Buscar atendentes específicos do departamento
+                $atendentes = $this->usuarioModel->getAtendentesDisponiveisPorDepartamento($departamentoId);
+            } else {
+                // Buscar todos os atendentes ativos
+                $atendentes = $this->usuarioModel->listarPorPerfil('atendente');
+                
+                // Filtrar apenas atendentes ativos
+                $atendentes = array_filter($atendentes, function($atendente) {
+                    return $atendente->status === 'ativo';
+                });
+            }
 
             // Adicionar estatísticas de cada atendente
             $atendentesComStats = [];
-            foreach ($atendentesAtivos as $atendente) {
+            foreach ($atendentes as $atendente) {
                 $conversasAtivas = $this->conversaModel->contarConversasPorAtendente($atendente->id);
+                $maxConversas = $atendente->max_conversas ?? 5;
                 
                 $atendentesComStats[] = [
                     'id' => $atendente->id,
@@ -847,20 +1072,23 @@ class Chat extends Controllers
                     'email' => $atendente->email,
                     'status' => $atendente->status,
                     'conversas_ativas' => $conversasAtivas,
-                    'disponivel' => $conversasAtivas < 5 // Considerar disponível se tem menos de 5 conversas
+                    'max_conversas' => $maxConversas,
+                    'disponivel' => $conversasAtivas < $maxConversas,
+                    'departamento_id' => $departamentoId ?? null
                 ];
             }
 
             http_response_code(200);
             echo json_encode([
                 'success' => true,
-                'atendentes' => $atendentesComStats
+                'atendentes' => $atendentesComStats,
+                'departamento_id' => $departamentoId
             ]);
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Erro ao listar atendentes'
+                'message' => 'Erro ao listar atendentes: ' . $e->getMessage()
             ]);
         }
         
@@ -934,6 +1162,14 @@ class Chat extends Controllers
             exit;
         }
 
+        // Buscar informações da conversa para obter o departamento
+        $conversa = $this->verificarConversa($conversaId);
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
         // Buscar mensagens com idRequisicao
         $mensagensComId = $this->mensagemModel->buscarMensagensComIdRequisicao($conversaId);
         
@@ -947,6 +1183,34 @@ class Chat extends Controllers
             exit;
         }
 
+        // ✅ NOVO: Determinar qual API usar baseado no departamento da conversa
+        $departamentoId = $conversa->departamento_id;
+        $serproApiDepartamento = null;
+        
+        if ($departamentoId) {
+            // Tentar usar credenciais específicas do departamento
+            try {
+                $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
+                
+                if ($credencial) {
+                    // ✅ Usar SerproApi com credenciais específicas do departamento
+                    $serproApiDepartamento = new SerproApi();
+                    $serproApiDepartamento->configurarComCredencial($credencial);
+                    
+                    error_log("✅ Verificando status usando credenciais do departamento ID: {$departamentoId}");
+                } else {
+                    error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                }
+            } catch (Exception $e) {
+                error_log("❌ Erro ao configurar credenciais do departamento: " . $e->getMessage());
+            }
+        }
+        
+        // Se não conseguiu configurar credenciais específicas, usar API padrão
+        if (!$serproApiDepartamento) {
+            $serproApiDepartamento = $this->serproApi;
+        }
+
         $mensagensStatus = [];
         $consultasRealizadas = 0;
         $consultasComSucesso = 0;
@@ -957,7 +1221,7 @@ class Chat extends Controllers
             
             try {
                 $consultasRealizadas++;
-                $resultadoConsulta = $this->serproApi->consultarStatus($idRequisicao);
+                $resultadoConsulta = $serproApiDepartamento->consultarStatus($idRequisicao);
                 
                 if ($resultadoConsulta['status'] >= 200 && $resultadoConsulta['status'] < 300) {
                     $consultasComSucesso++;
@@ -1043,7 +1307,8 @@ class Chat extends Controllers
             'total_mensagens' => count($mensagensComId),
             'consultas_realizadas' => $consultasRealizadas,
             'consultas_sucesso' => $consultasComSucesso,
-            'taxa_sucesso' => $consultasRealizadas > 0 ? round(($consultasComSucesso / $consultasRealizadas) * 100, 2) : 0
+            'taxa_sucesso' => $consultasRealizadas > 0 ? round(($consultasComSucesso / $consultasRealizadas) * 100, 2) : 0,
+            'departamento_id' => $departamentoId
         ]);
         
         exit;
@@ -1132,6 +1397,45 @@ class Chat extends Controllers
             exit;
         }
 
+        // ✅ NOVO: Buscar a mensagem para obter a conversa e departamento
+        $mensagem = $this->mensagemModel->buscarPorSerproId($serproMessageId);
+        $departamentoId = null;
+        
+        if ($mensagem) {
+            // Buscar a conversa para obter o departamento
+            $conversa = $this->verificarConversa($mensagem->conversa_id);
+            if ($conversa) {
+                $departamentoId = $conversa->departamento_id;
+            }
+        }
+
+        // ✅ NOVO: Se necessário, confirmar status via API usando credenciais do departamento
+        if (in_array($novoStatus, ['entregue', 'lido']) && $departamentoId) {
+            try {
+                $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
+                
+                if ($credencial) {
+                    // ✅ Usar SerproApi com credenciais específicas do departamento
+                    $serproApiDepartamento = new SerproApi();
+                    $serproApiDepartamento->configurarComCredencial($credencial);
+                    
+                    // Confirmar status via API
+                    $statusApi = ($novoStatus === 'lido') ? 'read' : 'delivered';
+                    $resultadoApi = $serproApiDepartamento->confirmarStatusMensagem($serproMessageId, $statusApi);
+                    
+                    if ($resultadoApi['status'] >= 200 && $resultadoApi['status'] < 300) {
+                        error_log("✅ Status confirmado via API usando credenciais do departamento ID: {$departamentoId}");
+                    } else {
+                        error_log("⚠️ Erro ao confirmar status via API: " . ($resultadoApi['error'] ?? 'Erro desconhecido'));
+                    }
+                } else {
+                    error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}");
+                }
+            } catch (Exception $e) {
+                error_log("❌ Erro ao confirmar status via API: " . $e->getMessage());
+            }
+        }
+
         // Atualizar mensagem no banco
         $resultado = $this->mensagemModel->atualizarStatusPorSerproId($serproMessageId, $novoStatus);
         
@@ -1139,7 +1443,8 @@ class Chat extends Controllers
             http_response_code(200);
             echo json_encode([
                 'success' => true,
-                'message' => 'Status atualizado com sucesso'
+                'message' => 'Status atualizado com sucesso',
+                'departamento_id' => $departamentoId
             ]);
         } else {
             http_response_code(500);
@@ -1232,6 +1537,27 @@ class Chat extends Controllers
         ];
 
         return $this->conversaModel->criarConversa($dados);
+    }
+
+    /**
+     * [ criarConversaComDepartamento ] - Cria uma nova conversa com departamento
+     * 
+     * @param int $contatoId ID do contato
+     * @param int $atendenteId ID do atendente
+     * @param int $departamentoId ID do departamento
+     * @return int|false ID da conversa criada ou false em caso de erro
+     */
+    private function criarConversaComDepartamento($contatoId, $atendenteId, $departamentoId)
+    {
+        $dados = [
+            'contato_id' => $contatoId,
+            'atendente_id' => $atendenteId,
+            'sessao_id' => uniqid(),
+            'status' => 'pendente',
+            'prioridade' => 'normal'
+        ];
+        
+        return $this->conversaModel->criarConversaComDepartamento($dados, $departamentoId);
     }
 
     /**
@@ -1645,6 +1971,38 @@ class Chat extends Controllers
         }
         
         exit;
+    }
+
+    /**
+     * [ getConversasPorDepartamentosUsuario ] - Obtém conversas do usuário por seus departamentos
+     */
+    private function getConversasPorDepartamentosUsuario($usuarioId)
+    {
+        $departamentosUsuario = $this->usuarioModel->getDepartamentosUsuario($usuarioId);
+        $conversas = [];
+        
+        foreach ($departamentosUsuario as $departamento) {
+            $conversasDepartamento = $this->conversaModel->getConversasPorDepartamento($departamento->id, ['aberto', 'pendente']);
+            $conversas = array_merge($conversas, $conversasDepartamento);
+        }
+        
+        return $conversas;
+    }
+
+    /**
+     * [ getConversasPendentesPorDepartamentosUsuario ] - Obtém conversas pendentes do usuário por seus departamentos
+     */
+    private function getConversasPendentesPorDepartamentosUsuario($usuarioId)
+    {
+        $departamentosUsuario = $this->usuarioModel->getDepartamentosUsuario($usuarioId);
+        $conversas = [];
+        
+        foreach ($departamentosUsuario as $departamento) {
+            $conversasDepartamento = $this->conversaModel->getConversasPendentesPorDepartamento($departamento->id, 10);
+            $conversas = array_merge($conversas, $conversasDepartamento);
+        }
+        
+        return $conversas;
     }
 }
 ?> 

@@ -1,64 +1,18 @@
 
 <?php include 'app/Views/include/head.php' ?>
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $usuario_logado['id'],
+    'nome' => $usuario_logado['nome'],
+    'email' => $usuario_logado['email'],
+    'perfil' => $usuario_logado['perfil']
+];
+?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        Dashboard
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        Chat
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link active">
-                        <i class="fas fa-address-book"></i>
-                        Contatos
-                    </a>
-                </div>
-                
-                <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link">
-                        <i class="fas fa-chart-bar"></i>
-                        Relatórios
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        Usuários
-                    </a>
-                </div>
-                <?php endif; ?>
-                
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link">
-                        <i class="fas fa-cog"></i>
-                        Configurações
-                    </a>
-                </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
 
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
@@ -108,12 +62,13 @@
                         <h2><i class="fas fa-address-book me-2"></i>Contatos</h2>
                         <p class="text-muted">Gerencie todos os seus contatos do ChatSerpro</p>
                     </div>
-                    
-                    <!-- <div>
+                    <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
+                    <div>
                         <a href="<?= URL ?>/contatos/cadastrar" class="btn btn-primary">
                             <i class="fas fa-plus me-2"></i>Novo Contato
                         </a>
-                    </div> -->
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Estatísticas -->
@@ -215,6 +170,27 @@
                             </div>
                             
                             <div class="col-md-2">
+                                <label class="form-label">Último Agente</label>
+                                <select class="form-select" name="agente" onchange="this.form.submit()">
+                                    <option value="">Todos</option>
+                                    <?php 
+                                    // Buscar todos os atendentes para o filtro
+                                    $usuarioModel = new UsuarioModel();
+                                    $todosAtendentes = $usuarioModel->listarUsuarios();
+                                    foreach ($todosAtendentes as $atendente): 
+                                        if ($atendente->perfil === 'atendente'):
+                                    ?>
+                                    <option value="<?= $atendente->id ?>" <?= $filtros['agente'] === $atendente->id ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($atendente->nome) ?>
+                                    </option>
+                                    <?php 
+                                        endif;
+                                    endforeach; 
+                                    ?>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-2">
                                 <label class="form-label">&nbsp;</label>
                                 <div>
                                     <?php if (array_filter($filtros)): ?>
@@ -259,6 +235,8 @@
                                             <th style="width: 100px;">Status</th>
                                             <th style="width: 120px;">Conversas</th>
                                             <th style="width: 150px;">Último Contato</th>
+                                            <th style="width: 150px;">Último Departamento</th>
+                                            <th style="width: 150px;">Último Agente</th>
                                             <th style="width: 200px;">Ações</th>
                                         </tr>
                                     </thead>
@@ -320,6 +298,26 @@
                                                     </small>
                                                 <?php else: ?>
                                                     <small class="text-muted">Nunca</small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($contato->ultimo_departamento_nome): ?>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-building me-1" style="color: <?= $contato->ultimo_departamento_cor ?? '#6c757d' ?>"></i>
+                                                        <small class="text-muted"><?= htmlspecialchars($contato->ultimo_departamento_nome) ?></small>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <small class="text-muted">-</small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($contato->ultimo_agente_nome): ?>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-user me-1" style="color: var(--primary-color);"></i>
+                                                        <small class="text-muted"><?= htmlspecialchars($contato->ultimo_agente_nome) ?></small>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <small class="text-muted">-</small>
                                                 <?php endif; ?>
                                             </td>
                                             <td>

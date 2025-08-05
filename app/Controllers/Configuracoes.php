@@ -65,196 +65,24 @@ class Configuracoes extends Controllers
     }
 
     /**
-     * [ serpro ] - Configurações da API Serpro
-     */
-    public function serpro()
-    {
-        // Carregar configurações existentes
-        $configuracoes = $this->configuracaoModel->buscarConfiguracaoSerpro();
-        
-        $dados = [
-            'client_id' => $configuracoes->client_id ?? '',
-            'client_secret' => $configuracoes->client_secret ?? '',
-            'base_url' => $configuracoes->base_url ?? 'https://api.whatsapp.serpro.gov.br',
-            'waba_id' => $configuracoes->waba_id ?? '',
-            'phone_number_id' => $configuracoes->phone_number_id ?? '',
-            'webhook_verify_token' => $configuracoes->webhook_verify_token ?? '',
-            'client_id_erro' => '',
-            'client_secret_erro' => '',
-            'base_url_erro' => '',
-            'waba_id_erro' => '',
-            'phone_number_id_erro' => '',
-            'webhook_verify_token_erro' => ''
-        ];
-
-        $dados['usuario_logado'] = [
-            'id' => $_SESSION['usuario_id'],
-            'nome' => $_SESSION['usuario_nome'],
-            'email' => $_SESSION['usuario_email'],
-            'perfil' => $_SESSION['usuario_perfil'],
-            'status' => $_SESSION['usuario_status']
-        ];
-
-        $this->view('configuracoes/serpro', $dados);
-    }
-
-    /**
-     * [ salvarSerpro ] - Salva configurações da API Serpro
-     */
-    public function salvarSerpro()
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            Helper::redirecionar('configuracoes/serpro');
-            return;
-        }
-
-        $formulario = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
-        
-        if (!$formulario) {
-            Helper::mensagem('configuracao', '<i class="fas fa-exclamation-triangle"></i> Dados inválidos', 'alert alert-danger');
-            Helper::redirecionar('configuracoes/serpro');
-            return;
-        }
-
-        // Processar formulário
-        $dados = [
-            'client_id' => trim($formulario['client_id']),
-            'client_secret' => trim($formulario['client_secret']),
-            'base_url' => trim($formulario['base_url']),
-            'waba_id' => trim($formulario['waba_id']),
-            'phone_number_id' => trim($formulario['phone_number_id']),
-            'webhook_verify_token' => trim($formulario['webhook_verify_token']),
-            'client_id_erro' => '',
-            'client_secret_erro' => '',
-            'base_url_erro' => '',
-            'waba_id_erro' => '',
-            'phone_number_id_erro' => '',
-            'webhook_verify_token_erro' => ''
-        ];
-
-        // Validações
-        if (empty($dados['client_id'])) {
-            $dados['client_id_erro'] = 'Client ID é obrigatório';
-        }
-
-        if (empty($dados['client_secret'])) {
-            $dados['client_secret_erro'] = 'Client Secret é obrigatório';
-        }
-
-        if (empty($dados['base_url'])) {
-            $dados['base_url_erro'] = 'URL Base é obrigatória';
-        } elseif (!filter_var($dados['base_url'], FILTER_VALIDATE_URL)) {
-            $dados['base_url_erro'] = 'URL Base deve ser uma URL válida';
-        }
-
-        if (empty($dados['waba_id'])) {
-            $dados['waba_id_erro'] = 'WABA ID é obrigatório';
-        }
-
-        if (empty($dados['phone_number_id'])) {
-            $dados['phone_number_id_erro'] = 'Phone Number ID é obrigatório';
-        }
-
-        if (empty($dados['webhook_verify_token'])) {
-            $dados['webhook_verify_token_erro'] = 'Webhook Verify Token é obrigatório';
-        }
-
-        // Se há erros, retornar para o formulário
-        if (!empty($dados['client_id_erro']) || 
-            !empty($dados['client_secret_erro']) || 
-            !empty($dados['base_url_erro']) || 
-            !empty($dados['waba_id_erro']) || 
-            !empty($dados['phone_number_id_erro']) || 
-            !empty($dados['webhook_verify_token_erro'])) {
-            
-            $dados['usuario_logado'] = [
-                'id' => $_SESSION['usuario_id'],
-                'nome' => $_SESSION['usuario_nome'],
-                'email' => $_SESSION['usuario_email'],
-                'perfil' => $_SESSION['usuario_perfil'],
-                'status' => $_SESSION['usuario_status']
-            ];
-
-            $this->view('configuracoes/serpro', $dados);
-            return;
-        }
-
-        // Se não há erros, salvar configurações
-        $configuracoesSerpro = [
-            'client_id' => $dados['client_id'],
-            'client_secret' => $dados['client_secret'],
-            'base_url' => $dados['base_url'],
-            'waba_id' => $dados['waba_id'],
-            'phone_number_id' => $dados['phone_number_id'],
-            'webhook_verify_token' => $dados['webhook_verify_token']
-        ];
-
-        if ($this->configuracaoModel->salvarConfiguracaoSerpro($configuracoesSerpro)) {
-            Helper::mensagem('configuracao', '<i class="fas fa-check"></i> Configurações da API Serpro salvas com sucesso!', 'alert alert-success');
-            Helper::redirecionar('configuracoes/serpro');
-        } else {
-            Helper::mensagem('configuracao', '<i class="fas fa-exclamation-triangle"></i> Erro ao salvar configurações da API Serpro', 'alert alert-danger');
-            Helper::redirecionar('configuracoes/serpro');
-        }
-    }
-
-    /**
-     * [ testarSerpro ] - Testa a conectividade com a API Serpro
-     */
-    public function testarSerpro()
-    {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método inválido']);
-            return;
-        }
-
-        $input = json_decode(file_get_contents('php://input'), true);
-
-        if (!$input) {
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            return;
-        }
-
-        // Validar campos obrigatórios
-        $camposObrigatorios = ['client_id', 'client_secret', 'base_url', 'waba_id', 'phone_number_id'];
-        foreach ($camposObrigatorios as $campo) {
-            if (empty($input[$campo])) {
-                echo json_encode(['success' => false, 'message' => "Campo {$campo} é obrigatório"]);
-                return;
-            }
-        }
-
-        // Testar conectividade
-        $resultado = $this->configuracaoModel->testarConectividadeSerpro($input);
-
-        if ($resultado['success']) {
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Conectividade com a API Serpro testada com sucesso!',
-                'dados' => $resultado['dados']
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false, 
-                'message' => $resultado['message'],
-                'erro' => $resultado['erro'] ?? null
-            ]);
-        }
-    }
-
-    /**
-     * [ conexoes ] - Gerenciar conexões WhatsApp
+     * [ conexoes ] - Página de conexões WhatsApp
      */
     public function conexoes()
     {
-        // Buscar todas as sessões
-        $sessoes = $this->sessaoWhatsappModel->listarSessoes();
+        // Verificar se usuário está logado
+        if (!isset($_SESSION['usuario_id'])) {
+            Helper::redirecionar('login-chat');
+            return;
+        }
+
+        // Verificar se é admin
+        if ($_SESSION['usuario_perfil'] !== 'admin') {
+            Helper::mensagem('configuracao', '<i class="fas fa-ban"></i> Acesso negado - Apenas administradores podem acessar configurações', 'alert alert-danger');
+            Helper::redirecionar('dashboard');
+            return;
+        }
 
         $dados = [
-            'pagina_titulo' => 'Conexões WhatsApp',
-            'sessoes' => $sessoes,
             'usuario_logado' => [
                 'id' => $_SESSION['usuario_id'],
                 'nome' => $_SESSION['usuario_nome'],
@@ -389,38 +217,39 @@ class Configuracoes extends Controllers
     }
 
     /**
-     * [ mensagens ] - Configurar mensagens automáticas
+     * [ mensagens ] - Configurar mensagens automáticas por departamento
      */
     public function mensagens()
     {
-        // Carregar configurações existentes
-        $mensagens = $this->configuracaoModel->buscarMensagensAutomaticas();
+        // Buscar departamentos
+        $departamentoModel = $this->model('DepartamentoModel');
+        $departamentos = $departamentoModel->listarTodos(true); // true = apenas ativos
+        
+        // Buscar mensagens automáticas por departamento
+        $mensagemAutomaticaModel = $this->model('MensagemAutomaticaModel');
+        $mensagensPorDepartamento = [];
+        
+        foreach ($departamentos as $departamento) {
+            $mensagensPorDepartamento[$departamento->id] = $mensagemAutomaticaModel->buscarPorDepartamento($departamento->id);
+        }
         
         $dados = [
-            'mensagem_boas_vindas' => $mensagens->mensagem_boas_vindas ?? 'Olá! Seja bem-vindo(a) ao nosso atendimento. Em que posso ajudá-lo(a)?',
-            'mensagem_ausencia' => $mensagens->mensagem_ausencia ?? 'No momento não há atendentes disponíveis. Deixe sua mensagem que retornaremos em breve.',
-            'mensagem_encerramento' => $mensagens->mensagem_encerramento ?? 'Obrigado pelo contato! Se precisar de mais alguma coisa, estarei aqui para ajudar.',
-            'horario_funcionamento' => $mensagens->horario_funcionamento ?? 'Segunda a Sexta: 08:00 às 18:00',
-            'ativar_boas_vindas' => $mensagens->ativar_boas_vindas ?? true,
-            'ativar_ausencia' => $mensagens->ativar_ausencia ?? true,
-            'ativar_encerramento' => $mensagens->ativar_encerramento ?? true,
-            'ativar_fora_horario' => $mensagens->ativar_fora_horario ?? true,
-            'ativar_sem_atendentes' => $mensagens->ativar_sem_atendentes ?? true
-        ];
-
-        $dados['usuario_logado'] = [
-            'id' => $_SESSION['usuario_id'],
-            'nome' => $_SESSION['usuario_nome'],
-            'email' => $_SESSION['usuario_email'],
-            'perfil' => $_SESSION['usuario_perfil'],
-            'status' => $_SESSION['usuario_status']
+            'departamentos' => $departamentos,
+            'mensagens_por_departamento' => $mensagensPorDepartamento,
+            'usuario_logado' => [
+                'id' => $_SESSION['usuario_id'],
+                'nome' => $_SESSION['usuario_nome'],
+                'email' => $_SESSION['usuario_email'],
+                'perfil' => $_SESSION['usuario_perfil'],
+                'status' => $_SESSION['usuario_status']
+            ]
         ];
 
         $this->view('configuracoes/mensagens', $dados);
     }
 
     /**
-     * [ salvarMensagens ] - Salva mensagens automáticas
+     * [ salvarMensagens ] - Salva mensagens automáticas por departamento
      */
     public function salvarMensagens()
     {
@@ -429,32 +258,95 @@ class Configuracoes extends Controllers
             return;
         }
 
-        $formulario = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
-        
-        if (!$formulario) {
-            Helper::mensagem('configuracao', '<i class="fas fa-exclamation-triangle"></i> Dados inválidos', 'alert alert-danger');
-            Helper::redirecionar('configuracoes/mensagens');
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!$input) {
+            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
             return;
         }
 
-        $dados = [
-            'mensagem_boas_vindas' => trim($formulario['mensagem_boas_vindas']),
-            'mensagem_ausencia' => trim($formulario['mensagem_ausencia']),
-            'mensagem_encerramento' => trim($formulario['mensagem_encerramento']),
-            'horario_funcionamento' => trim($formulario['horario_funcionamento']),
-            'ativar_boas_vindas' => isset($formulario['ativar_boas_vindas']),
-            'ativar_ausencia' => isset($formulario['ativar_ausencia']),
-            'ativar_encerramento' => isset($formulario['ativar_encerramento']),
-            'ativar_fora_horario' => isset($formulario['ativar_fora_horario']),
-            'ativar_sem_atendentes' => isset($formulario['ativar_sem_atendentes'])
-        ];
+        $mensagemAutomaticaModel = $this->model('MensagemAutomaticaModel');
 
-        if ($this->configuracaoModel->salvarMensagensAutomaticas($dados)) {
-            Helper::mensagem('configuracao', '<i class="fas fa-check"></i> Mensagens automáticas salvas com sucesso!', 'alert alert-success');
-            Helper::redirecionar('configuracoes/mensagens');
+        try {
+            if (isset($input['acao'])) {
+                switch ($input['acao']) {
+                    case 'criar':
+                        // Verificar se departamento_id existe
+                        $departamentoModel = $this->model('DepartamentoModel');
+                        $departamento = $departamentoModel->buscarPorId($input['dados']['departamento_id']);
+                        
+                        if (!$departamento) {
+                            echo json_encode(['success' => false, 'message' => 'Departamento não encontrado']);
+                            return;
+                        }
+                        
+                        $resultado = $mensagemAutomaticaModel->criar($input['dados']);
+                        $mensagem = $resultado ? 'Mensagem automática criada com sucesso!' : 'Erro ao criar mensagem automática';
+                        break;
+
+                    case 'atualizar':
+                        $resultado = $mensagemAutomaticaModel->atualizar($input['id'], $input['dados']);
+                        $mensagem = $resultado ? 'Mensagem automática atualizada com sucesso!' : 'Erro ao atualizar mensagem automática';
+                        break;
+
+                    case 'excluir':
+                        $resultado = $mensagemAutomaticaModel->excluir($input['id']);
+                        $mensagem = $resultado ? 'Mensagem automática excluída com sucesso!' : 'Erro ao excluir mensagem automática';
+                        break;
+
+                    case 'alterar_status':
+                        $resultado = $mensagemAutomaticaModel->alterarStatus($input['id'], $input['ativo']);
+                        $mensagem = $resultado ? 'Status alterado com sucesso!' : 'Erro ao alterar status';
+                        break;
+
+                    default:
+                        echo json_encode(['success' => false, 'message' => 'Ação inválida']);
+                        return;
+                }
+
+                echo json_encode([
+                    'success' => $resultado,
+                    'message' => $mensagem
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Ação não especificada']);
+            }
+        } catch (Exception $e) {
+            error_log('Erro ao salvar mensagem: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * [ buscarMensagem ] - Busca mensagem automática por ID
+     */
+    public function buscarMensagem($id)
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            return;
+        }
+
+        if (!$id || !is_numeric($id)) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido']);
+            return;
+        }
+
+        $mensagemAutomaticaModel = $this->model('MensagemAutomaticaModel');
+        $mensagem = $mensagemAutomaticaModel->buscarPorId($id);
+
+        if ($mensagem) {
+            echo json_encode([
+                'success' => true,
+                'mensagem' => $mensagem
+            ]);
         } else {
-            Helper::mensagem('configuracao', '<i class="fas fa-exclamation-triangle"></i> Erro ao salvar mensagens automáticas', 'alert alert-danger');
-            Helper::redirecionar('configuracoes/mensagens');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Mensagem não encontrada'
+            ]);
         }
     }
 

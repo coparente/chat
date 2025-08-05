@@ -1,12 +1,12 @@
 <?php
 
 /**
- * [ MENSAGENSAUTOMATICASHELPER ] - Helper para gerenciamento de mensagens automáticas
+ * [ MENSAGENSAUTOMATICASHELPER ] - Helper para gerenciamento de mensagens automáticas por departamento
  * 
  * Este helper permite:
- * - Verificar horário de funcionamento
- * - Enviar mensagens automáticas baseadas em condições
- * - Gerenciar respostas automáticas
+ * - Verificar horário de funcionamento por departamento
+ * - Enviar mensagens automáticas baseadas em condições específicas do departamento
+ * - Gerenciar respostas automáticas por departamento
  * 
  * @author Sistema ChatSerpro
  * @copyright 2025
@@ -14,8 +14,9 @@
  */
 class MensagensAutomaticasHelper
 {
-    private $configuracaoModel;
+    private $mensagemAutomaticaModel;
     private $serproApi;
+    private $departamentoHelper;
 
     public function __construct()
     {
@@ -27,16 +28,21 @@ class MensagensAutomaticasHelper
             }
             
             // Carregar apenas as classes essenciais
-            if (!class_exists('ConfiguracaoModel')) {
-                require_once APPROOT . '/Models/ConfiguracaoModel.php';
+            if (!class_exists('MensagemAutomaticaModel')) {
+                require_once APPROOT . '/Models/MensagemAutomaticaModel.php';
             }
             
             if (!class_exists('SerproApi')) {
                 require_once APPROOT . '/Libraries/SerproApi.php';
             }
             
-            $this->configuracaoModel = new ConfiguracaoModel();
+            if (!class_exists('DepartamentoHelper')) {
+                require_once APPROOT . '/Libraries/DepartamentoHelper.php';
+            }
+            
+            $this->mensagemAutomaticaModel = new MensagemAutomaticaModel();
             $this->serproApi = new SerproApi();
+            $this->departamentoHelper = new DepartamentoHelper();
             
         } catch (Exception $e) {
             error_log("Erro ao inicializar MensagensAutomaticasHelper: " . $e->getMessage());
@@ -45,190 +51,232 @@ class MensagensAutomaticasHelper
     }
 
     /**
-     * [ verificarHorarioFuncionamento ] - Verifica se está dentro do horário de funcionamento
+     * [ processarMensagemRecebida ] - Processa mensagem recebida e envia resposta automática por departamento
+     * 
+     * @param array $dadosMensagem Dados da mensagem recebida
+     * @return array
+     */
+    public function processarMensagemRecebida($dadosMensagem)
+    {
+        $numero = $dadosMensagem['numero'] ?? null;
+        $conversaId = $dadosMensagem['conversa_id'] ?? null;
+        $conteudo = $dadosMensagem['conteudo'] ?? '';
+        $departamentoId = $dadosMensagem['departamento_id'] ?? null;
+        
+        if (!$numero) {
+            return ['success' => false, 'message' => 'Número não fornecido'];
+        }
+
+        // Se não foi fornecido departamento, identificar automaticamente
+        if (!$departamentoId) {
+            $departamentoId = $this->departamentoHelper->identificarDepartamento($numero, $conteudo);
+            if (!$departamentoId) {
+                error_log("⚠️ Não foi possível identificar departamento para número: {$numero}");
+                return [
+                    'success' => true,
+                    'mensagem_enviada' => false,
+                    'tipo_mensagem' => 'nenhuma',
+                    'motivo' => 'Departamento não identificado'
+                ];
+            }
+        }
+
+        // Buscar mensagens automáticas do departamento
+        $mensagemAutomatica = $this->obterMensagemAutomaticaPorDepartamento($departamentoId, $numero, $conversaId);
+        
+        if ($mensagemAutomatica) {
+            $resultado = $this->enviarMensagemAutomatica($numero, $mensagemAutomatica['mensagem'], $conversaId);
+            
+            return [
+                'success' => true,
+                'mensagem_enviada' => true,
+                'tipo_mensagem' => $mensagemAutomatica['tipo'],
+                'conteudo_mensagem' => $mensagemAutomatica['mensagem'],
+                'departamento_id' => $departamentoId,
+                'resultado_envio' => $resultado
+            ];
+        }
+
+        return [
+            'success' => true,
+            'mensagem_enviada' => false,
+            'tipo_mensagem' => 'nenhuma',
+            'motivo' => 'Nenhuma mensagem automática configurada para este departamento'
+        ];
+    }
+
+    /**
+     * [ obterMensagemAutomaticaPorDepartamento ] - Obtém mensagem automática específica do departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param string $numero Número do contato
+     * @param int $conversaId ID da conversa
+     * @return array|null Dados da mensagem automática
+     */
+    private function obterMensagemAutomaticaPorDepartamento($departamentoId, $numero, $conversaId = null)
+    {
+        try {
+            // Verificar se há atendentes disponíveis no departamento
+            $atendentesDisponiveis = $this->verificarAtendentesDisponiveisPorDepartamento($departamentoId);
+            
+            // Determinar tipo de mensagem baseado na situação
+            $tipoMensagem = $this->determinarTipoMensagem($departamentoId, $atendentesDisponiveis, $conversaId);
+            
+            if (!$tipoMensagem) {
+                return null;
+            }
+
+            // Buscar mensagem automática do departamento
+            $mensagem = $this->mensagemAutomaticaModel->verificarMensagemAtiva($departamentoId, $tipoMensagem);
+            
+            if (!$mensagem) {
+                error_log("ℹ️ Nenhuma mensagem automática encontrada para departamento {$departamentoId}, tipo: {$tipoMensagem}");
+                return null;
+            }
+
+            // Verificar horário de funcionamento da mensagem
+            if (!$this->mensagemAutomaticaModel->verificarHorarioFuncionamento($mensagem)) {
+                error_log("ℹ️ Mensagem automática fora do horário de funcionamento: {$mensagem->titulo}");
+                return null;
+            }
+
+            // Personalizar mensagem
+            $mensagemPersonalizada = $this->personalizarMensagem($mensagem->mensagem, [
+                'nome' => $this->obterNomeContato($numero),
+                'departamento' => $this->obterNomeDepartamento($departamentoId),
+                'numero' => $numero
+            ]);
+
+            return [
+                'tipo' => $tipoMensagem,
+                'mensagem' => $mensagemPersonalizada,
+                'titulo' => $mensagem->titulo,
+                'departamento_id' => $departamentoId
+            ];
+
+        } catch (Exception $e) {
+            error_log("Erro ao obter mensagem automática por departamento: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * [ determinarTipoMensagem ] - Determina o tipo de mensagem automática baseado na situação
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param bool $atendentesDisponiveis Se há atendentes disponíveis
+     * @param int $conversaId ID da conversa
+     * @return string|null Tipo da mensagem
+     */
+    private function determinarTipoMensagem($departamentoId, $atendentesDisponiveis, $conversaId = null)
+    {
+        // Verificar se é primeira mensagem da conversa
+        $primeiraMensagem = $this->verificarPrimeiraMensagem($conversaId);
+        
+        if ($primeiraMensagem) {
+            return 'boas_vindas';
+        }
+
+        if (!$atendentesDisponiveis) {
+            return 'ausencia';
+        }
+
+        // Verificar horário de funcionamento geral
+        $horarioInfo = $this->verificarHorarioFuncionamento();
+        if (!$horarioInfo['dentro_horario']) {
+            return 'fora_horario';
+        }
+
+        return null; // Nenhuma mensagem automática necessária
+    }
+
+    /**
+     * [ verificarPrimeiraMensagem ] - Verifica se é a primeira mensagem da conversa
+     * 
+     * @param int $conversaId ID da conversa
+     * @return bool
+     */
+    private function verificarPrimeiraMensagem($conversaId)
+    {
+        if (!$conversaId) {
+            return true; // Se não há conversa, assume primeira mensagem
+        }
+
+        try {
+            // Buscar total de mensagens da conversa
+            $sql = "SELECT COUNT(*) as total FROM mensagens WHERE conversa_id = :conversa_id";
+            $db = new Database();
+            $db->query($sql);
+            $db->bind(':conversa_id', $conversaId);
+            $resultado = $db->resultado();
+            
+            return $resultado && $resultado->total <= 1;
+        } catch (Exception $e) {
+            error_log("Erro ao verificar primeira mensagem: " . $e->getMessage());
+            return true; // Em caso de erro, assume primeira mensagem
+        }
+    }
+
+    /**
+     * [ verificarAtendentesDisponiveisPorDepartamento ] - Verifica se há atendentes disponíveis no departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @return bool
+     */
+    private function verificarAtendentesDisponiveisPorDepartamento($departamentoId)
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*) as total
+                FROM usuarios u
+                JOIN atendentes_departamento ad ON u.id = ad.usuario_id
+                WHERE ad.departamento_id = :departamento_id
+                AND ad.status = 'ativo'
+                AND u.status IN ('ativo', 'ausente', 'ocupado')
+                AND u.ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+            ";
+            
+            $db = new Database();
+            $db->query($sql);
+            $db->bind(':departamento_id', $departamentoId);
+            $resultado = $db->resultado();
+            
+            return $resultado && $resultado->total > 0;
+        } catch (Exception $e) {
+            error_log("Erro ao verificar atendentes por departamento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * [ verificarHorarioFuncionamento ] - Verifica se está dentro do horário de funcionamento geral
      * 
      * @return array ['dentro_horario' => bool, 'mensagem' => string]
      */
     public function verificarHorarioFuncionamento()
     {
-        $configuracoes = $this->configuracaoModel->buscarMensagensAutomaticas();
-        
-        if (!$configuracoes || empty($configuracoes->horario_funcionamento)) {
-            return [
-                'dentro_horario' => true,
-                'mensagem' => 'Horário de funcionamento não configurado'
-            ];
-        }
-
-        $horarioConfig = $configuracoes->horario_funcionamento;
-        
-        // Padrões comuns de horário de funcionamento
-        $padroes = [
-            // Segunda a Sexta: 08:00 às 18:00
-            '/Segunda a Sexta:\s*(\d{1,2}):(\d{2})\s*às\s*(\d{1,2}):(\d{2})/i',
-            // Segunda a Sexta das 08:00 às 18:00
-            '/Segunda a Sexta\s*das\s*(\d{1,2}):(\d{2})\s*às\s*(\d{1,2}):(\d{2})/i',
-            // Segunda a Sexta 08:00-18:00
-            '/Segunda a Sexta\s*(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/i',
-            // Segunda a Sexta: 08:00 às 18:00, Sábado: 09:00 às 12:00
-            '/Segunda a Sexta:\s*(\d{1,2}):(\d{2})\s*às\s*(\d{1,2}):(\d{2}).*?Sábado:\s*(\d{1,2}):(\d{2})\s*às\s*(\d{1,2}):(\d{2})/i'
-        ];
-
         $agora = new DateTime();
-        $diaSemana = $agora->format('N'); // 1=Segunda, 7=Domingo
-        $horaAtual = $agora->format('H:i');
-
-        foreach ($padroes as $padrao) {
-            if (preg_match($padrao, $horarioConfig, $matches)) {
-                if (count($matches) === 5) {
-                    // Padrão simples: Segunda a Sexta
-                    $horaInicio = $matches[1] . ':' . $matches[2];
-                    $horaFim = $matches[3] . ':' . $matches[4];
-                    
-                    // Verificar se é dia útil (Segunda a Sexta)
-                    if ($diaSemana >= 1 && $diaSemana <= 5) {
-                        $dentroHorario = $this->verificarHorario($horaAtual, $horaInicio, $horaFim);
-                        return [
-                            'dentro_horario' => $dentroHorario,
-                            'mensagem' => $dentroHorario ? 
-                                'Dentro do horário de funcionamento' : 
-                                "Fora do horário de funcionamento ({$horaInicio} às {$horaFim})"
-                        ];
-                    } else {
-                        return [
-                            'dentro_horario' => false,
-                            'mensagem' => 'Fim de semana - fora do horário de funcionamento'
-                        ];
-                    }
-                } elseif (count($matches) === 9) {
-                    // Padrão com sábado
-                    $horaInicioSemana = $matches[1] . ':' . $matches[2];
-                    $horaFimSemana = $matches[3] . ':' . $matches[4];
-                    $horaInicioSabado = $matches[5] . ':' . $matches[6];
-                    $horaFimSabado = $matches[7] . ':' . $matches[8];
-                    
-                    if ($diaSemana >= 1 && $diaSemana <= 5) {
-                        // Segunda a Sexta
-                        $dentroHorario = $this->verificarHorario($horaAtual, $horaInicioSemana, $horaFimSemana);
-                        return [
-                            'dentro_horario' => $dentroHorario,
-                            'mensagem' => $dentroHorario ? 
-                                'Dentro do horário de funcionamento' : 
-                                "Fora do horário de funcionamento ({$horaInicioSemana} às {$horaFimSemana})"
-                        ];
-                    } elseif ($diaSemana === 6) {
-                        // Sábado
-                        $dentroHorario = $this->verificarHorario($horaAtual, $horaInicioSabado, $horaFimSabado);
-                        return [
-                            'dentro_horario' => $dentroHorario,
-                            'mensagem' => $dentroHorario ? 
-                                'Dentro do horário de funcionamento' : 
-                                "Fora do horário de funcionamento ({$horaInicioSabado} às {$horaFimSabado})"
-                        ];
-                    } else {
-                        return [
-                            'dentro_horario' => false,
-                            'mensagem' => 'Domingo - fora do horário de funcionamento'
-                        ];
-                    }
-                }
-            }
-        }
-
-        // Se não conseguiu interpretar o padrão, retorna true (dentro do horário)
-        return [
-            'dentro_horario' => true,
-            'mensagem' => 'Horário de funcionamento não reconhecido'
-        ];
-    }
-
-    /**
-     * [ verificarHorario ] - Verifica se a hora atual está dentro do intervalo
-     * 
-     * @param string $horaAtual Hora atual (HH:MM)
-     * @param string $horaInicio Hora de início (HH:MM)
-     * @param string $horaFim Hora de fim (HH:MM)
-     * @return bool
-     */
-    private function verificarHorario($horaAtual, $horaInicio, $horaFim)
-    {
-        $atual = strtotime($horaAtual);
-        $inicio = strtotime($horaInicio);
-        $fim = strtotime($horaFim);
+        $diaSemana = $agora->format('N'); // 1 (Segunda) a 7 (Domingo)
+        $horaAtual = $agora->format('H:i:s');
         
-        return $atual >= $inicio && $atual <= $fim;
-    }
-
-    /**
-     * [ verificarAtendentesDisponiveis ] - Verifica se há atendentes disponíveis
-     * 
-     * @return bool
-     */
-    public function verificarAtendentesDisponiveis()
-    {
-        try {
-            // require_once APPROOT . '/Models/UsuarioModel.php'; // Removed as per new_code
-            // $usuarioModel = new UsuarioModel(); // Removed as per new_code
-            // $atendentesAtivos = $usuarioModel->buscarAtendentesAtivos(); // Removed as per new_code
-            
-            // return count($atendentesAtivos) > 0; // Removed as per new_code
-            return true; // Simplified for now, assuming atendentes are always available or handled elsewhere
-        } catch (Exception $e) {
-            error_log("Erro ao verificar atendentes disponíveis: " . $e->getMessage());
-            return false; // Em caso de erro, assume que não há atendentes
-        }
-    }
-
-    /**
-     * [ obterMensagemAutomatica ] - Obtém a mensagem automática apropriada
-     * 
-     * @param string $tipo Tipo de mensagem (boas_vindas, ausencia, encerramento)
-     * @param array $dados Dados adicionais para personalização
-     * @return string|null
-     */
-    public function obterMensagemAutomatica($tipo, $dados = [])
-    {
-        try {
-            $configuracoes = $this->configuracaoModel->buscarMensagensAutomaticas();
-            
-            if (!$configuracoes) {
-                return null;
-            }
-
-            $mensagem = '';
-            $ativado = false;
-
-            switch ($tipo) {
-                case 'boas_vindas':
-                    $mensagem = $configuracoes->mensagem_boas_vindas ?? '';
-                    $ativado = $configuracoes->ativar_boas_vindas ?? false;
-                    break;
-                    
-                case 'ausencia':
-                    $mensagem = $configuracoes->mensagem_ausencia ?? '';
-                    $ativado = $configuracoes->ativar_ausencia ?? false;
-                    break;
-                    
-                case 'encerramento':
-                    $mensagem = $configuracoes->mensagem_encerramento ?? '';
-                    $ativado = $configuracoes->ativar_encerramento ?? false;
-                    break;
-                    
-                default:
-                    return null;
-            }
-
-            if (!$ativado || empty($mensagem)) {
-                return null;
-            }
-
-            // Personalizar mensagem com dados fornecidos
-            $mensagem = $this->personalizarMensagem($mensagem, $dados);
-
-            return $mensagem;
-        } catch (Exception $e) {
-            error_log("Erro ao obter mensagem automática: " . $e->getMessage());
-            return null;
+        // Horário padrão de funcionamento: Segunda a Sexta, 08:00 às 18:00
+        $horarioInicio = '08:00:00';
+        $horarioFim = '18:00:00';
+        
+        // Verificar se é dia útil (Segunda a Sexta)
+        if ($diaSemana >= 1 && $diaSemana <= 5) {
+            $dentroHorario = $horaAtual >= $horarioInicio && $horaAtual <= $horarioFim;
+            return [
+                'dentro_horario' => $dentroHorario,
+                'mensagem' => $dentroHorario ? 
+                    'Dentro do horário de funcionamento' : 
+                    "Fora do horário de funcionamento ({$horarioInicio} às {$horarioFim})"
+            ];
+        } else {
+            return [
+                'dentro_horario' => false,
+                'mensagem' => 'Fim de semana - fora do horário de funcionamento'
+            ];
         }
     }
 
@@ -241,12 +289,11 @@ class MensagensAutomaticasHelper
      */
     private function personalizarMensagem($mensagem, $dados)
     {
-        $configuracoes = $this->configuracaoModel->buscarMensagensAutomaticas();
-        
         // Substituir placeholders
         $substituicoes = [
             '{nome}' => $dados['nome'] ?? 'Cliente',
-            '{horario_funcionamento}' => $configuracoes->horario_funcionamento ?? 'Horário de funcionamento não configurado',
+            '{departamento}' => $dados['departamento'] ?? 'nosso departamento',
+            '{numero}' => $dados['numero'] ?? '',
             '{data}' => date('d/m/Y'),
             '{hora}' => date('H:i'),
             '{dia_semana}' => $this->obterDiaSemana(),
@@ -258,6 +305,48 @@ class MensagensAutomaticasHelper
         }
 
         return $mensagem;
+    }
+
+    /**
+     * [ obterNomeContato ] - Obtém nome do contato
+     * 
+     * @param string $numero Número do contato
+     * @return string
+     */
+    private function obterNomeContato($numero)
+    {
+        try {
+            $sql = "SELECT nome FROM contatos WHERE numero = :numero LIMIT 1";
+            $db = new Database();
+            $db->query($sql);
+            $db->bind(':numero', $numero);
+            $resultado = $db->resultado();
+            
+            return $resultado ? $resultado->nome : 'Cliente';
+        } catch (Exception $e) {
+            return 'Cliente';
+        }
+    }
+
+    /**
+     * [ obterNomeDepartamento ] - Obtém nome do departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @return string
+     */
+    private function obterNomeDepartamento($departamentoId)
+    {
+        try {
+            $sql = "SELECT nome FROM departamentos WHERE id = :id LIMIT 1";
+            $db = new Database();
+            $db->query($sql);
+            $db->bind(':id', $departamentoId);
+            $resultado = $db->resultado();
+            
+            return $resultado ? $resultado->nome : 'nosso departamento';
+        } catch (Exception $e) {
+            return 'nosso departamento';
+        }
     }
 
     /**
@@ -297,23 +386,17 @@ class MensagensAutomaticasHelper
             if ($resultado['success']) {
                 // Salvar mensagem no banco se conversaId fornecido
                 if ($conversaId) {
-                    // require_once APPROOT . '/Models/MensagemModel.php'; // Removed as per new_code
-                    // $mensagemModel = new MensagemModel(); // Removed as per new_code
-                    // $dadosMensagem = [ // Removed as per new_code
-                    //     'conversa_id' => $conversaId, // Removed as per new_code
-                    //     'contato_id' => null, // Removed as per new_code
-                    //     'serpro_message_id' => $resultado['message_id'] ?? null, // Removed as per new_code
-                    //     'tipo' => 'texto', // Removed as per new_code
-                    //     'conteudo' => $mensagem, // Removed as per new_code
-                    //     'direcao' => 'saida', // Removed as per new_code
-                    //     'status_entrega' => 'enviado', // Removed as per new_code
-                    //     'metadata' => json_encode([ // Removed as per new_code
-                    //         'automatica' => true, // Removed as per new_code
-                    //         'timestamp' => date('Y-m-d H:i:s') // Removed as per new_code
-                    //     ]) // Removed as per new_code
-                    // ]; // Removed as per new_code
-                    
-                    // $mensagemModel->criarMensagem($dadosMensagem); // Removed as per new_code
+                    try {
+                        $sql = "INSERT INTO mensagens (conversa_id, tipo, conteudo, direcao, status_entrega, criado_em) 
+                                VALUES (:conversa_id, 'texto', :conteudo, 'saida', 'enviado', NOW())";
+                        $db = new Database();
+                        $db->query($sql);
+                        $db->bind(':conversa_id', $conversaId);
+                        $db->bind(':conteudo', $mensagem);
+                        $db->executa();
+                    } catch (Exception $e) {
+                        error_log("Erro ao salvar mensagem automática no banco: " . $e->getMessage());
+                    }
                 }
 
                 return [
@@ -334,99 +417,5 @@ class MensagensAutomaticasHelper
                 'message' => 'Erro ao enviar mensagem automática: ' . $e->getMessage()
             ];
         }
-    }
-
-    /**
-     * [ processarMensagemRecebida ] - Processa mensagem recebida e envia resposta automática se necessário
-     * 
-     * @param array $dadosMensagem Dados da mensagem recebida
-     * @return array
-     */
-    public function processarMensagemRecebida($dadosMensagem)
-    {
-        $numero = $dadosMensagem['numero'] ?? null;
-        $conversaId = $dadosMensagem['conversa_id'] ?? null;
-        $conteudo = $dadosMensagem['conteudo'] ?? '';
-        
-        if (!$numero) {
-            return ['success' => false, 'message' => 'Número não fornecido'];
-        }
-
-        // Verificar horário de funcionamento
-        $horarioInfo = $this->verificarHorarioFuncionamento();
-        
-        // Verificar se há atendentes disponíveis
-        $atendentesDisponiveis = $this->verificarAtendentesDisponiveis();
-
-        // Decidir qual mensagem automática enviar
-        $mensagemAutomatica = null;
-        $tipoMensagem = '';
-
-        if (!$horarioInfo['dentro_horario']) {
-            // Fora do horário de funcionamento
-            if ($this->verificarConfiguracao('ativar_fora_horario')) {
-                $mensagemAutomatica = $this->obterMensagemAutomatica('ausencia', [
-                    'nome' => $dadosMensagem['nome_contato'] ?? 'Cliente'
-                ]);
-                $tipoMensagem = 'fora_horario';
-            }
-        } elseif (!$atendentesDisponiveis) {
-            // Dentro do horário mas sem atendentes
-            if ($this->verificarConfiguracao('ativar_sem_atendentes')) {
-                $mensagemAutomatica = $this->obterMensagemAutomatica('ausencia', [
-                    'nome' => $dadosMensagem['nome_contato'] ?? 'Cliente'
-                ]);
-                $tipoMensagem = 'sem_atendentes';
-            }
-        } else {
-            // Dentro do horário e com atendentes - enviar boas-vindas se for primeira mensagem
-            // require_once APPROOT . '/Models/MensagemModel.php'; // Removed as per new_code
-            // $mensagemModel = new MensagemModel(); // Removed as per new_code
-            // $totalMensagens = $mensagemModel->contarMensagensConversa($conversaId); // Removed as per new_code
-            
-            // if ($totalMensagens <= 1) { // Removed as per new_code
-                $mensagemAutomatica = $this->obterMensagemAutomatica('boas_vindas', [
-                    'nome' => $dadosMensagem['nome_contato'] ?? 'Cliente'
-                ]);
-                $tipoMensagem = 'boas_vindas';
-            // } // Removed as per new_code
-        }
-
-        // Enviar mensagem automática se definida
-        if ($mensagemAutomatica) {
-            $resultado = $this->enviarMensagemAutomatica($numero, $mensagemAutomatica, $conversaId);
-            
-            return [
-                'success' => true,
-                'mensagem_enviada' => true,
-                'tipo_mensagem' => $tipoMensagem,
-                'conteudo_mensagem' => $mensagemAutomatica,
-                'resultado_envio' => $resultado
-            ];
-        }
-
-        return [
-            'success' => true,
-            'mensagem_enviada' => false,
-            'tipo_mensagem' => 'nenhuma',
-            'motivo' => 'Não foi necessário enviar mensagem automática'
-        ];
-    }
-
-    /**
-     * [ verificarConfiguracao ] - Verifica se uma configuração está ativada
-     * 
-     * @param string $configuracao Nome da configuração
-     * @return bool
-     */
-    private function verificarConfiguracao($configuracao)
-    {
-        $configuracoes = $this->configuracaoModel->buscarMensagensAutomaticas();
-        
-        if (!$configuracoes) {
-            return true; // Se não há configuração, assume como ativado
-        }
-        
-        return $configuracoes->$configuracao ?? true;
     }
 } 

@@ -1,64 +1,19 @@
 <?php include 'app/Views/include/head.php' ?>
+
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $usuario_logado['id'],
+    'nome' => $usuario_logado['nome'],
+    'email' => $usuario_logado['email'],
+    'perfil' => $usuario_logado['perfil']
+];
+?>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        Dashboard
-                    </a>
-                </div>
-
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link active">
-                        <i class="fas fa-comments"></i>
-                        Chat
-                    </a>
-                </div>
-
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        Contatos
-                    </a>
-                </div>
-
-                <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/relatorios" class="nav-link">
-                            <i class="fas fa-chart-bar"></i>
-                            Relatórios
-                        </a>
-                    </div>
-
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/usuarios" class="nav-link">
-                            <i class="fas fa-users"></i>
-                            Usuários
-                        </a>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/configuracoes" class="nav-link">
-                            <i class="fas fa-cog"></i>
-                            Configurações
-                        </a>
-                    </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
-
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
             <!-- Header -->
@@ -75,7 +30,7 @@
 
                 <div class="topbar-right">
                     <!-- Status da API -->
-                    <div class="api-status me-3">
+                    <!-- <div class="api-status me-3">
                         <div class="badge <?= $api_status['conectado'] ? 'bg-success' : 'bg-danger' ?>">
                             <i class="fas fa-circle me-1"></i>
                             <?= $api_status['conectado'] ? 'Conectado' : 'Desconectado' ?>
@@ -83,7 +38,7 @@
                         <small class="text-muted ms-2">
                             Token: <?= $token_status['tempo_restante_formatado'] ?? 'N/A' ?>
                         </small>
-                    </div>
+                    </div> -->
 
                     <!-- Toggle Dark Mode -->
                     <button class="btn btn-outline-secondary btn-sm me-2" id="toggleTheme" title="Alternar tema">
@@ -151,6 +106,54 @@
                                     <input type="text" class="form-control" id="searchConversas" placeholder="Buscar conversas...">
                                 </div>
                             </div>
+                            
+                            <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
+                            <div class="mb-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-building"></i>
+                                    </span>
+                                    <select class="form-select" id="filtroDepartamento">
+                                        <option value="">Todos os Departamentos</option>
+                                        <?php 
+                                        // Buscar todos os departamentos para o filtro
+                                        $departamentosHelper = new DepartamentoHelper();
+                                        $todosDepartamentos = $departamentosHelper->obterDepartamentosDisponiveis();
+                                        foreach ($todosDepartamentos as $dept): 
+                                        ?>
+                                            <option value="<?= $dept->id ?>" style="color: <?= $dept->cor ?>">
+                                                <?= htmlspecialchars($dept->nome) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    <select class="form-select" id="filtroAtendente">
+                                        <option value="">Todos os Atendentes</option>
+                                        <?php 
+                                        // Buscar todos os atendentes para o filtro
+                                        $usuarioModel = new UsuarioModel();
+                                        $todosAtendentes = $usuarioModel->listarUsuarios();
+                                        foreach ($todosAtendentes as $atendente): 
+                                            if ($atendente->perfil === 'atendente'):
+                                        ?>
+                                            <option value="<?= $atendente->id ?>">
+                                                <?= htmlspecialchars($atendente->nome) ?>
+                                            </option>
+                                        <?php 
+                                            endif;
+                                        endforeach; 
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            
                             <div class="btn-group w-100" role="group">
                                 <button type="button" class="btn btn-outline-primary active" data-filter="todas">
                                     Todas
@@ -167,18 +170,44 @@
                         <!-- Lista de Conversas -->
                         <div class="chat-list" id="chatList">
                             <?php
+                            // DEBUG: Verificar dados recebidos
+                            if (isset($departamentos_usuario) && !empty($departamentos_usuario)) {
+                                echo '<div class="alert alert-info mb-3">';
+                                echo '<strong>Departamentos do usuário:</strong><br>';
+                                foreach ($departamentos_usuario as $dept) {
+                                    echo "- {$dept->nome} (ID: {$dept->id})<br>";
+                                }
+                                echo '</div>';
+                            } else {
+                                echo '<div class="alert alert-warning mb-3">';
+                                echo '<strong>⚠️ Usuário não tem departamentos associados!</strong><br>';
+                                echo 'Adicione o usuário a um departamento para ver conversas.';
+                                echo '</div>';
+                            }
+                            
                             // Determinar qual lista de conversas usar baseado no perfil
                             $conversas_para_exibir = [];
                             if (isset($minhas_conversas) && !empty($minhas_conversas)) {
                                 $conversas_para_exibir = $minhas_conversas;
+                                echo '<div class="alert alert-success mb-3">';
+                                echo '<strong>✅ Conversas filtradas por departamento:</strong> ' . count($minhas_conversas) . ' conversas encontradas';
+                                echo '</div>';
                             } elseif (isset($conversas_ativas) && !empty($conversas_ativas)) {
                                 $conversas_para_exibir = $conversas_ativas;
+                                echo '<div class="alert alert-info mb-3">';
+                                echo '<strong>ℹ️ Conversas gerais (admin/supervisor):</strong> ' . count($conversas_ativas) . ' conversas encontradas';
+                                echo '</div>';
+                            } else {
+                                echo '<div class="alert alert-warning mb-3">';
+                                echo '<strong>⚠️ Nenhuma conversa encontrada</strong><br>';
+                                echo 'Verifique se há conversas nos departamentos do usuário.';
+                                echo '</div>';
                             }
                             ?>
 
                             <?php if (!empty($conversas_para_exibir)): ?>
                                 <?php foreach ($conversas_para_exibir as $conversa): ?>
-                                    <div class="chat-item" data-conversa-id="<?= $conversa->id ?>" data-status="<?= $conversa->status ?>">
+                                    <div class="chat-item" data-conversa-id="<?= $conversa->id ?>" data-status="<?= $conversa->status ?>" data-departamento-id="<?= $conversa->departamento_id ?? '' ?>" data-atendente-id="<?= $conversa->atendente_id ?? '' ?>">
                                         <div class="chat-avatar">
                                             <div class="avatar-circle">
                                                 <?= strtoupper(substr($conversa->contato_nome ?? 'C', 0, 2)) ?>
@@ -193,6 +222,18 @@
                                                 <i class="fas fa-phone me-1"></i>
                                                 <?= $conversa->numero ?>
                                             </div>
+                                            <?php if (isset($conversa->departamento_nome)): ?>
+                                            <div class="chat-department">
+                                                <i class="fas fa-building me-1" style="color: <?= $conversa->departamento_cor ?? '#6c757d' ?>"></i>
+                                                <small class="text-muted"><?= htmlspecialchars($conversa->departamento_nome) ?></small>
+                                            </div>
+                                            <?php endif; ?>
+                                            <?php if (isset($conversa->atendente_nome) && $conversa->atendente_nome): ?>
+                                            <div class="chat-attendant">
+                                                <i class="fas fa-user me-1" style="color: var(--primary-color);"></i>
+                                                <small class="text-muted"><?= htmlspecialchars($conversa->atendente_nome) ?></small>
+                                            </div>
+                                            <?php endif; ?>
                                             <div class="chat-time">
                                                 <?= date('d/m H:i', strtotime($conversa->ultima_mensagem ?? $conversa->criado_em)) ?>
                                             </div>
@@ -352,6 +393,24 @@
                                 </div>
                             </div>
                         </div>
+
+                        <?php //if ($usuario_logado['perfil'] === 'atendente' && !empty($departamentos_usuario)): ?>
+                        <div class="mb-3">
+                            <label for="departamentoSelect" class="form-label">
+                                <i class="fas fa-building me-1"></i>
+                                Departamento *
+                            </label>
+                            <select class="form-select" id="departamentoSelect" required>
+                                <option value="">Selecione um departamento</option>
+                                <?php foreach ($departamentos_usuario as $departamento): ?>
+                                    <option value="<?= $departamento->id ?>" style="color: <?= $departamento->cor ?>">
+                                        <?= htmlspecialchars($departamento->nome) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text">Escolha o departamento para iniciar a conversa</div>
+                        </div>
+                        <?php //endif; ?>
 
                         <div class="mb-3">
                             <label for="templateSelect" class="form-label">
@@ -755,6 +814,18 @@
                     $(this).val('');
                     buscarConversas('');
                 }
+            });
+
+            // Filtro de departamento (apenas para admin/supervisor)
+            $('#filtroDepartamento').on('change', function() {
+                const departamentoId = $(this).val();
+                filtrarPorDepartamento(departamentoId);
+            });
+
+            // Filtro de atendente (apenas para admin/supervisor)
+            $('#filtroAtendente').on('change', function() {
+                const atendenteId = $(this).val();
+                filtrarPorAtendente(atendenteId);
             });
 
             // Assumir conversa
@@ -1364,11 +1435,20 @@
             const numero = $('#numeroContato').val().trim();
             const nome = $('#nomeContato').val().trim();
             const template = $('#templateSelect').val();
+            const departamento = $('#departamentoSelect').val();
 
             if (!numero || !template) {
                 mostrarToast('Número e template são obrigatórios', 'error');
                 return;
             }
+
+            // Para atendentes, verificar se departamento foi selecionado
+            <?php if ($usuario_logado['perfil'] === 'atendente'): ?>
+            if (!departamento) {
+                mostrarToast('Selecione um departamento', 'error');
+                return;
+            }
+            <?php endif; ?>
 
             // Coletar parâmetros
             const parametros = [];
@@ -1380,7 +1460,8 @@
                 numero: numero,
                 nome: nome,
                 template: template,
-                parametros: parametros
+                parametros: parametros,
+                departamento_id: departamento
             };
 
             console.log('Enviando dados:', dados);
@@ -1709,9 +1790,13 @@
             removerMensagemNenhumaConversa();
 
             const termoBusca = $('#searchConversas').val().trim();
+            const departamentoId = $('#filtroDepartamento').val();
+            const atendenteId = $('#filtroAtendente').val();
 
             $('.chat-item').each(function() {
                 const status = $(this).data('status');
+                const departamentoConversa = $(this).data('departamento-id');
+                const atendenteConversa = $(this).data('atendente-id');
                 let mostrar = true;
 
                 // Aplicar filtro de status
@@ -1721,16 +1806,30 @@
                     mostrar = false;
                 }
 
+                // Aplicar filtro de departamento (se selecionado)
+                if (mostrar && departamentoId !== '' && departamentoConversa !== departamentoId) {
+                    mostrar = false;
+                }
+
+                // Aplicar filtro de atendente (se selecionado)
+                if (mostrar && atendenteId !== '' && atendenteConversa !== atendenteId) {
+                    mostrar = false;
+                }
+
                 // Se há busca ativa, aplicar também o filtro de busca
                 if (mostrar && termoBusca !== '') {
                     const termoLower = termoBusca.toLowerCase();
                     const nome = $(this).find('.chat-name').text().toLowerCase();
                     const numero = $(this).find('.chat-last-message').text().toLowerCase();
                     const statusTexto = $(this).find('.chat-status .badge').text().toLowerCase();
+                    const departamentoTexto = $(this).find('.chat-department').text().toLowerCase();
+                    const atendenteTexto = $(this).find('.chat-attendant').text().toLowerCase();
 
                     const encontrou = nome.includes(termoLower) ||
                         numero.includes(termoLower) ||
-                        statusTexto.includes(termoLower);
+                        statusTexto.includes(termoLower) ||
+                        departamentoTexto.includes(termoLower) ||
+                        atendenteTexto.includes(termoLower);
 
                     if (!encontrou) {
                         mostrar = false;
@@ -1748,6 +1847,18 @@
 
             // Atualizar contador
             atualizarContadorConversas();
+        }
+
+        // Filtrar por departamento
+        function filtrarPorDepartamento(departamentoId) {
+            const filtroAtual = $('.btn-group .btn.active').data('filter');
+            filtrarConversas(filtroAtual);
+        }
+
+        // Filtrar por atendente
+        function filtrarPorAtendente(atendenteId) {
+            const filtroAtual = $('.btn-group .btn.active').data('filter');
+            filtrarConversas(filtroAtual);
         }
 
         // Assumir conversa
@@ -2348,6 +2459,7 @@
         // Verificar resposta ao template a cada 10 segundos
         setInterval(verificarRespostaTemplate, 10000);
     </script>
+
 </body>
 
 </html>

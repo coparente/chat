@@ -15,7 +15,6 @@
  */
 class LoginChat extends Controllers
 {
-    protected $moduloModel;
     private $loginModel;
     private $usuarioModel;
 
@@ -37,8 +36,13 @@ class LoginChat extends Controllers
      */
     public function login()
     {
+        try {
         // Se já estiver logado, redireciona para o dashboard
         if (isset($_SESSION['usuario_id'])) {
+            Logger::info('Usuário já logado, redirecionando', [
+                'user_id' => $_SESSION['usuario_id'],
+                'email' => $_SESSION['usuario_email']
+            ]);
             Helper::redirecionar('dashboard');
             return;
         }
@@ -49,8 +53,21 @@ class LoginChat extends Controllers
             return;
         }
 
-        // Exibe formulário de login
-        $this->exibirFormularioLogin();
+        // Log de acesso à página de login
+        Logger::access('Acesso à página de login', [
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'N/A',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'N/A'
+            ]);
+
+            // Exibe formulário de login
+            $this->exibirFormularioLogin();
+        } catch (ValidationException $e) {
+            // Log do erro de validação
+            Logger::warning('Erro de validação', [
+                'errors' => $e->getErrors(),
+                'data' => $dados
+            ]);
+        }
     }
 
     /**
@@ -127,7 +144,7 @@ class LoginChat extends Controllers
             $this->view('login/chat_login', $dados);
             return;
         }
-
+        
         // Criar sessão do usuário
         $this->criarSessaoUsuario($usuario, $dados['status_inicial']);
     }
@@ -154,16 +171,16 @@ class LoginChat extends Controllers
         $this->atualizarStatusUsuario($usuario->id, $statusInicial);
 
         // Buscar módulos permitidos
-        if ($this->moduloModel !== null) {
-            $modulos = $this->moduloModel->getModulosComSubmodulos($usuario->id);
-            $_SESSION['modulos'] = $modulos;
-        }
+        // if ($this->moduloModel !== null) {
+        //     $modulos = $this->moduloModel->getModulosComSubmodulos($usuario->id);
+        //     $_SESSION['modulos'] = $modulos;
+        // }
 
         // Atualizar último acesso
         $this->usuarioModel->atualizarUltimoAcesso($usuario->id);
 
         // Log de sucesso
-        // Helper::registrarAtividade('Login Chat', "Usuário {$usuario->nome} entrou no sistema com status: {$statusInicial}");
+        Helper::registrarAtividade('Login Chat', "Usuário {$usuario->nome} entrou no sistema com status: {$statusInicial}");
 
         // Redirecionar baseado no perfil
         $this->redirecionarPorPerfil($usuario->perfil);
@@ -231,7 +248,7 @@ class LoginChat extends Controllers
         //     $this->atualizarStatusUsuario($_SESSION['usuario_id'], 'inativo');
             
         //     // Log de logout
-        //     // Helper::registrarAtividade('Logout Chat', 'Usuário saiu do sistema');
+            Helper::registrarAtividade('Logout Chat', 'Usuário saiu do sistema');
         // }
 
         // Limpar todas as variáveis de sessão

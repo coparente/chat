@@ -60,10 +60,14 @@ class ConversaModel
                 u.nome as atendente_nome,
                 c.status,
                 c.criado_em,
-                c.ultima_mensagem
+                c.ultima_mensagem,
+                c.departamento_id,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
             LEFT JOIN usuarios u ON c.atendente_id = u.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
             WHERE c.status IN ('aberto', 'pendente')
             ORDER BY c.ultima_mensagem DESC
             LIMIT :limite
@@ -93,9 +97,13 @@ class ConversaModel
                 c.status,
                 c.criado_em,
                 c.ultima_mensagem,
+                c.departamento_id,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor,
                 (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
             WHERE c.atendente_id = ? 
             AND c.status IN ($statusPlaceholders)
             ORDER BY c.ultima_mensagem DESC
@@ -126,9 +134,15 @@ class ConversaModel
                 ct.nome as contato_nome,
                 ct.numero,
                 c.criado_em,
-                c.ultima_mensagem
+                c.ultima_mensagem,
+                c.departamento_id,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor,
+                u.nome as atendente_nome
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
+            LEFT JOIN usuarios u ON c.atendente_id = u.id
             WHERE c.atendente_id IS NULL 
             AND c.status = 'pendente'
             ORDER BY c.criado_em ASC
@@ -288,7 +302,7 @@ class ConversaModel
     public function verificarConversaPorId($conversaId)
     {
         $sql = "
-            SELECT c.*, ct.numero, ct.nome as contato_nome
+            SELECT c.*, ct.numero, ct.nome as contato_nome, c.departamento_id
             FROM conversas c
             JOIN contatos ct ON c.contato_id = ct.id
             WHERE c.id = :id
@@ -370,6 +384,9 @@ class ConversaModel
      */
     public function criarConversa($dados)
     {
+        // Buscar uma sessão ativa para usar como sessao_id
+        $sessaoId = $this->obterSessaoAtiva();
+        
         $sql = "
             INSERT INTO conversas (
                 contato_id, atendente_id, sessao_id, status, criado_em
@@ -381,7 +398,7 @@ class ConversaModel
         $this->db->query($sql);
         $this->db->bind(':contato_id', $dados['contato_id']);
         $this->db->bind(':atendente_id', $dados['atendente_id'] ?? null);
-        $this->db->bind(':sessao_id', $dados['sessao_id'] ?? 1);
+        $this->db->bind(':sessao_id', $sessaoId);
         $this->db->bind(':status', $dados['status'] ?? 'pendente');
         
         if ($this->db->executa()) {
@@ -456,6 +473,310 @@ class ConversaModel
 
         $this->db->query($sql);
         $this->db->bind(':contato_id', $contatoId);
+        return $this->db->resultado();
+    }
+
+    /**
+     * [ getConversasPorDepartamento ] - Busca conversas de um departamento específico
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param array $status Status das conversas a buscar
+     * @param array $filtros Filtros adicionais
+     * @return array Lista de conversas
+     */
+    public function getConversasPorDepartamento($departamentoId, $status = ['aberto', 'pendente'], $filtros = [])
+    {
+        $statusPlaceholders = implode(',', array_fill(0, count($status), '?'));
+        
+        $sql = "
+            SELECT 
+                c.id,
+                ct.nome as contato_nome,
+                ct.numero,
+                u.nome as atendente_nome,
+                c.status,
+                c.criado_em,
+                c.ultima_mensagem,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor,
+                (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
+            FROM conversas c
+            LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN usuarios u ON c.atendente_id = u.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
+            WHERE c.departamento_id = ? 
+            AND c.status IN ($statusPlaceholders)
+        ";
+        
+        // Adicionar filtros adicionais
+        if (!empty($filtros['atendente_id'])) {
+            $sql .= " AND c.atendente_id = ?";
+        }
+        
+        if (!empty($filtros['data_inicio'])) {
+            $sql .= " AND DATE(c.criado_em) >= ?";
+        }
+        
+        if (!empty($filtros['data_fim'])) {
+            $sql .= " AND DATE(c.criado_em) <= ?";
+        }
+        
+        $sql .= " ORDER BY c.ultima_mensagem DESC";
+        
+        if (!empty($filtros['limite'])) {
+            $sql .= " LIMIT ?";
+        }
+        
+        $this->db->query($sql);
+        
+        // Bind dos parâmetros
+        $paramIndex = 1;
+        $this->db->bind($paramIndex++, $departamentoId);
+        
+        foreach ($status as $st) {
+            $this->db->bind($paramIndex++, $st);
+        }
+        
+        // Bind dos filtros adicionais
+        if (!empty($filtros['atendente_id'])) {
+            $this->db->bind($paramIndex++, $filtros['atendente_id']);
+        }
+        
+        if (!empty($filtros['data_inicio'])) {
+            $this->db->bind($paramIndex++, $filtros['data_inicio']);
+        }
+        
+        if (!empty($filtros['data_fim'])) {
+            $this->db->bind($paramIndex++, $filtros['data_fim']);
+        }
+        
+        if (!empty($filtros['limite'])) {
+            $this->db->bind($paramIndex++, $filtros['limite']);
+        }
+        
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ getConversasAtivasPorDepartamento ] - Busca conversas ativas de um departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param int $limite Limite de resultados
+     * @return array Lista de conversas ativas
+     */
+    public function getConversasAtivasPorDepartamento($departamentoId, $limite = 10)
+    {
+        $sql = "
+            SELECT 
+                c.id,
+                ct.nome as contato_nome,
+                ct.numero,
+                u.nome as atendente_nome,
+                c.status,
+                c.criado_em,
+                c.ultima_mensagem,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor
+            FROM conversas c
+            LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN usuarios u ON c.atendente_id = u.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
+            WHERE c.departamento_id = :departamento_id
+            AND c.status IN ('aberto', 'pendente')
+            ORDER BY c.ultima_mensagem DESC
+            LIMIT :limite
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        $this->db->bind(':limite', $limite);
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ getConversasPendentesPorDepartamento ] - Busca conversas pendentes de um departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param int $limite Limite de resultados
+     * @return array Lista de conversas pendentes
+     */
+    public function getConversasPendentesPorDepartamento($departamentoId, $limite = 5)
+    {
+        $sql = "
+            SELECT 
+                c.id,
+                ct.nome as contato_nome,
+                ct.numero,
+                c.criado_em,
+                c.ultima_mensagem,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor,
+                u.nome as atendente_nome
+            FROM conversas c
+            LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
+            LEFT JOIN usuarios u ON c.atendente_id = u.id
+            WHERE c.departamento_id = :departamento_id
+            AND c.atendente_id IS NULL 
+            AND c.status = 'pendente'
+            ORDER BY c.criado_em ASC
+            LIMIT :limite
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        $this->db->bind(':limite', $limite);
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ criarConversaComDepartamento ] - Cria uma nova conversa com departamento
+     * 
+     * @param array $dados Dados da conversa
+     * @param int $departamentoId ID do departamento
+     * @return int|false ID da conversa criada ou false em caso de erro
+     */
+    public function criarConversaComDepartamento($dados, $departamentoId)
+    {
+        // Buscar uma sessão ativa para usar como sessao_id
+        $sessaoId = $this->obterSessaoAtiva();
+        
+        $sql = "
+            INSERT INTO conversas 
+            (contato_id, atendente_id, sessao_id, status, prioridade, departamento_id, criado_em) 
+            VALUES 
+            (:contato_id, :atendente_id, :sessao_id, :status, :prioridade, :departamento_id, NOW())
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':contato_id', $dados['contato_id']);
+        $this->db->bind(':atendente_id', $dados['atendente_id'] ?? null);
+        $this->db->bind(':sessao_id', $sessaoId);
+        $this->db->bind(':status', $dados['status'] ?? 'pendente');
+        $this->db->bind(':prioridade', $dados['prioridade'] ?? 'normal');
+        $this->db->bind(':departamento_id', $departamentoId);
+        
+        if ($this->db->executa()) {
+            return $this->db->ultimoIdInserido();
+        }
+        
+        return false;
+    }
+
+    /**
+     * [ obterSessaoAtiva ] - Obtém uma sessão ativa para usar na conversa
+     * 
+     * @return int ID da sessão ativa
+     */
+    private function obterSessaoAtiva()
+    {
+        // Primeiro, tentar buscar uma sessão conectada
+        $sql = "SELECT id FROM sessoes_whatsapp WHERE status = 'conectado' LIMIT 1";
+        $this->db->query($sql);
+        $sessao = $this->db->resultado();
+        
+        if ($sessao) {
+            return $sessao->id;
+        }
+        
+        // Se não encontrar sessão conectada, buscar qualquer sessão ativa
+        $sql = "SELECT id FROM sessoes_whatsapp WHERE status = 'ativo' LIMIT 1";
+        $this->db->query($sql);
+        $sessao = $this->db->resultado();
+        
+        if ($sessao) {
+            return $sessao->id;
+        }
+        
+        // Se não encontrar nenhuma sessão, buscar a primeira disponível
+        $sql = "SELECT id FROM sessoes_whatsapp LIMIT 1";
+        $this->db->query($sql);
+        $sessao = $this->db->resultado();
+        
+        if ($sessao) {
+            return $sessao->id;
+        }
+        
+        // Fallback para ID 1 (assumindo que sempre existe)
+        return 1;
+    }
+
+    /**
+     * [ determinarDepartamentoConversa ] - Determina departamento para uma conversa
+     * 
+     * @param string $numero Número do telefone
+     * @param string $mensagem Mensagem inicial (opcional)
+     * @return int ID do departamento
+     */
+    public function determinarDepartamentoConversa($numero, $mensagem = '')
+    {
+        // Verificar se a classe já foi carregada
+        if (!class_exists('DepartamentoHelper')) {
+            require_once __DIR__ . '/../Libraries/DepartamentoHelper.php';
+        }
+        
+        $departamentoHelper = new DepartamentoHelper();
+        
+        $departamentoId = $departamentoHelper->identificarDepartamento($numero, $mensagem);
+        
+        // Log da identificação
+        $departamentoHelper->logIdentificacao($numero, $mensagem, $departamentoId, 'ConversaModel');
+        
+        return $departamentoId;
+    }
+
+    /**
+     * [ contarConversasPorDepartamento ] - Conta conversas de um departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param array $status Status das conversas a contar
+     * @return int Número de conversas
+     */
+    public function contarConversasPorDepartamento($departamentoId, $status = ['aberto', 'pendente'])
+    {
+        $statusPlaceholders = implode(',', array_fill(0, count($status), '?'));
+        
+        $sql = "SELECT COUNT(*) as total FROM conversas 
+                WHERE departamento_id = ? 
+                AND status IN ($statusPlaceholders)";
+        
+        $this->db->query($sql);
+        
+        $paramIndex = 1;
+        $this->db->bind($paramIndex++, $departamentoId);
+        
+        foreach ($status as $st) {
+            $this->db->bind($paramIndex++, $st);
+        }
+        
+        $resultado = $this->db->resultado();
+        return $resultado ? $resultado->total : 0;
+    }
+
+    /**
+     * [ getEstatisticasPorDepartamento ] - Estatísticas de conversas por departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param int $dias Número de dias para análise
+     * @return object Estatísticas do departamento
+     */
+    public function getEstatisticasPorDepartamento($departamentoId, $dias = 30)
+    {
+        $sql = "
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'aberto' THEN 1 ELSE 0 END) as abertas,
+                SUM(CASE WHEN status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
+                SUM(CASE WHEN status = 'fechado' THEN 1 ELSE 0 END) as fechadas,
+                AVG(TIMESTAMPDIFF(MINUTE, criado_em, COALESCE(ultima_mensagem, NOW()))) as duracao_media_minutos
+            FROM conversas 
+            WHERE departamento_id = :departamento_id
+            AND criado_em >= DATE_SUB(NOW(), INTERVAL :dias DAY)
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        $this->db->bind(':dias', $dias);
         return $this->db->resultado();
     }
 } 

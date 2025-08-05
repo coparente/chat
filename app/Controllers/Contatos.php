@@ -55,7 +55,8 @@ class Contatos extends Controllers
             'busca' => filter_input(INPUT_GET, 'busca', FILTER_SANITIZE_STRING) ?: '',
             'bloqueado' => filter_input(INPUT_GET, 'bloqueado', FILTER_SANITIZE_STRING) ?: '',
             'tag' => filter_input(INPUT_GET, 'tag', FILTER_SANITIZE_STRING) ?: '',
-            'periodo' => filter_input(INPUT_GET, 'periodo', FILTER_SANITIZE_STRING) ?: ''
+            'periodo' => filter_input(INPUT_GET, 'periodo', FILTER_SANITIZE_STRING) ?: '',
+            'agente' => filter_input(INPUT_GET, 'agente', FILTER_SANITIZE_STRING) ?: ''
         ];
 
         // Buscar contatos

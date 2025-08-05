@@ -637,9 +637,7 @@ class ConfiguracaoModel
             return null;
         }
 
-        $valor = json_decode($resultado->valor, true);
-        
-        return $valor !== null ? $valor : $resultado->valor;
+        return $resultado->valor;
     }
 
     /**

@@ -44,7 +44,7 @@ class UsuarioModel
     }
 
     /**
-     * [ getAtendentesOnline ] - Busca atendentes online
+     * [ getAtendentesOnline ] - Busca atendentes online (baseado no último acesso)
      * 
      * @param int $limite Limite de resultados
      * @return array Lista de atendentes online
@@ -52,10 +52,17 @@ class UsuarioModel
     public function getAtendentesOnline($limite = 5)
     {
         $sql = "
-            SELECT nome, status, ultimo_acesso
+            SELECT 
+                id,
+                nome, 
+                email,
+                status, 
+                ultimo_acesso,
+                perfil
             FROM usuarios 
             WHERE perfil = 'atendente' 
-            AND status IN ('ativo', 'ausente', 'ocupado')
+            AND status = 'ativo' -- Apenas usuários ativos no sistema
+            AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 15 MINUTE) -- Online nos últimos 15 minutos
             ORDER BY ultimo_acesso DESC
             LIMIT :limite
         ";
@@ -72,9 +79,206 @@ class UsuarioModel
      */
     public function contarAtendentesOnline()
     {
-        $sql = "SELECT COUNT(*) as total FROM usuarios WHERE perfil = 'atendente' AND status IN ('ativo', 'ausente', 'ocupado')";
+        $sql = "
+            SELECT COUNT(*) as total 
+            FROM usuarios 
+            WHERE perfil = 'atendente' 
+            AND status = 'ativo' 
+            AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        ";
         $this->db->query($sql);
         return $this->db->resultado()->total;
+    }
+
+    /**
+     * [ getAtendentesPorDepartamento ] - Busca atendentes de um departamento específico
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param bool $apenasAtivos Se true, retorna apenas atendentes ativos
+     * @return array Lista de atendentes
+     */
+    public function getAtendentesPorDepartamento($departamentoId, $apenasAtivos = true)
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.nome,
+                u.email,
+                u.perfil,
+                u.status,
+                u.ultimo_acesso,
+                ad.perfil as perfil_departamento,
+                ad.max_conversas,
+                ad.horario_inicio,
+                ad.horario_fim,
+                ad.dias_semana
+            FROM usuarios u
+            JOIN atendentes_departamento ad ON u.id = ad.usuario_id
+            WHERE ad.departamento_id = :departamento_id
+        ";
+        
+        if ($apenasAtivos) {
+            $sql .= " AND ad.status = 'ativo' AND u.status = 'ativo'";
+        }
+        
+        $sql .= " ORDER BY ad.perfil DESC, u.nome ASC";
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ verificarAtendenteDepartamento ] - Verifica se um atendente pertence a um departamento
+     * 
+     * @param int $usuarioId ID do usuário
+     * @param int $departamentoId ID do departamento
+     * @return bool True se pertence ao departamento
+     */
+    public function verificarAtendenteDepartamento($usuarioId, $departamentoId)
+
+    
+    {
+
+        $sql = "
+            SELECT COUNT(*) as total
+            FROM atendentes_departamento 
+            WHERE usuario_id = :usuario_id 
+            AND departamento_id = :departamento_id 
+            AND status = 'ativo'
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':usuario_id', $usuarioId);
+        $this->db->bind(':departamento_id', $departamentoId);
+        $resultado = $this->db->resultado();
+        
+        return $resultado && $resultado->total > 0;
+    }
+
+    /**
+     * [ getDepartamentosUsuario ] - Obtém departamentos de um usuário
+     * 
+     * @param int $usuarioId ID do usuário
+     * @return array Lista de departamentos
+     */
+    public function getDepartamentosUsuario($usuarioId)
+    {
+        $sql = "
+            SELECT 
+                d.id,
+                d.nome,
+                d.descricao,
+                d.cor,
+                d.icone,
+                d.status,
+                ad.perfil as perfil_departamento,
+                ad.max_conversas,
+                ad.horario_inicio,
+                ad.horario_fim
+            FROM departamentos d
+            JOIN atendentes_departamento ad ON d.id = ad.departamento_id
+            WHERE ad.usuario_id = :usuario_id 
+            AND ad.status = 'ativo'
+            AND d.status = 'ativo'
+            ORDER BY d.prioridade ASC, d.nome ASC
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':usuario_id', $usuarioId);
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ getAtendentesDisponiveisPorDepartamento ] - Busca atendentes disponíveis de um departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @return array Lista de atendentes disponíveis
+     */
+    public function getAtendentesDisponiveisPorDepartamento($departamentoId)
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.nome,
+                u.email,
+                u.status,
+                ad.max_conversas,
+                ad.horario_inicio,
+                ad.horario_fim,
+                (SELECT COUNT(*) FROM conversas WHERE atendente_id = u.id AND status IN ('aberto', 'pendente')) as conversas_ativas
+            FROM usuarios u
+            JOIN atendentes_departamento ad ON u.id = ad.usuario_id
+            WHERE ad.departamento_id = :departamento_id
+            AND ad.status = 'ativo'
+            AND u.status = 'ativo'
+            AND u.ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+            HAVING conversas_ativas < ad.max_conversas
+            ORDER BY conversas_ativas ASC, u.nome ASC
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ contarAtendentesPorDepartamento ] - Conta atendentes de um departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param bool $apenasAtivos Se true, conta apenas atendentes ativos
+     * @return int Número de atendentes
+     */
+    public function contarAtendentesPorDepartamento($departamentoId, $apenasAtivos = true)
+    {
+        $sql = "
+            SELECT COUNT(*) as total
+            FROM atendentes_departamento ad
+            JOIN usuarios u ON ad.usuario_id = u.id
+            WHERE ad.departamento_id = :departamento_id
+        ";
+        
+        if ($apenasAtivos) {
+            $sql .= " AND ad.status = 'ativo' AND u.status = 'ativo'";
+        }
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        $resultado = $this->db->resultado();
+        
+        return $resultado ? $resultado->total : 0;
+    }
+
+    /**
+     * [ getAtendentesOnlinePorDepartamento ] - Busca atendentes online de um departamento
+     * 
+     * @param int $departamentoId ID do departamento
+     * @param int $limite Limite de resultados
+     * @return array Lista de atendentes online
+     */
+    public function getAtendentesOnlinePorDepartamento($departamentoId, $limite = 5)
+    {
+        $sql = "
+            SELECT 
+                u.nome, 
+                u.status, 
+                u.ultimo_acesso,
+                ad.max_conversas,
+                (SELECT COUNT(*) FROM conversas WHERE atendente_id = u.id AND status IN ('aberto', 'pendente')) as conversas_ativas
+            FROM usuarios u
+            JOIN atendentes_departamento ad ON u.id = ad.usuario_id
+            WHERE ad.departamento_id = :departamento_id
+            AND ad.status = 'ativo'
+            AND u.status IN ('ativo', 'ausente', 'ocupado')
+            AND u.ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+            ORDER BY conversas_ativas ASC, u.ultimo_acesso DESC
+            LIMIT :limite
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':departamento_id', $departamentoId);
+        $this->db->bind(':limite', $limite);
+        return $this->db->resultados();
     }
 
     /**
@@ -137,6 +341,31 @@ class UsuarioModel
         $this->db->query($sql);
         $this->db->bind(':id', $id);
         return $this->db->executa();
+    }
+
+    /**
+     * [ verificarUsuarioOnline ] - Verifica se um usuário está online
+     * 
+     * @param int $id ID do usuário
+     * @param int $minutosLimite Minutos para considerar online (padrão: 15)
+     * @return bool True se está online
+     */
+    public function verificarUsuarioOnline($id, $minutosLimite = 15)
+    {
+        $sql = "
+            SELECT COUNT(*) as total 
+            FROM usuarios 
+            WHERE id = :id 
+            AND status = 'ativo'
+            AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL :minutos MINUTE)
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':id', $id);
+        $this->db->bind(':minutos', $minutosLimite);
+        $resultado = $this->db->resultado();
+        
+        return $resultado && $resultado->total > 0;
     }
 
     /**

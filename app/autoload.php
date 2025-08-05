@@ -10,7 +10,9 @@ spl_autoload_register(function ($classe) {
         'Controllers',          // Diretório de Controllers
         'Libraries',            // Diretório 'Core'
         'Helpers',              // Diretório de Helpers
-        'Models'                // Diretório de Models
+        'Models',               // Diretório de Models
+        'Exceptions',           // Diretório de Exceptions
+        'Validators'            // Diretório de Validators
     ];
 
     // Itera pelos diretórios especificados

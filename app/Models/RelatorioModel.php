@@ -32,12 +32,15 @@ class RelatorioModel
         $sql = "
             SELECT 
                 c.id,
+                c.atendente_id,
                 ct.nome as contato_nome,
                 ct.numero,
                 u.nome as atendente_nome,
                 c.status,
                 c.prioridade,
-                c.departamento,
+                c.departamento_id,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor,
                 c.criado_em,
                 c.ultima_mensagem,
                 c.atualizado_em,
@@ -47,6 +50,7 @@ class RelatorioModel
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
             LEFT JOIN usuarios u ON c.atendente_id = u.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
             LEFT JOIN mensagens m ON c.id = m.conversa_id
             WHERE 1=1
         ";

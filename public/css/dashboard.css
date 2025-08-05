@@ -173,15 +173,106 @@ body {
 .status-away { background: rgba(255, 193, 7, 0.1); color: var(--warning-color); }
 .status-busy { background: rgba(220, 53, 69, 0.1); color: var(--danger-color); }
 
+/* Status indicators melhorados - FORÇANDO APLICAÇÃO */
 .status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    position: relative !important;
 }
 
-.status-online .status-indicator { background: var(--success-color); }
-.status-away .status-indicator { background: var(--warning-color); }
-.status-busy .status-indicator { background: var(--danger-color); }
+/* FORÇANDO CORES VIBRANTES */
+.status-online .status-indicator { 
+    background-color: #00ff00 !important; 
+    background: #00ff00 !important;
+    box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    border-color: #00ff00 !important;
+    animation: pulse-green 2s infinite !important;
+}
+
+.status-away .status-indicator { 
+    background-color: #ffff00 !important; 
+    background: #ffff00 !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    border-color: #ffff00 !important;
+    animation: pulse-yellow 2s infinite !important;
+}
+
+.status-busy .status-indicator { 
+    background-color: #ff0000 !important; 
+    background: #ff0000 !important;
+    box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    border-color: #ff0000 !important;
+    animation: pulse-red 2s infinite !important;
+}
+
+.status-offline .status-indicator { 
+    background-color: #808080 !important; 
+    background: #808080 !important;
+    box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    border-color: #808080 !important;
+    animation: none !important;
+}
+
+/* Animações de pulse para status ativos - FORÇANDO */
+@keyframes pulse-green {
+    0% { 
+        box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #00ff00 !important;
+        background: #00ff00 !important;
+    }
+    50% { 
+        box-shadow: 0 0 0 8px rgba(0, 255, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #00ff00 !important;
+        background: #00ff00 !important;
+    }
+    100% { 
+        box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #00ff00 !important;
+        background: #00ff00 !important;
+    }
+}
+
+@keyframes pulse-yellow {
+    0% { 
+        box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #ffff00 !important;
+        background: #ffff00 !important;
+    }
+    50% { 
+        box-shadow: 0 0 0 8px rgba(255, 255, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #ffff00 !important;
+        background: #ffff00 !important;
+    }
+    100% { 
+        box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #ffff00 !important;
+        background: #ffff00 !important;
+    }
+}
+
+@keyframes pulse-red {
+    0% { 
+        box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #ff0000 !important;
+        background: #ff0000 !important;
+    }
+    50% { 
+        box-shadow: 0 0 0 8px rgba(255, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #ff0000 !important;
+        background: #ff0000 !important;
+    }
+    100% { 
+        box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        background-color: #ff0000 !important;
+        background: #ff0000 !important;
+    }
+}
 
 .user-menu {
     position: relative;
@@ -319,25 +410,38 @@ body {
 }
 
 .item-avatar {
-    width: 35px;
-    height: 35px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: var(--light-bg);
+    background: var(--primary-color);
     display: flex;
     align-items: center;
     justify-content: center;
+    color: white;
     font-weight: 600;
-    color: var(--secondary-color);
+    font-size: 0.875rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.item-details {
+    flex: 1;
+    min-width: 0;
 }
 
 .item-details h6 {
     margin: 0;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--secondary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .item-details small {
     color: #6c757d;
+    font-size: 0.8rem;
 }
 
 /* Responsividade */

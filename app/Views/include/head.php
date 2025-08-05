@@ -20,4 +20,5 @@
     <link rel="stylesheet" href="<?= Helper::asset('css/app.css') ?>">
     <link rel="stylesheet" href="<?= Helper::asset('css/dashboard.css') ?>">
     <link rel="stylesheet" href="<?= Helper::asset('css/chat.css') ?>">
+    <link rel="stylesheet" href="<?= Helper::asset('css/relatorios.css') ?>">
 </head>

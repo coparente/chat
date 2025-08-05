@@ -122,29 +122,50 @@ Route::group(['middleware' => ['auth']], function() {
         Route::post('/atualizar/{id}', 'Contatos@atualizar');
     });
 
+    // ============================================================================
+    // ROTAS DE RELATÓRIOS
+    // ============================================================================
+    Route::get('/relatorios', 'Relatorios@index');
+    Route::get('/relatorios/conversas', 'Relatorios@conversas');
+    Route::get('/relatorios/atendentes', 'Relatorios@atendentes');
+    Route::get('/relatorios/templates', 'Relatorios@templates');
+    Route::get('/relatorios/mensagens', 'Relatorios@mensagens');
+    Route::get('/relatorios/tempo-resposta', 'Relatorios@tempo_resposta');
+
+    // AJAX - Relatórios
+    Route::get('/relatorios/dashboard', 'Relatorios@dashboard');
+    Route::post('/relatorios/alterar-status-conversa', 'Relatorios@alterarStatusConversa');
+    Route::post('/relatorios/alterar-atendente-conversa', 'Relatorios@alterarAtendenteConversa');
+    Route::get('/relatorios/conversa/{conversa_id}/mensagens', 'Relatorios@buscarMensagensConversa');
+
+    // ============================================================================
+    // ROTAS DE DEPARTAMENTOS
+    // ============================================================================
+    Route::get('/departamentos', 'Departamentos@index');
+    Route::get('/departamentos/criar', 'Departamentos@criar');
+    Route::post('/departamentos/salvar', 'Departamentos@salvar');
+    Route::get('/departamentos/editar/{id}', 'Departamentos@editar');
+    Route::post('/departamentos/atualizar/{id}', 'Departamentos@atualizar');
+    Route::get('/departamentos/excluir/{id}', 'Departamentos@excluir');
+    Route::get('/departamentos/credenciais/{departamento_id}', 'Departamentos@credenciais');
+    Route::post('/departamentos/salvar-credencial', 'Departamentos@salvarCredencial');
+    Route::get('/departamentos/testar-credencial/{credencial_id}', 'Departamentos@testarCredencial');
+    Route::get('/departamentos/renovar-token/{credencial_id}', 'Departamentos@renovarToken');
+    Route::get('/departamentos/estatisticas/{departamento_id}', 'Departamentos@estatisticas');
+
+    // AJAX - Departamentos
+    Route::post('/departamentos/api', 'Departamentos@api');
+
     // ========================================================================
-    // RELATÓRIOS - Apenas para Admin e Supervisor
+    // ATENDENTES POR DEPARTAMENTO - Gerenciamento
     // ========================================================================
-    Route::group(['prefix' => 'relatorios', 'middleware' => ['supervisor_ou_admin']], function() {
-        Route::get('/', 'Relatorios@index');
-        Route::get('/dashboard', 'Relatorios@dashboard');
-        Route::get('/atendimentos', 'Relatorios@atendimentos');
-        Route::get('/atendentes', 'Relatorios@atendentes');
-        Route::get('/templates', 'Relatorios@templates');
-        Route::get('/tempo-resposta', 'Relatorios@tempo_resposta');
-        Route::get('/conversas', 'Relatorios@conversas');
-        Route::get('/performance', 'Relatorios@performance');
-        Route::get('/mensagens', 'Relatorios@mensagens');
-        Route::get('/exportar/{tipo}', 'Relatorios@exportar');
-        
-        // Alterar status das conversas
-        Route::post('/alterar-status-conversa', 'Relatorios@alterarStatusConversa');
-        
-        // Alterar atendente das conversas
-        Route::post('/alterar-atendente-conversa', 'Relatorios@alterarAtendenteConversa');
-        
-        // Buscar mensagens de uma conversa
-        Route::get('/conversa/{conversa_id}/mensagens', 'Relatorios@buscarMensagensConversa');
+    Route::group(['prefix' => 'atendentes-departamento'], function() {
+        Route::get('/{departamento_id}', 'AtendentesDepartamento@index');
+        Route::post('/adicionar-atendente', 'AtendentesDepartamento@adicionarAtendente');
+        Route::post('/remover-atendente', 'AtendentesDepartamento@removerAtendente');
+        Route::post('/atualizar-configuracao', 'AtendentesDepartamento@atualizarConfiguracao');
+        Route::get('/buscar-configuracao/{usuario_id}/{departamento_id}', 'AtendentesDepartamento@buscarConfiguracao');
+        Route::get('/estatisticas/{departamento_id}', 'AtendentesDepartamento@estatisticas');
     });
 
     // ========================================================================
@@ -187,11 +208,6 @@ Route::group(['middleware' => ['auth']], function() {
         Route::post('/conexoes/desconectar/{id}', 'Configuracoes@desconectar');
         Route::post('/conexoes/excluir/{id}', 'Configuracoes@excluirConexao');
         
-        // API Serpro
-        Route::get('/serpro', 'Configuracoes@serpro');
-        Route::post('/serpro/salvar', 'Configuracoes@salvarSerpro');
-        Route::post('/serpro/testar', 'Configuracoes@testarSerpro');
-        
         // Gerenciamento de Token JWT
         Route::get('/token/status', 'Configuracoes@statusToken');
         Route::post('/token/renovar', 'Configuracoes@renovarToken');
@@ -200,6 +216,7 @@ Route::group(['middleware' => ['auth']], function() {
         // Mensagens Automáticas
         Route::get('/mensagens', 'Configuracoes@mensagens');
         Route::post('/mensagens/salvar', 'Configuracoes@salvarMensagens');
+        Route::get('/configuracoes/mensagens/buscar/{id}', 'Configuracoes@buscarMensagem');
 
     });
 
@@ -224,7 +241,7 @@ Route::group(['middleware' => ['auth']], function() {
     // PÁGINAS ADMINISTRATIVAS
     // ========================================================================
     Route::get('/pagina/erro', 'Pagina@erro');
-    Route::get('/sobre', 'Pagina@sobre');
+
 
 });
 

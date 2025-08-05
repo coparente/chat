@@ -1,80 +1,18 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= APP_NOME ?> - Gerenciar Usuários</title>
-    <link rel="icon" href="<?= Helper::asset('img/logo.png') ?>">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- CSS -->
-    <link rel="stylesheet" href="<?= Helper::asset('css/app.css') ?>">
-    <link rel="stylesheet" href="<?= Helper::asset('css/dashboard.css') ?>">
-</head>
+
+<?php include 'app/Views/include/head.php' ?>
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $usuario_logado['id'],
+    'nome' => $usuario_logado['nome'],
+    'email' => $usuario_logado['email'],
+    'perfil' => $usuario_logado['perfil']
+];
+?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        Dashboard
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        Chat
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        Contatos
-                    </a>
-                </div>
-                
-                <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link">
-                        <i class="fas fa-chart-bar"></i>
-                        Relatórios
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link active">
-                        <i class="fas fa-users"></i>
-                        Usuários
-                    </a>
-                </div>
-                <?php endif; ?>
-                
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link">
-                        <i class="fas fa-cog"></i>
-                        Configurações
-                    </a>
-                </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
-
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
             <!-- Header -->

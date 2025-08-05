@@ -88,7 +88,21 @@ define('SERPRO_WABA_ID', $_ENV['SERPRO_WABA_ID'] ?? '');
 define('SERPRO_PHONE_NUMBER_ID', $_ENV['SERPRO_PHONE_NUMBER_ID'] ?? '');
 define('WEBHOOK_VERIFY_TOKEN', $_ENV['WEBHOOK_VERIFY_TOKEN'] ?? '');
 
+/**
+ * Configurações da API do Serpro 2929
+ */
+// define('SERPRO_CLIENT_ID', '642958872237822');
+// define('SERPRO_CLIENT_SECRET', 'ewW08ZJW1F1G6dkr8tExGGDQwTyua2jF');
+// define('SERPRO_BASE_URL', 'https://api.whatsapp.serpro.gov.br');
+// define('SERPRO_WABA_ID', '472202335973627');
+// define('SERPRO_PHONE_NUMBER_ID', '642958872237822');
 
+// Configurações da API do Serpro 4822
+// define('SERPRO_CLIENT_ID', '749709211549367');
+// define('SERPRO_CLIENT_SECRET', 'bY1t0kLcSCuUsCgfyLdrCrEfXq4Wmsb8');
+// define('SERPRO_BASE_URL', 'https://api.whatsapp.serpro.gov.br');
+// define('SERPRO_WABA_ID', '472202335973627');
+// define('SERPRO_PHONE_NUMBER_ID', '749709211549367');
 /**
  * Configurações do MinIO
  */ 
@@ -160,9 +174,9 @@ if (!headers_sent()) {
     header('X-XSS-Protection: 1; mode=block');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     
-    // CSP básico - ajuste conforme necessário
-    if (APP_ENV === 'production') {
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;");
+     // CSP básico - ajuste conforme necessário
+     if (APP_ENV === 'production') {
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: http:; connect-src 'self';");
     }
 }
 

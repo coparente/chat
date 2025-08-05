@@ -1,64 +1,17 @@
 <?php include 'app/Views/include/head.php' ?>
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $usuario_logado['id'],
+    'nome' => $usuario_logado['nome'],
+    'email' => $usuario_logado['email'],
+    'perfil' => $usuario_logado['perfil']
+];
+?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        Dashboard
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        Chat
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        Contatos
-                    </a>
-                </div>
-                
-                <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link">
-                        <i class="fas fa-chart-bar"></i>
-                        Relatórios
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        Usuários
-                    </a>
-                </div>
-                <?php endif; ?>
-                
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link active">
-                        <i class="fas fa-cog"></i>
-                        Configurações
-                    </a>
-                </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
-
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
             <!-- Header -->
@@ -105,301 +58,195 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2><i class="fas fa-robot me-2"></i>Mensagens Automáticas</h2>
-                        <p class="text-muted">Configure respostas automáticas e mensagens padrão do sistema</p>
+                        <p class="text-muted">Configure respostas automáticas por departamento</p>
                     </div>
                     <div>
-                        <a href="<?= URL ?>/configuracoes" class="btn btn-outline-secondary">
+                        <button class="btn btn-primary" onclick="abrirModalNovaMensagem()">
+                            <i class="fas fa-plus me-2"></i>
+                            Nova Mensagem
+                        </button>
+                        <a href="<?= URL ?>/configuracoes" class="btn btn-outline-secondary ms-2">
                             <i class="fas fa-arrow-left me-2"></i>
                             Voltar
                         </a>
                     </div>
                 </div>
 
+                <!-- Departamentos -->
                 <div class="row">
-                    <!-- Formulário de Mensagens -->
-                    <div class="col-lg-8">
-                        <div class="content-card">
-                            <div class="content-card-header">
-                                <h5 class="content-card-title">
-                                    <i class="fas fa-robot me-2"></i>
-                                    Configurar Mensagens Automáticas
-                                </h5>
-                            </div>
-                            <div class="content-card-body">
-                                <form method="POST" action="<?= URL ?>/configuracoes/mensagens/salvar">
-                                    
-                                    <!-- Mensagem de Boas-vindas -->
-                                    <div class="mb-4">
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input" type="checkbox" id="ativar_boas_vindas" 
-                                                   name="ativar_boas_vindas" <?= $ativar_boas_vindas ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="ativar_boas_vindas">
-                                                <i class="fas fa-handshake me-2"></i>
-                                                <strong>Ativar Mensagem de Boas-vindas</strong>
-                                            </label>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Mensagem de Boas-vindas</label>
-                                            <textarea class="form-control" name="mensagem_boas_vindas" rows="3" 
-                                                      placeholder="Digite a mensagem de boas-vindas..."><?= htmlspecialchars($mensagem_boas_vindas) ?></textarea>
-                                            <div class="form-text">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Enviada automaticamente quando um novo contato inicia uma conversa.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Mensagem de Ausência -->
-                                    <div class="mb-4">
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input" type="checkbox" id="ativar_ausencia" 
-                                                   name="ativar_ausencia" <?= $ativar_ausencia ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="ativar_ausencia">
-                                                <i class="fas fa-clock me-2"></i>
-                                                <strong>Ativar Mensagem de Ausência</strong>
-                                            </label>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Mensagem de Ausência</label>
-                                            <textarea class="form-control" name="mensagem_ausencia" rows="3" 
-                                                      placeholder="Digite a mensagem de ausência..."><?= htmlspecialchars($mensagem_ausencia) ?></textarea>
-                                            <div class="form-text">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Enviada quando não há atendentes disponíveis.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Mensagem de Encerramento -->
-                                    <div class="mb-4">
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input" type="checkbox" id="ativar_encerramento" 
-                                                   name="ativar_encerramento" <?= $ativar_encerramento ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="ativar_encerramento">
-                                                <i class="fas fa-handshake me-2"></i>
-                                                <strong>Ativar Mensagem de Encerramento</strong>
-                                            </label>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Mensagem de Encerramento</label>
-                                            <textarea class="form-control" name="mensagem_encerramento" rows="3" 
-                                                      placeholder="Digite a mensagem de encerramento..."><?= htmlspecialchars($mensagem_encerramento) ?></textarea>
-                                            <div class="form-text">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Enviada quando o atendimento é finalizado.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Horário de Funcionamento -->
-                                    <div class="mb-4">
-                                        <label class="form-label">
-                                            <i class="fas fa-business-time me-2"></i>
-                                            Horário de Funcionamento
-                                        </label>
-                                        <input type="text" class="form-control" name="horario_funcionamento" 
-                                               value="<?= htmlspecialchars($horario_funcionamento) ?>" 
-                                               placeholder="Ex: Segunda a Sexta: 08:00 às 18:00">
-                                        <div class="form-text">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Formatos aceitos: "Segunda a Sexta: 08:00 às 18:00", "Segunda a Sexta das 08:00 às 18:00", "Segunda a Sexta: 08:00 às 18:00, Sábado: 09:00 às 12:00"
-                                        </div>
-                                    </div>
-
-                                    <!-- Configurações Avançadas -->
-                                    <div class="mb-4">
-                                        <h6 class="form-label">
-                                            <i class="fas fa-cogs me-2"></i>
-                                            Configurações Avançadas
-                                        </h6>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="ativar_fora_horario" 
-                                                           name="ativar_fora_horario" <?= ($ativar_fora_horario ?? true) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="ativar_fora_horario">
-                                                        <i class="fas fa-clock text-warning me-1"></i>
-                                                        Enviar mensagem fora do horário
-                                                    </label>
+                    <?php foreach ($departamentos as $departamento): ?>
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="content-card">
+                                <div class="content-card-header">
+                                    <h5 class="content-card-title">
+                                        <i class="fas fa-building me-2" style="color: <?= $departamento->cor ?>"></i>
+                                        <?= htmlspecialchars($departamento->nome) ?>
+                                    </h5>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="abrirModalNovaMensagem(<?= $departamento->id ?>)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="content-card-body">
+                                    <?php 
+                                    $mensagens = $mensagens_por_departamento[$departamento->id] ?? [];
+                                    if (empty($mensagens)): 
+                                    ?>
+                                        <p class="text-muted text-center">Nenhuma mensagem automática configurada</p>
+                                    <?php else: ?>
+                                        <div class="mensagens-lista">
+                                            <?php foreach ($mensagens as $mensagem): ?>
+                                                <div class="mensagem-item" data-id="<?= $mensagem->id ?>">
+                                                    <div class="mensagem-header">
+                                                        <div class="mensagem-tipo">
+                                                            <i class="<?= getTipoIcone($mensagem->tipo) ?>"></i>
+                                                            <?= getTipoNome($mensagem->tipo) ?>
+                                                        </div>
+                                                        <div class="mensagem-acoes">
+                                                            <button class="btn btn-sm btn-outline-secondary" 
+                                                                    onclick="editarMensagem(<?= $mensagem->id ?>)">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-danger" 
+                                                                    onclick="excluirMensagem(<?= $mensagem->id ?>)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mensagem-conteudo">
+                                                        <strong><?= htmlspecialchars($mensagem->titulo) ?></strong>
+                                                        <p class="text-muted"><?= htmlspecialchars(substr($mensagem->mensagem, 0, 100)) ?>...</p>
+                                                    </div>
+                                                    <div class="mensagem-status">
+                                                        <span class="badge bg-<?= $mensagem->ativo ? 'success' : 'secondary' ?>">
+                                                            <?= $mensagem->ativo ? 'Ativo' : 'Inativo' ?>
+                                                        </span>
+                                                        <small class="text-muted">
+                                                            <?= $mensagem->horario_inicio ?> - <?= $mensagem->horario_fim ?>
+                                                        </small>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="ativar_sem_atendentes" 
-                                                           name="ativar_sem_atendentes" <?= ($ativar_sem_atendentes ?? true) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="ativar_sem_atendentes">
-                                                        <i class="fas fa-user-slash text-danger me-1"></i>
-                                                        Enviar quando sem atendentes
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <?php if (isset($erro)): ?>
-                                        <div class="alert alert-danger">
-                                            <i class="fas fa-exclamation-triangle me-2"></i>
-                                            <?= $erro ?>
+                                            <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
-
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save me-2"></i>
-                                            Salvar Configurações
-                                        </button>
-                                        
-                                        <button type="button" class="btn btn-outline-info" id="btnPreview">
-                                            <i class="fas fa-eye me-2"></i>
-                                            Visualizar Mensagens
-                                        </button>
-
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Informações e Exemplos -->
-                    <div class="col-lg-4">
-                        <div class="content-card">
-                            <div class="content-card-header">
-                                <h5 class="content-card-title">
-                                    <i class="fas fa-lightbulb me-2"></i>
-                                    Exemplos de Mensagens
-                                </h5>
-                            </div>
-                            <div class="content-card-body">
-                                <div class="example-message">
-                                    <div class="example-label">
-                                        <i class="fas fa-handshake text-success"></i>
-                                        Boas-vindas
-                                    </div>
-                                    <div class="example-text">
-                                        "Olá! Seja bem-vindo(a) ao nosso atendimento. Em que posso ajudá-lo(a)?"
-                                    </div>
-                                </div>
-                                
-                                <div class="example-message">
-                                    <div class="example-label">
-                                        <i class="fas fa-clock text-warning"></i>
-                                        Ausência
-                                    </div>
-                                    <div class="example-text">
-                                        "No momento não há atendentes disponíveis. Deixe sua mensagem que retornaremos em breve."
-                                    </div>
-                                </div>
-                                
-                                <div class="example-message">
-                                    <div class="example-label">
-                                        <i class="fas fa-handshake text-info"></i>
-                                        Encerramento
-                                    </div>
-                                    <div class="example-text">
-                                        "Obrigado pelo contato! Se precisar de mais alguma coisa, estarei aqui para ajudar."
-                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="content-card mt-4">
-                            <div class="content-card-header">
-                                <h5 class="content-card-title">
-                                    <i class="fas fa-cogs me-2"></i>
-                                    Configurações Avançadas
-                                </h5>
-                            </div>
-                            <div class="content-card-body">
-                                <div class="config-item">
-                                    <div class="config-label">
-                                        <i class="fas fa-toggle-on text-success"></i>
-                                        Ativação Individual
-                                    </div>
-                                    <div class="config-text">
-                                        Cada tipo de mensagem pode ser ativado/desativado independentemente.
-                                    </div>
-                                </div>
-                                
-                                <div class="config-item">
-                                    <div class="config-label">
-                                        <i class="fas fa-clock text-primary"></i>
-                                        Horário de Funcionamento
-                                    </div>
-                                    <div class="config-text">
-                                        Define quando o atendimento está disponível para controle automático.
-                                    </div>
-                                </div>
-                                
-                                <div class="config-item">
-                                    <div class="config-label">
-                                        <i class="fas fa-user-robot text-info"></i>
-                                        Automação
-                                    </div>
-                                    <div class="config-text">
-                                        Mensagens são enviadas automaticamente baseadas em eventos do sistema.
-                                    </div>
-                                </div>
-                                
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Dica:</strong> Use mensagens claras e amigáveis para melhorar a experiência do usuário.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal Preview -->
-    <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <!-- Modal Nova/Editar Mensagem -->
+    <div class="modal fade" id="modalMensagem" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-eye me-2"></i>
-                        Visualizar Mensagens
-                    </h5>
+                    <h5 class="modal-title" id="modalTitulo">Nova Mensagem Automática</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="preview-container">
-                        <div class="preview-message" id="previewBoasVindas">
-                            <div class="preview-header">
-                                <i class="fas fa-handshake text-success"></i>
-                                Mensagem de Boas-vindas
-                                <span class="preview-status" id="statusBoasVindas"></span>
-                            </div>
-                            <div class="preview-text" id="textBoasVindas"></div>
-                        </div>
+                    <form id="formMensagem">
+                        <input type="hidden" id="mensagemId" name="id">
+                        <input type="hidden" id="departamentoId" name="departamento_id">
                         
-                        <div class="preview-message" id="previewAusencia">
-                            <div class="preview-header">
-                                <i class="fas fa-clock text-warning"></i>
-                                Mensagem de Ausência
-                                <span class="preview-status" id="statusAusencia"></span>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Departamento</label>
+                                    <select class="form-select" id="selectDepartamento" name="departamento_id" required>
+                                        <option value="">Selecione um departamento</option>
+                                        <?php foreach ($departamentos as $dept): ?>
+                                            <option value="<?= $dept->id ?>"><?= htmlspecialchars($dept->nome) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="preview-text" id="textAusencia"></div>
-                        </div>
-                        
-                        <div class="preview-message" id="previewEncerramento">
-                            <div class="preview-header">
-                                <i class="fas fa-handshake text-info"></i>
-                                Mensagem de Encerramento
-                                <span class="preview-status" id="statusEncerramento"></span>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo de Mensagem</label>
+                                    <select class="form-select" id="tipoMensagem" name="tipo" required>
+                                        <option value="">Selecione o tipo</option>
+                                        <option value="boas_vindas">Boas-vindas</option>
+                                        <option value="ausencia">Ausência de Atendentes</option>
+                                        <option value="encerramento">Encerramento</option>
+                                        <option value="fora_horario">Fora do Horário</option>
+                                        <option value="aguardando">Aguardando Atendimento</option>
+                                        <option value="transferencia">Transferência</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="preview-text" id="textEncerramento"></div>
                         </div>
-                        
-                        <div class="preview-message">
-                            <div class="preview-header">
-                                <i class="fas fa-business-time text-primary"></i>
-                                Horário de Funcionamento
+
+                        <div class="mb-3">
+                            <label class="form-label">Título</label>
+                            <input type="text" class="form-control" id="tituloMensagem" name="titulo" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Mensagem</label>
+                            <textarea class="form-control" id="conteudoMensagem" name="mensagem" rows="4" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Horário de Início</label>
+                                    <input type="time" class="form-control" id="horarioInicio" name="horario_inicio" value="08:00">
+                                </div>
                             </div>
-                            <div class="preview-text" id="textHorario"></div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Horário de Fim</label>
+                                    <input type="time" class="form-control" id="horarioFim" name="horario_fim" value="18:00">
+                                </div>
+                            </div>
                         </div>
-                    </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Dias da Semana</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="segunda" name="dias_semana[]" checked>
+                                <label class="form-check-label" for="segunda">Segunda-feira</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="2" id="terca" name="dias_semana[]" checked>
+                                <label class="form-check-label" for="terca">Terça-feira</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="3" id="quarta" name="dias_semana[]" checked>
+                                <label class="form-check-label" for="quarta">Quarta-feira</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="4" id="quinta" name="dias_semana[]" checked>
+                                <label class="form-check-label" for="quinta">Quinta-feira</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="5" id="sexta" name="dias_semana[]" checked>
+                                <label class="form-check-label" for="sexta">Sexta-feira</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="6" id="sabado" name="dias_semana[]">
+                                <label class="form-check-label" for="sabado">Sábado</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="7" id="domingo" name="dias_semana[]">
+                                <label class="form-check-label" for="domingo">Domingo</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="ativoMensagem" name="ativo" checked>
+                                <label class="form-check-label" for="ativoMensagem">Mensagem Ativa</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarMensagem()">Salvar</button>
                 </div>
             </div>
         </div>
@@ -409,131 +256,251 @@
     <?php include 'app/Views/include/linkjs.php' ?>
     
     <script>
-        // Preview das mensagens
-        document.getElementById('btnPreview').addEventListener('click', function() {
-            // Atualizar preview com valores atuais
-            document.getElementById('textBoasVindas').textContent = 
-                document.querySelector('[name="mensagem_boas_vindas"]').value || 'Nenhuma mensagem configurada';
-            document.getElementById('textAusencia').textContent = 
-                document.querySelector('[name="mensagem_ausencia"]').value || 'Nenhuma mensagem configurada';
-            document.getElementById('textEncerramento').textContent = 
-                document.querySelector('[name="mensagem_encerramento"]').value || 'Nenhuma mensagem configurada';
-            document.getElementById('textHorario').textContent = 
-                document.querySelector('[name="horario_funcionamento"]').value || 'Não configurado';
+        let modoEdicao = false;
+        let mensagemEditando = null;
+
+        // Debug: verificar departamentos carregados
+        // console.log('Departamentos carregados:', <?= json_encode($departamentos) ?>);
+
+        // Sincronizar campo de departamento quando select mudar
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectDepartamento = document.getElementById('selectDepartamento');
+            const inputDepartamento = document.getElementById('departamentoId');
             
-            // Status das mensagens
-            document.getElementById('statusBoasVindas').innerHTML = 
-                document.getElementById('ativar_boas_vindas').checked ? 
-                '<span class="badge bg-success">Ativado</span>' : 
-                '<span class="badge bg-secondary">Desativado</span>';
-            
-            document.getElementById('statusAusencia').innerHTML = 
-                document.getElementById('ativar_ausencia').checked ? 
-                '<span class="badge bg-success">Ativado</span>' : 
-                '<span class="badge bg-secondary">Desativado</span>';
-            
-            document.getElementById('statusEncerramento').innerHTML = 
-                document.getElementById('ativar_encerramento').checked ? 
-                '<span class="badge bg-success">Ativado</span>' : 
-                '<span class="badge bg-secondary">Desativado</span>';
-            
-            // Mostrar modal
-            new bootstrap.Modal(document.getElementById('previewModal')).show();
+            if (selectDepartamento && inputDepartamento) {
+                selectDepartamento.addEventListener('change', function() {
+                    inputDepartamento.value = this.value;
+                });
+            }
         });
 
+        function abrirModalNovaMensagem(departamentoId = null) {
+            modoEdicao = false;
+            mensagemEditando = null;
+            
+            // Limpar formulário
+            document.getElementById('formMensagem').reset();
+            document.getElementById('mensagemId').value = '';
+            document.getElementById('departamentoId').value = '';
+            
+            // Se um departamento foi especificado, selecioná-lo
+            if (departamentoId) {
+                document.getElementById('selectDepartamento').value = departamentoId;
+                document.getElementById('departamentoId').value = departamentoId;
+                document.getElementById('selectDepartamento').disabled = true;
+            } else {
+                document.getElementById('selectDepartamento').disabled = false;
+                // Selecionar o primeiro departamento por padrão
+                const select = document.getElementById('selectDepartamento');
+                if (select.options.length > 1) {
+                    select.selectedIndex = 1; // Primeira opção válida (pula o "Selecione um departamento")
+                    document.getElementById('departamentoId').value = select.value;
+                }
+            }
+            
+            document.getElementById('modalTitulo').textContent = 'Nova Mensagem Automática';
+            
+            // Mostrar modal
+            new bootstrap.Modal(document.getElementById('modalMensagem')).show();
+        }
 
+        function editarMensagem(id) {
+            // Buscar dados da mensagem via AJAX
+            fetch('<?= URL ?>/configuracoes/mensagens/buscar/' + id)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        preencherFormulario(data.mensagem);
+                        modoEdicao = true;
+                        mensagemEditando = id;
+                        document.getElementById('modalTitulo').textContent = 'Editar Mensagem Automática';
+                        new bootstrap.Modal(document.getElementById('modalMensagem')).show();
+                    } else {
+                        alert('Erro ao carregar mensagem: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar mensagem');
+                });
+        }
+
+        function preencherFormulario(mensagem) {
+            document.getElementById('mensagemId').value = mensagem.id;
+            document.getElementById('departamentoId').value = mensagem.departamento_id;
+            document.getElementById('selectDepartamento').value = mensagem.departamento_id;
+            document.getElementById('tipoMensagem').value = mensagem.tipo;
+            document.getElementById('tituloMensagem').value = mensagem.titulo;
+            document.getElementById('conteudoMensagem').value = mensagem.mensagem;
+            document.getElementById('horarioInicio').value = mensagem.horario_inicio;
+            document.getElementById('horarioFim').value = mensagem.horario_fim;
+            document.getElementById('ativoMensagem').checked = mensagem.ativo == 1;
+            
+            // Limpar checkboxes
+            document.querySelectorAll('input[name="dias_semana[]"]').forEach(cb => cb.checked = false);
+            
+            // Marcar dias da semana
+            if (mensagem.dias_semana) {
+                mensagem.dias_semana.forEach(dia => {
+                    const checkbox = document.querySelector(`input[name="dias_semana[]"][value="${dia}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+        }
+
+        function salvarMensagem() {
+            const formData = new FormData(document.getElementById('formMensagem'));
+            const departamentoId = formData.get('departamento_id');
+            
+            // Validar se departamento foi selecionado
+            if (!departamentoId || departamentoId === '') {
+                alert('Por favor, selecione um departamento');
+                return;
+            }
+            
+            const dados = {
+                departamento_id: departamentoId,
+                tipo: formData.get('tipo'),
+                titulo: formData.get('titulo'),
+                mensagem: formData.get('mensagem'),
+                horario_inicio: formData.get('horario_inicio'),
+                horario_fim: formData.get('horario_fim'),
+                ativo: document.getElementById('ativoMensagem').checked ? 1 : 0,
+                dias_semana: Array.from(formData.getAll('dias_semana[]')).map(Number)
+            };
+
+            // Debug: verificar dados
+            // console.log('Dados sendo enviados:', dados);
+
+            const payload = {
+                acao: modoEdicao ? 'atualizar' : 'criar',
+                dados: dados
+            };
+
+            if (modoEdicao) {
+                payload.id = mensagemEditando;
+            }
+
+            // console.log('Payload completo:', payload);
+
+            fetch('<?= URL ?>/configuracoes/mensagens/salvar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // console.log('Resposta do servidor:', data);
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar mensagem');
+            });
+        }
+
+        function excluirMensagem(id) {
+            if (confirm('Tem certeza que deseja excluir esta mensagem automática?')) {
+                fetch('<?= URL ?>/configuracoes/mensagens/salvar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        acao: 'excluir',
+                        id: id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao excluir mensagem');
+                });
+            }
+        }
     </script>
-    
+
     <style>
-        .example-message {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: var(--card-bg);
-            border-radius: 8px;
+        .mensagem-item {
             border: 1px solid var(--border-color);
-        }
-        
-        .example-message:last-child {
-            margin-bottom: 0;
-        }
-        
-        .example-label {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-        
-        .example-text {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            font-style: italic;
-        }
-        
-        .config-item {
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .config-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-        
-        .config-label {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-        
-        .config-text {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-        }
-        
-        .preview-container {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .preview-message {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: var(--card-bg);
             border-radius: 8px;
-            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: var(--card-bg);
         }
-        
-        .preview-message:last-child {
-            margin-bottom: 0;
-        }
-        
-        .preview-header {
-            font-weight: 600;
+
+        .mensagem-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 0.5rem;
+        }
+
+        .mensagem-tipo {
+            font-weight: 600;
             color: var(--text-primary);
+        }
+
+        .mensagem-acoes {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .mensagem-conteudo {
+            margin-bottom: 0.5rem;
+        }
+
+        .mensagem-status {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
-        .preview-text {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            background: #f8f9fa;
-            padding: 0.5rem;
-            border-radius: 4px;
-            white-space: pre-wrap;
-        }
-        
-        .form-check-input:checked {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
-        }
-        
-        .content-card {
-            border: 1px solid var(--border-color);
+
+        .mensagens-lista {
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </body>
-</html> 
+</html>
+
+<?php
+function getTipoIcone($tipo) {
+    $icones = [
+        'boas_vindas' => 'fas fa-handshake',
+        'ausencia' => 'fas fa-user-clock',
+        'encerramento' => 'fas fa-door-closed',
+        'fora_horario' => 'fas fa-clock',
+        'aguardando' => 'fas fa-hourglass-half',
+        'transferencia' => 'fas fa-exchange-alt'
+    ];
+    return $icones[$tipo] ?? 'fas fa-comment';
+}
+
+function getTipoNome($tipo) {
+    $nomes = [
+        'boas_vindas' => 'Boas-vindas',
+        'ausencia' => 'Ausência de Atendentes',
+        'encerramento' => 'Encerramento',
+        'fora_horario' => 'Fora do Horário',
+        'aguardando' => 'Aguardando Atendimento',
+        'transferencia' => 'Transferência'
+    ];
+    return $nomes[$tipo] ?? 'Mensagem';
+}
+?> 

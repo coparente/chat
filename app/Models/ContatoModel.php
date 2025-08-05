@@ -58,10 +58,26 @@ class ContatoModel
             SELECT c.*, 
                    COUNT(cv.id) as total_conversas,
                    MAX(cv.atualizado_em) as ultima_conversa,
-                   GROUP_CONCAT(DISTINCT ct.tag SEPARATOR ', ') as tags
+                   GROUP_CONCAT(DISTINCT ct.tag SEPARATOR ', ') as tags,
+                   d.nome as ultimo_departamento_nome,
+                   d.cor as ultimo_departamento_cor,
+                   u.nome as ultimo_agente_nome
             FROM contatos c
             LEFT JOIN conversas cv ON c.id = cv.contato_id
             LEFT JOIN contato_tags ct ON c.id = ct.contato_id
+            LEFT JOIN (
+                SELECT contato_id, departamento_id, atendente_id
+                FROM conversas 
+                WHERE departamento_id IS NOT NULL
+                AND (contato_id, atualizado_em) IN (
+                    SELECT contato_id, MAX(atualizado_em)
+                    FROM conversas 
+                    WHERE departamento_id IS NOT NULL
+                    GROUP BY contato_id
+                )
+            ) ultima_cv ON c.id = ultima_cv.contato_id
+            LEFT JOIN departamentos d ON ultima_cv.departamento_id = d.id
+            LEFT JOIN usuarios u ON ultima_cv.atendente_id = u.id
         ";
         
         $where = [];
@@ -98,6 +114,12 @@ class ContatoModel
                     $where[] = "DATE(c.ultimo_contato) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
                     break;
             }
+        }
+        
+        // Filtro por agente da última conversa
+        if (!empty($filtros['agente'])) {
+            $where[] = "ultima_cv.atendente_id = :agente";
+            $params['agente'] = $filtros['agente'];
         }
         
         if (!empty($where)) {

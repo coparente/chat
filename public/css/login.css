@@ -283,6 +283,69 @@ body::before {
     transition: all 0.3s ease;
 }
 
+/* Estilos específicos para alertas de erro */
+.alert-danger {
+    background: rgba(220, 53, 69, 0.1) !important;
+    color: #dc3545 !important;
+    border: 1px solid rgba(220, 53, 69, 0.3) !important;
+}
+
+.alert-danger i {
+    color: #dc3545 !important;
+}
+
+/* Estilos para campos inválidos */
+.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    background: rgba(220, 53, 69, 0.05) !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.invalid-feedback {
+    display: block !important;
+    color: #dc3545 !important;
+    font-size: 0.875rem !important;
+    margin-top: 0.25rem !important;
+}
+
+/* Estilos para alertas de sucesso */
+.alert-success {
+    background: rgba(40, 167, 69, 0.1) !important;
+    color: #28a745 !important;
+    border: 1px solid rgba(40, 167, 69, 0.3) !important;
+}
+
+.alert-success i {
+    color: #28a745 !important;
+}
+
+/* Estilos para alertas de aviso */
+.alert-warning {
+    background: rgba(255, 193, 7, 0.1) !important;
+    color: #ffc107 !important;
+    border: 1px solid rgba(255, 193, 7, 0.3) !important;
+}
+
+.alert-warning i {
+    color: #ffc107 !important;
+}
+
+/* Estilos para alertas de informação */
+.alert-info {
+    background: rgba(23, 162, 184, 0.1) !important;
+    color: #17a2b8 !important;
+    border: 1px solid rgba(23, 162, 184, 0.3) !important;
+}
+
+.alert-info i {
+    color: #17a2b8 !important;
+}
+
 .password-toggle {
     position: absolute;
     right: 1rem;
@@ -354,12 +417,53 @@ body::before {
 
 /* Invalid feedback no modo escuro */
 [data-bs-theme="dark"] .invalid-feedback {
-    color: #ff6b6b;
+    color: #ff6b6b !important;
 }
 
 [data-bs-theme="dark"] .form-control.is-invalid {
-    border-color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.1);
+    border-color: #ff6b6b !important;
+    background: rgba(255, 107, 107, 0.1) !important;
+}
+
+/* Alertas no modo escuro */
+[data-bs-theme="dark"] .alert-danger {
+    background: rgba(220, 53, 69, 0.2) !important;
+    color: #ff6b6b !important;
+    border: 1px solid rgba(220, 53, 69, 0.4) !important;
+}
+
+[data-bs-theme="dark"] .alert-danger i {
+    color: #ff6b6b !important;
+}
+
+[data-bs-theme="dark"] .alert-success {
+    background: rgba(40, 167, 69, 0.2) !important;
+    color: #51cf66 !important;
+    border: 1px solid rgba(40, 167, 69, 0.4) !important;
+}
+
+[data-bs-theme="dark"] .alert-success i {
+    color: #51cf66 !important;
+}
+
+[data-bs-theme="dark"] .alert-warning {
+    background: rgba(255, 193, 7, 0.2) !important;
+    color: #ffd43b !important;
+    border: 1px solid rgba(255, 193, 7, 0.4) !important;
+}
+
+[data-bs-theme="dark"] .alert-warning i {
+    color: #ffd43b !important;
+}
+
+[data-bs-theme="dark"] .alert-info {
+    background: rgba(23, 162, 184, 0.2) !important;
+    color: #74c0fc !important;
+    border: 1px solid rgba(23, 162, 184, 0.4) !important;
+}
+
+[data-bs-theme="dark"] .alert-info i {
+    color: #74c0fc !important;
 }
 
 /* Tooltip no modo escuro */

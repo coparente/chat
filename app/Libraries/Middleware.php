@@ -1,9 +1,9 @@
 <?php
 
 /**
- * [ MIDDLEWARE ] - Classe para verificar permissões de acesso a módulos
+ * [ MIDDLEWARE ] - Classe para verificar permissões de acesso
  * 
- * Esta classe fornece métodos para verificar se um usuário tem permissão para acessar um módulo específico.
+ * Esta classe fornece métodos para verificar se um usuário tem permissão para acessar recursos específicos.
  * 
  * @author Cleyton Oliveira <coparente@tjgo.jus.br> 
  * @copyright 2025 TJGO
@@ -12,37 +12,45 @@
  */
 class Middleware {
 
-    private $moduloModel;
-
     public function __construct() {
-        $this->moduloModel = new ModuloModel();
+        // Construtor vazio - sem referências a módulos
     }
 
     /**
-     * Verifica se o usuário tem permissão para acessar um módulo específico
-     * @param int $modulo_id ID do módulo a ser verificado
+     * Verifica se o usuário tem permissão para acessar um recurso específico
+     * @param string $recurso Nome do recurso a ser verificado
      */
-    public static function verificarPermissao($modulo_id) {
+    public static function verificarPermissao($recurso) {
         if (!isset($_SESSION['usuario_id'])) {
             Helper::mensagem('dashboard', '<i class="fas fa-ban"></i> Você precisa estar logado para acessar este recurso', 'alert alert-danger');
             Helper::redirecionar('/login/login');
             exit;
         }
 
-        $moduloModel = new ModuloModel();
-        
         // Admins têm acesso total
         if ($_SESSION['usuario_perfil'] === 'admin') {
             return true;
         }
 
-        // Verifica permissão específica
-        if (!$moduloModel->verificarPermissao($_SESSION['usuario_id'], $modulo_id)) {
-            Helper::mensagem('dashboard', '<i class="fas fa-ban"></i> Você não tem permissão para acessar este recurso', 'alert alert-danger');
-            Helper::redirecionar('dashboard/inicial');
-            exit;
+        // Supervisores têm acesso a recursos de gestão
+        if ($_SESSION['usuario_perfil'] === 'supervisor') {
+            $recursosPermitidos = ['chat', 'contatos', 'dashboard', 'relatorios'];
+            if (in_array($recurso, $recursosPermitidos)) {
+                return true;
+            }
         }
 
-        return true;
+        // Atendentes têm acesso limitado
+        if ($_SESSION['usuario_perfil'] === 'atendente') {
+            $recursosPermitidos = ['chat', 'dashboard'];
+            if (in_array($recurso, $recursosPermitidos)) {
+                return true;
+            }
+        }
+
+        // Se chegou aqui, não tem permissão
+        Helper::mensagem('dashboard', '<i class="fas fa-ban"></i> Você não tem permissão para acessar este recurso', 'alert alert-danger');
+        Helper::redirecionar('dashboard/inicial');
+        exit;
     }
 } 

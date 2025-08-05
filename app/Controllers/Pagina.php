@@ -30,7 +30,7 @@ class Pagina extends Controllers
         
         if (!$isErrorPage && (!isset($_SESSION['usuario_id']) || empty($_SESSION['usuario_id']))) {
             // Se não estiver logado, redireciona para a página de login
-            Helper::redirecionar('./');
+            Helper::redirecionar('login');
         }
     }
 

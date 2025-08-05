@@ -1,65 +1,17 @@
-
 <?php include 'app/Views/include/head.php' ?>
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $usuario_logado['id'],
+    'nome' => $usuario_logado['nome'],
+    'email' => $usuario_logado['email'],
+    'perfil' => $usuario_logado['perfil']
+];
+?>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        Dashboard
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/chat" class="nav-link">
-                        <i class="fas fa-comments"></i>
-                        Chat
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        Contatos
-                    </a>
-                </div>
-                
-                <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/relatorios" class="nav-link">
-                        <i class="fas fa-chart-bar"></i>
-                        Relatórios
-                    </a>
-                </div>
-                
-                <div class="nav-item">
-                    <a href="<?= URL ?>/usuarios" class="nav-link">
-                        <i class="fas fa-users"></i>
-                        Usuários
-                    </a>
-                </div>
-                <?php endif; ?>
-                
-                <?php if ($usuario_logado['perfil'] === 'admin'): ?>
-                <div class="nav-item">
-                    <a href="<?= URL ?>/configuracoes" class="nav-link active">
-                        <i class="fas fa-cog"></i>
-                        Configurações
-                    </a>
-                </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
-
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
             <!-- Header -->
@@ -112,48 +64,6 @@
 
                 <!-- Grid de Configurações -->
                 <div class="row g-4">
-                    
-                    <!-- API Serpro -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="content-card h-100">
-                            <div class="content-card-body text-center">
-                                <div class="config-icon mb-3">
-                                    <i class="fas fa-plug fa-3x text-primary"></i>
-                                </div>
-                                <h5 class="card-title">API Serpro</h5>
-                                <p class="card-text text-muted">
-                                    Configure as credenciais da API do WhatsApp Business do Serpro
-                                </p>
-                                <div class="mt-auto">
-                                    <a href="<?= URL ?>/configuracoes/serpro" class="btn btn-primary">
-                                        <i class="fas fa-cog me-2"></i>
-                                        Configurar
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Conexões WhatsApp -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="content-card h-100">
-                            <div class="content-card-body text-center">
-                                <div class="config-icon mb-3">
-                                    <i class="fab fa-whatsapp fa-3x text-success"></i>
-                                </div>
-                                <h5 class="card-title">Conexões WhatsApp</h5>
-                                <p class="card-text text-muted">
-                                    Gerencie as conexões ativas do WhatsApp Business
-                                </p>
-                                <div class="mt-auto">
-                                    <a href="<?= URL ?>/configuracoes/conexoes" class="btn btn-success">
-                                        <i class="fab fa-whatsapp me-2"></i>
-                                        Gerenciar
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Mensagens Automáticas -->
                     <div class="col-md-6 col-lg-4">
@@ -177,25 +87,25 @@
                     </div>
 
                     <!-- Configurações Gerais -->
-                    <!-- <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4">
                         <div class="content-card h-100">
                             <div class="content-card-body text-center">
                                 <div class="config-icon mb-3">
                                     <i class="fas fa-sliders-h fa-3x text-info"></i>
                                 </div>
-                                <h5 class="card-title">Configurações Gerais</h5>
+                                <h5 class="card-title">Configurações</h5>
                                 <p class="card-text text-muted">
-                                    Configurações do sistema, timeouts e preferências
+                                    Configurações do sistema
                                 </p>
                                 <div class="mt-auto">
-                                    <a href="<?= URL ?>/configuracoes/geral" class="btn btn-info">
+                                    <a href="<?= URL ?>/departamentos" class="btn btn-info">
                                         <i class="fas fa-sliders-h me-2"></i>
                                         Configurar
                                     </a>
                                 </div>
                             </div>
                         </div>
-                    </div> -->
+                    </div>
 
                     <!-- Backup & Restore -->
                     <!-- <div class="col-md-6 col-lg-4">

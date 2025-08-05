@@ -213,7 +213,6 @@ class Helper
     public static function registrarAtividade($acao, $descricao)
     {
         if (isset($_SESSION['usuario_id'])) {
-            require_once APPROOT . '/Models/AtividadeModel.php';
             $atividadeModel = new AtividadeModel();
             return $atividadeModel->registrarAtividade(
                 $_SESSION['usuario_id'],

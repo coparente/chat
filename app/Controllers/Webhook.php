@@ -324,10 +324,18 @@ class Webhook extends Controllers
             // require_once APPROOT . '/Libraries/MensagensAutomaticasHelper.php';
             $mensagensHelper = new MensagensAutomaticasHelper();
             
+            // Buscar departamento da conversa
+            $departamentoId = null;
+            if ($conversaId) {
+                $conversa = $this->conversaModel->buscarPorId($conversaId);
+                $departamentoId = $conversa ? $conversa->departamento_id : null;
+            }
+            
             // Dados para processamento
             $dadosMensagem = [
                 'numero' => $numero,
                 'conversa_id' => $conversaId,
+                'departamento_id' => $departamentoId,
                 'nome_contato' => $contato['nome'] ?? 'Cliente',
                 'conteudo' => '' // Não é necessário para mensagens automáticas
             ];
@@ -336,7 +344,7 @@ class Webhook extends Controllers
             $resultado = $mensagensHelper->processarMensagemRecebida($dadosMensagem);
             
             if ($resultado['success'] && $resultado['mensagem_enviada']) {
-                error_log("🤖 Mensagem automática enviada: {$resultado['tipo_mensagem']} - {$resultado['conteudo_mensagem']}");
+                error_log("🤖 Mensagem automática enviada: {$resultado['tipo_mensagem']} - Departamento: {$resultado['departamento_id']} - {$resultado['conteudo_mensagem']}");
                 
                 // Log detalhado do resultado
                 if (isset($resultado['resultado_envio'])) {

@@ -95,8 +95,9 @@ class Dashboard extends Controllers
         // Mensagens de hoje
         $dados['mensagens_hoje'] = $this->mensagemModel->getEstatisticasMensagens();
 
-        // Conexões WhatsApp
-        $dados['conexoes'] = $this->sessaoWhatsappModel->getEstatisticasConexoes();
+        // Estatísticas de departamentos
+        $departamentoModel = $this->model('DepartamentoModel');
+        $dados['departamentos'] = $departamentoModel->getEstatisticasDepartamentos();
 
         // Atendentes online
         $dados['atendentes_online'] = $this->usuarioModel->getAtendentesOnline(5);
@@ -114,6 +115,9 @@ class Dashboard extends Controllers
 
         // Conversas em andamento
         $dados['conversas_ativas'] = $this->conversaModel->getConversasAtivas(10);
+
+        // Atendentes online
+        $dados['atendentes_online'] = $this->usuarioModel->getAtendentesOnline(5);
 
         // Performance dos atendentes hoje
         $dados['performance_atendentes'] = $this->conversaModel->getPerformanceAtendentes();

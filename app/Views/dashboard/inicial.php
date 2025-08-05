@@ -1,66 +1,20 @@
 <?php include 'app/Views/include/head.php' ?>
 
+<?php
+// Preparar dados do usuário para o menu dinâmico
+$usuario = [
+    'id' => $_SESSION['usuario_id'],
+    'nome' => $_SESSION['usuario_nome'],
+    'email' => $_SESSION['usuario_email'],
+    'perfil' => $_SESSION['usuario_perfil'],
+    'status' => $_SESSION['usuario_status']
+];
+?>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <i class="fab fa-whatsapp"></i>
-                    <?= APP_NOME ?>
-                </div>
-            </div>
-
-            <nav class="sidebar-nav">
-                <div class="nav-item">
-                    <a href="<?= URL ?>/dashboard" class="nav-link active">
-                        <i class="fas fa-chart-line"></i>
-                        Dashboard
-                    </a>
-                </div>
-
-                <?php if (in_array($usuario['perfil'], ['admin', 'supervisor', 'atendente'])): ?>
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/chat" class="nav-link">
-                            <i class="fas fa-comments"></i>
-                            Chat
-                        </a>
-                    </div>
-                <?php endif; ?>
-
-                <div class="nav-item">
-                    <a href="<?= URL ?>/contatos" class="nav-link">
-                        <i class="fas fa-address-book"></i>
-                        Contatos
-                    </a>
-                </div>
-
-                <?php if (in_array($usuario['perfil'], ['admin', 'supervisor'])): ?>
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/relatorios" class="nav-link">
-                            <i class="fas fa-chart-bar"></i>
-                            Relatórios
-                        </a>
-                    </div>
-
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/usuarios" class="nav-link">
-                            <i class="fas fa-users"></i>
-                            Usuários
-                        </a>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($usuario['perfil'] === 'admin'): ?>
-                    <div class="nav-item">
-                        <a href="<?= URL ?>/configuracoes" class="nav-link">
-                            <i class="fas fa-cog"></i>
-                            Configurações
-                        </a>
-                    </div>
-                <?php endif; ?>
-            </nav>
-        </aside>
+        <?php include 'app/Views/include/menu_sidebar.php' ?>
 
         <!-- Conteúdo principal -->
         <main class="main-content" id="mainContent">
@@ -152,13 +106,61 @@
 
                         <div class="stat-card">
                             <div class="stat-card-header">
-                                <span class="stat-card-title">Conexões WhatsApp</span>
+                                <span class="stat-card-title">Departamentos</span>
                                 <div class="stat-card-icon" style="background: var(--primary-color)">
-                                    <i class="fab fa-whatsapp"></i>
+                                    <i class="fas fa-building"></i>
                                 </div>
                             </div>
-                            <div class="stat-card-value"><?= $conexoes->conectadas ?? 0 ?>/<?= $conexoes->total ?? 0 ?></div>
-                            <div class="stat-card-description">Conexões ativas</div>
+                            <div class="stat-card-value"><?= $departamentos->total ?? 0 ?></div>
+                            <div class="stat-card-description">
+                                <?= $departamentos->ativos ?? 0 ?> ativos, <?= $departamentos->com_atendentes ?? 0 ?> com atendentes
+                            </div>
+                        </div>
+
+                    <?php elseif ($tipo_dashboard === 'supervisor'): ?>
+                        <!-- Supervisor Stats -->
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Conversas Ativas</span>
+                                <div class="stat-card-icon" style="background: var(--primary-color)">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value"><?= count($conversas_ativas ?? []) ?></div>
+                            <div class="stat-card-description">Em andamento</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Atendentes Online</span>
+                                <div class="stat-card-icon" style="background: var(--success-color)">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value"><?= count($atendentes_online ?? []) ?></div>
+                            <div class="stat-card-description">Disponíveis</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Performance Hoje</span>
+                                <div class="stat-card-icon" style="background: var(--warning-color)">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value"><?= $estatisticas_hoje->conversas_atendidas ?? 0 ?></div>
+                            <div class="stat-card-description">Conversas finalizadas</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Mensagens Hoje</span>
+                                <div class="stat-card-icon" style="background: var(--info-color)">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                            </div>
+                            <div class="stat-card-value"><?= $estatisticas_hoje->total_mensagens ?? 0 ?></div>
+                            <div class="stat-card-description">Total processadas</div>
                         </div>
 
                     <?php elseif ($tipo_dashboard === 'atendente'): ?>
@@ -224,17 +226,91 @@
                                 <?php else: ?>
                                     <ul class="item-list">
                                         <?php foreach ($atendentes_online as $atendente): ?>
-                                            <li>
-                                                <div class="item-info">
+                                            <li style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0;">
+                                                <div class="item-info" style="display: flex; align-items: center; flex: 1;">
                                                     <div class="item-avatar">
-                                                        <?= strtoupper(substr($atendente->nome, 0, 2)) ?>
+                                                        <?php 
+                                                        // Criar iniciais únicas baseadas no nome
+                                                        $nomes = explode(' ', trim($atendente->nome));
+                                                        if (count($nomes) >= 2) {
+                                                            $iniciais = strtoupper(substr($nomes[0], 0, 1) . substr($nomes[count($nomes)-1], 0, 1));
+                                                        } else {
+                                                            $iniciais = strtoupper(substr($atendente->nome, 0, 2));
+                                                        }
+                                                        echo $iniciais;
+                                                        ?>
                                                     </div>
                                                     <div class="item-details">
                                                         <h6><?= $atendente->nome ?></h6>
                                                         <small><?= ucfirst($atendente->status) ?></small>
                                                     </div>
                                                 </div>
-                                                <span class="status-indicator status-<?= $atendente->status === 'ativo' ? 'online' : ($atendente->status === 'ausente' ? 'away' : 'busy') ?>"></span>
+                                                <?php 
+                                                // Determinar status baseado no último acesso
+                                                $ultimoAcesso = strtotime($atendente->ultimo_acesso);
+                                                $agora = time();
+                                                $diferencaMinutos = ($agora - $ultimoAcesso) / 60;
+                                                
+                                                $statusClass = 'offline';
+                                                $statusText = 'Offline';
+                                                $statusColor = '#808080';
+                                                
+                                                if ($diferencaMinutos <= 5) {
+                                                    // Online (últimos 5 minutos)
+                                                    $statusClass = 'online';
+                                                    $statusText = 'Online';
+                                                    $statusColor = '#00ff00';
+                                                } elseif ($diferencaMinutos <= 15) {
+                                                    // Ausente (últimos 15 minutos)
+                                                    $statusClass = 'away';
+                                                    $statusText = 'Ausente';
+                                                    $statusColor = '#ffff00';
+                                                } else {
+                                                    // Offline (mais de 15 minutos)
+                                                    $statusClass = 'offline';
+                                                    $statusText = 'Offline';
+                                                    $statusColor = '#808080';
+                                                }
+                                                ?>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+                                                    <span class="status-indicator status-<?= $statusClass ?>" 
+                                                          style="background-color: <?= $statusColor ?> !important; 
+                                                                 background: <?= $statusColor ?> !important; 
+                                                                 border-color: <?= $statusColor ?> !important;"></span>
+                                                    <small style="color: #6c757d; font-size: 0.75rem; font-weight: 500;"><?= $statusText ?></small>
+                                                </div>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($tipo_dashboard === 'supervisor' && isset($conversas_ativas)): ?>
+                        <!-- Conversas Ativas -->
+                        <div class="content-card">
+                            <div class="content-card-header">
+                                <h3 class="content-card-title">Conversas Ativas</h3>
+                                <a href="<?= URL ?>/chat" class="btn btn-sm btn-primary">Ver Todas</a>
+                            </div>
+                            <div class="content-card-body">
+                                <?php if (empty($conversas_ativas)): ?>
+                                    <p class="text-muted text-center">Nenhuma conversa ativa</p>
+                                <?php else: ?>
+                                    <ul class="item-list">
+                                        <?php foreach (array_slice($conversas_ativas, 0, 5) as $conversa): ?>
+                                            <li>
+                                                <div class="item-info">
+                                                    <div class="item-avatar">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                    <div class="item-details">
+                                                        <h6><?= $conversa->contato_nome ?: $conversa->numero ?></h6>
+                                                        <small><?= $conversa->atendente_nome ?: 'Sem atendente' ?></small>
+                                                    </div>
+                                                </div>
+                                                <span class="badge bg-<?= $conversa->status === 'aberto' ? 'success' : 'warning' ?>"><?= ucfirst($conversa->status) ?></span>
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
@@ -321,30 +397,22 @@
     <?php include 'app/Views/include/linkjs.php' ?>
 
     <script>
-  
+        // Atualizar estatísticas em tempo real (opcional)
+        function atualizarEstatisticas() {
+            const baseUrl = window.location.origin + window.location.pathname.replace('/dashboard', '');
 
-            // Atualizar estatísticas em tempo real (opcional)
-            function atualizarEstatisticas() {
-                const baseUrl = window.location.origin + window.location.pathname.replace('/dashboard', '');
+            fetch(baseUrl + '/dashboard/estatisticas')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Atualizar valores na tela
+                        console.log('Estatísticas atualizadas:', data.dados);
+                    }
+                })
+                .catch(error => console.error('Erro ao atualizar estatísticas:', error));
+        }
 
-                fetch(baseUrl + '/dashboard/estatisticas')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Atualizar valores na tela
-                            console.log('Estatísticas atualizadas:', data.dados);
-                        }
-                    })
-                    .catch(error => console.error('Erro ao atualizar estatísticas:', error));
-            }
-
-            // Atualizar a cada 30 segundos
-            setInterval(atualizarEstatisticas, 30000);
-   
+        // Atualizar a cada 30 segundos
+        setInterval(atualizarEstatisticas, 30000);
     </script>
-
-
-
 </body>
-
-</html>

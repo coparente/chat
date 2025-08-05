@@ -93,7 +93,7 @@ class LoginModel
      * @param int $maxTentativas Número máximo de tentativas permitidas
      * @return bool
      */
-    public function verificarTentativasBloqueio($email, $minutos = 30, $maxTentativas = 5)
+    public function verificarTentativasBloqueio($email, $minutos = 30, $maxTentativas = 6)
     {
         $this->db->query("SELECT COUNT(*) as total FROM log_acessos 
                          WHERE email = :email 
