@@ -222,3 +222,115 @@
     "user_id": 1,
     "session_id": "401ghb5dk8vl7c02srbcpt770p"
 }
+{
+    "timestamp": "2025-08-05 13:45:49",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
+{
+    "timestamp": "2025-08-05 13:46:20",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
+{
+    "timestamp": "2025-08-05 13:46:50",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
+{
+    "timestamp": "2025-08-05 13:47:20",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
+{
+    "timestamp": "2025-08-05 13:47:50",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
+{
+    "timestamp": "2025-08-05 13:48:20",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
+{
+    "timestamp": "2025-08-05 13:49:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/dashboard\/estatisticas",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/dashboard\/estatisticas",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "401ghb5dk8vl7c02srbcpt770p"
+}
