@@ -24,6 +24,7 @@ class Chat extends Controllers
     private $serproApi;
     private $configuracaoModel;
     private $departamentoHelper; // Nova propriedade para departamentos
+    private $mensagemAutomaticaModel; // Nova propriedade para mensagens automáticas
 
     public function __construct()
     {
@@ -41,6 +42,7 @@ class Chat extends Controllers
         $this->contatoModel = $this->model('ContatoModel');
         $this->usuarioModel = $this->model('UsuarioModel');
         $this->configuracaoModel = $this->model('ConfiguracaoModel');
+        $this->mensagemAutomaticaModel = $this->model('MensagemAutomaticaModel');
         $this->serproApi = new SerproApi();
         $this->departamentoHelper = new DepartamentoHelper(); // Inicializar helper de departamentos
         
@@ -83,9 +85,16 @@ class Chat extends Controllers
 
         // Dados específicos por perfil com suporte a departamentos
         if ($perfil === 'atendente') {
-            // Filtrar conversas por departamentos do usuário
-            $dados['minhas_conversas'] = $this->getConversasPorDepartamentosUsuario($usuarioId);
-            $dados['conversas_pendentes'] = $this->getConversasPendentesPorDepartamentosUsuario($usuarioId);
+            // ✅ NOVO: Atendentes só veem suas próprias conversas
+            $dados['minhas_conversas'] = $this->conversaModel->getConversasPorAtendente($usuarioId, ['aberto', 'pendente']);
+            $dados['conversas_pendentes'] = $this->conversaModel->getConversasPendentesPorAtendente($usuarioId, 10);
+            
+            // ✅ NOVO: Adicionar estatísticas pessoais
+            $dados['estatisticas_pessoais'] = [
+                'conversas_ativas' => count($dados['minhas_conversas']),
+                'conversas_pendentes' => count($dados['conversas_pendentes']),
+                'total_conversas' => $this->conversaModel->contarConversasPorAtendente($usuarioId)
+            ];
         } else {
             // Admin/supervisor pode ver todas as conversas ou filtrar por departamento
             $departamentoFiltro = $_GET['departamento'] ?? null;
@@ -370,6 +379,13 @@ class Chat extends Controllers
                 exit;
             }
 
+            // ✅ NOVO: Verificar se o atendente tem permissão para esta conversa
+            if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você não tem permissão para enviar mensagens nesta conversa']);
+                exit;
+            }
+
             // Verificar se conversa ainda está dentro do prazo (24h)
             if (!$this->conversaAindaAtiva($conversa)) {
                 http_response_code(410);
@@ -508,6 +524,13 @@ class Chat extends Controllers
         if (!$conversa) {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        // ✅ NOVO: Verificar se o atendente tem permissão para esta conversa
+        if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Você não tem permissão para enviar mídias nesta conversa']);
             exit;
         }
 
@@ -748,6 +771,21 @@ class Chat extends Controllers
         header('Cache-Control: no-cache, must-revalidate');
 
         try {
+            // ✅ NOVO: Verificar se o usuário tem permissão para ver esta conversa
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // ✅ NOVO: Verificar se o atendente tem permissão para ver esta conversa
+            if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você não tem permissão para ver mensagens desta conversa']);
+                exit;
+            }
+
             $mensagens = $this->mensagemModel->getMensagensPorConversa($conversaId);
             
             http_response_code(200);
@@ -839,6 +877,31 @@ class Chat extends Controllers
             exit;
         }
 
+        // ✅ NOVO: Verificar se a conversa existe e está pendente
+        $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        // ✅ NOVO: Verificar se a conversa está pendente (sem atendente)
+        if ($conversa->atendente_id !== null) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Esta conversa já possui um atendente']);
+            exit;
+        }
+
+        // ✅ NOVO: Verificar se o atendente tem permissão para assumir conversas deste departamento
+        if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->departamento_id) {
+            $temPermissao = $this->usuarioModel->verificarAtendenteDepartamento($_SESSION['usuario_id'], $conversa->departamento_id);
+            if (!$temPermissao) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você não tem permissão para assumir conversas deste departamento']);
+                exit;
+            }
+        }
+
         $resultado = $this->conversaModel->atualizarConversa($conversaId, [
             'atendente_id' => $_SESSION['usuario_id'],
             'status' => 'aberto'
@@ -889,6 +952,13 @@ class Chat extends Controllers
                 exit;
             }
 
+            // ✅ NOVO: Verificar se o atendente tem permissão para fechar esta conversa
+            if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você não tem permissão para fechar esta conversa']);
+                exit;
+            }
+
             // Buscar informações do contato
             $contato = $this->contatoModel->lerContatoPorId($conversa->contato_id);
             if (!$contato) {
@@ -903,24 +973,31 @@ class Chat extends Controllers
             
             try {
                 // Carregar helper de mensagens automáticas
-                // require_once APPROOT . '/Libraries/MensagensAutomaticasHelper.php';
                 $mensagensHelper = new MensagensAutomaticasHelper();
                 
-                // Obter mensagem de encerramento
-                $mensagemEncerramento = $mensagensHelper->obterMensagemAutomatica('encerramento', [
-                    'nome' => $contato->nome ?? 'Cliente'
-                ]);
-                
-                if ($mensagemEncerramento) {
-                    // Enviar mensagem de encerramento
-                    $resultadoEnvio = $mensagensHelper->enviarMensagemAutomatica(
-                        $contato->numero,
-                        $mensagemEncerramento,
-                        $conversaId
-                    );
+                // Buscar mensagem de encerramento do departamento
+                $departamentoId = $conversa->departamento_id ?? null;
+                if ($departamentoId) {
+                    $mensagemEncerramentoObj = $this->mensagemAutomaticaModel->buscarPorTipo($departamentoId, 'encerramento');
                     
-                    if ($resultadoEnvio['success']) {
-                        $mensagemEnviada = true;
+                    if ($mensagemEncerramentoObj) {
+                        // Personalizar mensagem
+                        $mensagemEncerramento = str_replace(
+                            ['{nome}', '{departamento}', '{data}', '{hora}'],
+                            [$contato->nome ?? 'Cliente', 'nosso departamento', date('d/m/Y'), date('H:i')],
+                            $mensagemEncerramentoObj->mensagem
+                        );
+                        
+                        // Enviar mensagem de encerramento
+                        $resultadoEnvio = $mensagensHelper->enviarMensagemAutomatica(
+                            $contato->numero,
+                            $mensagemEncerramento,
+                            $conversaId
+                        );
+                        
+                        if ($resultadoEnvio['success']) {
+                            $mensagemEnviada = true;
+                        }
                     }
                 }
             } catch (Exception $e) {
@@ -1999,35 +2076,130 @@ class Chat extends Controllers
     }
 
     /**
-     * [ getConversasPorDepartamentosUsuario ] - Obtém conversas do usuário por seus departamentos
+     * [ marcarMensagensLidas ] - Marca mensagens de uma conversa como lidas
      */
-    private function getConversasPorDepartamentosUsuario($usuarioId)
+    public function marcarMensagensLidas($conversaId)
     {
-        $departamentosUsuario = $this->usuarioModel->getDepartamentosUsuario($usuarioId);
-        $conversas = [];
-        
-        foreach ($departamentosUsuario as $departamento) {
-            $conversasDepartamento = $this->conversaModel->getConversasPorDepartamento($departamento->id, ['aberto', 'pendente']);
-            $conversas = array_merge($conversas, $conversasDepartamento);
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
         }
         
-        return $conversas;
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        if (!$conversaId || !is_numeric($conversaId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID da conversa inválido']);
+            exit;
+        }
+
+        try {
+            // ✅ NOVO: Verificar se o usuário tem permissão para esta conversa
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // ✅ NOVO: Verificar se o atendente tem permissão para esta conversa
+            if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você não tem permissão para acessar esta conversa']);
+                exit;
+            }
+
+            // Marcar mensagens como lidas
+            $resultado = $this->mensagemModel->marcarMensagensComoLidas($conversaId);
+
+            if ($resultado) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Mensagens marcadas como lidas',
+                    'conversa_id' => $conversaId
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Erro ao marcar mensagens como lidas']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Erro ao marcar mensagens como lidas: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+        }
+        
+        exit;
     }
 
     /**
-     * [ getConversasPendentesPorDepartamentosUsuario ] - Obtém conversas pendentes do usuário por seus departamentos
+     * [ verificarNovasMensagens ] - Verifica novas mensagens não lidas
      */
-    private function getConversasPendentesPorDepartamentosUsuario($usuarioId)
+    public function verificarNovasMensagens()
     {
-        $departamentosUsuario = $this->usuarioModel->getDepartamentosUsuario($usuarioId);
-        $conversas = [];
-        
-        foreach ($departamentosUsuario as $departamento) {
-            $conversasDepartamento = $this->conversaModel->getConversasPendentesPorDepartamento($departamento->id, 10);
-            $conversas = array_merge($conversas, $conversasDepartamento);
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
         }
         
-        return $conversas;
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        try {
+            $usuarioId = $_SESSION['usuario_id'];
+            $perfil = $_SESSION['usuario_perfil'];
+            
+            $novasMensagens = [];
+            
+            if ($perfil === 'atendente') {
+                // Para atendentes, verificar apenas suas conversas
+                $conversas = $this->conversaModel->getConversasPorAtendente($usuarioId, ['aberto', 'pendente']);
+                
+                foreach ($conversas as $conversa) {
+                    $quantidade = $this->mensagemModel->contarMensagensNaoLidasConversa($conversa->id);
+                    if ($quantidade > 0) {
+                        $novasMensagens[] = [
+                            'conversa_id' => $conversa->id,
+                            'quantidade' => $quantidade
+                        ];
+                    }
+                }
+            } else {
+                // Para admin/supervisor, verificar todas as conversas
+                $conversas = $this->conversaModel->getConversasAtivas(50);
+                
+                foreach ($conversas as $conversa) {
+                    $quantidade = $this->mensagemModel->contarMensagensNaoLidasConversa($conversa->id);
+                    if ($quantidade > 0) {
+                        $novasMensagens[] = [
+                            'conversa_id' => $conversa->id,
+                            'quantidade' => $quantidade
+                        ];
+                    }
+                }
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'novas_mensagens' => $novasMensagens
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Erro ao verificar novas mensagens: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+        }
+        
+        exit;
     }
 }
 ?> 

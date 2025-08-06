@@ -63,7 +63,8 @@ class ConversaModel
                 c.ultima_mensagem,
                 c.departamento_id,
                 d.nome as departamento_nome,
-                d.cor as departamento_cor
+                d.cor as departamento_cor,
+                (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
             LEFT JOIN usuarios u ON c.atendente_id = u.id
@@ -138,7 +139,8 @@ class ConversaModel
                 c.departamento_id,
                 d.nome as departamento_nome,
                 d.cor as departamento_cor,
-                u.nome as atendente_nome
+                u.nome as atendente_nome,
+                (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
             LEFT JOIN departamentos d ON c.departamento_id = d.id
@@ -389,9 +391,9 @@ class ConversaModel
         
         $sql = "
             INSERT INTO conversas (
-                contato_id, atendente_id, sessao_id, status, criado_em
+                contato_id, atendente_id, sessao_id, status, departamento_id, criado_em
             ) VALUES (
-                :contato_id, :atendente_id, :sessao_id, :status, NOW()
+                :contato_id, :atendente_id, :sessao_id, :status, :departamento_id, NOW()
             )
         ";
         
@@ -400,7 +402,7 @@ class ConversaModel
         $this->db->bind(':atendente_id', $dados['atendente_id'] ?? null);
         $this->db->bind(':sessao_id', $sessaoId);
         $this->db->bind(':status', $dados['status'] ?? 'pendente');
-        
+        $this->db->bind(':departamento_id', $dados['departamento_id'] ?? null);
         if ($this->db->executa()) {
             return $this->db->ultimoIdInserido();
         }
@@ -576,7 +578,8 @@ class ConversaModel
                 c.criado_em,
                 c.ultima_mensagem,
                 d.nome as departamento_nome,
-                d.cor as departamento_cor
+                d.cor as departamento_cor,
+                (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
             LEFT JOIN usuarios u ON c.atendente_id = u.id
@@ -611,7 +614,8 @@ class ConversaModel
                 c.ultima_mensagem,
                 d.nome as departamento_nome,
                 d.cor as departamento_cor,
-                u.nome as atendente_nome
+                u.nome as atendente_nome,
+                (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
             LEFT JOIN departamentos d ON c.departamento_id = d.id
@@ -778,5 +782,40 @@ class ConversaModel
         $this->db->bind(':departamento_id', $departamentoId);
         $this->db->bind(':dias', $dias);
         return $this->db->resultado();
+    }
+
+    /**
+     * [ getConversasPendentesPorAtendente ] - Busca conversas pendentes de um atendente específico
+     * 
+     * @param int $atendenteId ID do atendente
+     * @param int $limite Limite de resultados
+     * @return array Lista de conversas pendentes
+     */
+    public function getConversasPendentesPorAtendente($atendenteId, $limite = 5)
+    {
+        $sql = "
+            SELECT 
+                c.id,
+                ct.nome as contato_nome,
+                ct.numero,
+                c.criado_em,
+                c.ultima_mensagem,
+                c.departamento_id,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor,
+                (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
+            FROM conversas c
+            LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
+            WHERE c.atendente_id = :atendente_id 
+            AND c.status = 'pendente'
+            ORDER BY c.criado_em ASC
+            LIMIT :limite
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':atendente_id', $atendenteId);
+        $this->db->bind(':limite', $limite);
+        return $this->db->resultados();
     }
 } 

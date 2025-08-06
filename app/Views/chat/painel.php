@@ -750,6 +750,15 @@ $usuario = [
             // Clique em item da lista de conversas
             $(document).on('click', '.chat-item', function() {
                 const conversaId = $(this).data('conversa-id');
+                
+                // ✅ NOVO: Remover badge de mensagens não lidas ao abrir conversa
+                const badge = $(this).find('.badge.bg-danger');
+                if (badge.length > 0) {
+                    badge.fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
+                
                 abrirConversa(conversaId);
             });
 
@@ -917,6 +926,9 @@ $usuario = [
 
             // Inicializar contador
             atualizarContadorConversas();
+            
+            // ✅ NOVO: Iniciar polling de mensagens
+            iniciarPollingMensagens();
         }
 
         // Abrir conversa
@@ -1001,12 +1013,31 @@ $usuario = [
                     if (response.success) {
                         renderizarMensagens(response.mensagens);
                         
+                        // ✅ NOVO: Marcar mensagens como lidas quando abrir a conversa
+                        marcarMensagensComoLidas(conversaId);
+                        
                         // Verificar se o contato respondeu ao template
                         verificarStatusConversa();
                     }
                 },
                 error: function() {
                     console.log('Erro ao buscar mensagens');
+                }
+            });
+        }
+
+        // ✅ NOVO: Marcar mensagens como lidas
+        function marcarMensagensComoLidas(conversaId) {
+            $.ajax({
+                url: `<?= URL ?>/chat/marcar-mensagens-lidas/${conversaId}`,
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        console.log('Mensagens marcadas como lidas');
+                    }
+                },
+                error: function() {
+                    console.log('Erro ao marcar mensagens como lidas');
                 }
             });
         }
@@ -2458,6 +2489,61 @@ $usuario = [
 
         // Verificar resposta ao template a cada 10 segundos
         setInterval(verificarRespostaTemplate, 10000);
+
+        // ✅ NOVO: Sistema de polling para verificar novas mensagens
+        let pollingInterval;
+        
+        function iniciarPollingMensagens() {
+            // Verificar novas mensagens a cada 10 segundos
+            pollingInterval = setInterval(verificarNovasMensagens, 10000);
+        }
+        
+        function pararPollingMensagens() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        }
+        
+        function verificarNovasMensagens() {
+            // Só verificar se o usuário estiver na página de chat
+            if (window.location.pathname.includes('/chat')) {
+                $.ajax({
+                    url: `<?= URL ?>/chat/verificar-novas-mensagens`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success && response.novas_mensagens) {
+                            response.novas_mensagens.forEach(function(item) {
+                                atualizarBadgeConversa(item.conversa_id, item.quantidade);
+                            });
+                        }
+                    },
+                    error: function() {
+                        console.log('Erro ao verificar novas mensagens');
+                    }
+                });
+            }
+        }
+        
+        function atualizarBadgeConversa(conversaId, quantidade) {
+            const chatItem = $(`.chat-item[data-conversa-id="${conversaId}"]`);
+            if (chatItem.length > 0) {
+                let badge = chatItem.find('.badge.bg-danger');
+                
+                if (quantidade > 0) {
+                    if (badge.length > 0) {
+                        // Atualizar badge existente
+                        badge.text(quantidade);
+                    } else {
+                        // Criar novo badge
+                        const avatar = chatItem.find('.chat-avatar');
+                        avatar.append(`<span class="badge bg-danger">${quantidade}</span>`);
+                    }
+                } else {
+                    // Remover badge se não há mensagens não lidas
+                    badge.remove();
+                }
+            }
+        }
     </script>
 
 </body>

@@ -99,6 +99,31 @@ class CredencialSerproModel
     }
 
     /**
+     * [ obterCredencialPorPhoneNumberId ] - Obtém credencial por phone_number_id
+     * 
+     * @param string $phoneNumberId Phone Number ID da credencial
+     * @return object|null Credencial encontrada
+     */
+    public function obterCredencialPorPhoneNumberId($phoneNumberId)
+    {
+        $sql = "SELECT 
+                    cs.*,
+                    d.nome as departamento_nome,
+                    d.cor as departamento_cor
+                FROM credenciais_serpro_departamento cs
+                JOIN departamentos d ON cs.departamento_id = d.id
+                WHERE cs.phone_number_id = :phone_number_id 
+                AND cs.status = 'ativo'
+                ORDER BY cs.prioridade ASC
+                LIMIT 1";
+        
+        $this->db->query($sql);
+        $this->db->bind(':phone_number_id', $phoneNumberId);
+        
+        return $this->db->resultado();
+    }
+
+    /**
      * [ criar ] - Cria nova credencial
      * 
      * @param array $dados Dados da credencial

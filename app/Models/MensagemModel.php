@@ -417,4 +417,46 @@ class MensagemModel
         $this->db->bind(':serpro_id', $serproId);
         return $this->db->executa();
     }
+
+    /**
+     * [ marcarMensagensComoLidas ] - Marca mensagens de entrada como lidas
+     * 
+     * @param int $conversaId ID da conversa
+     * @return bool Sucesso da operação
+     */
+    public function marcarMensagensComoLidas($conversaId)
+    {
+        $sql = "
+            UPDATE mensagens 
+            SET lida = 1, lida_em = NOW() 
+            WHERE conversa_id = :conversa_id 
+            AND direcao = 'entrada' 
+            AND lida = 0
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        return $this->db->executa();
+    }
+
+    /**
+     * [ contarMensagensNaoLidasConversa ] - Conta mensagens não lidas de uma conversa
+     * 
+     * @param int $conversaId ID da conversa
+     * @return int Número de mensagens não lidas
+     */
+    public function contarMensagensNaoLidasConversa($conversaId)
+    {
+        $sql = "
+            SELECT COUNT(*) as total
+            FROM mensagens 
+            WHERE conversa_id = :conversa_id 
+            AND lida = 0 
+            AND direcao = 'entrada'
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':conversa_id', $conversaId);
+        return $this->db->resultado()->total;
+    }
 } 

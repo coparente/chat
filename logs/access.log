@@ -1,0 +1,60 @@
+{
+    "timestamp": "2025-08-06 12:33:13",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0"
+    },
+    "url": "\/chat\/login-chat",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0",
+    "user_id": "N\/A",
+    "session_id": "83i8m6213vmu1t9i5bp9jl7b0k"
+}
+{
+    "timestamp": "2025-08-06 12:33:19",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0"
+    },
+    "url": "\/chat\/login",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0",
+    "user_id": "N\/A",
+    "session_id": "83i8m6213vmu1t9i5bp9jl7b0k"
+}
+{
+    "timestamp": "2025-08-06 12:34:19",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0"
+    },
+    "url": "\/chat\/login",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0",
+    "user_id": "N\/A",
+    "session_id": "m3d52v2chnhs1ccjhu7jbu5fes"
+}
+{
+    "timestamp": "2025-08-06 12:50:23",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0"
+    },
+    "url": "\/chat\/login",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko\/20100101 Firefox\/141.0",
+    "user_id": "N\/A",
+    "session_id": "gp2uj4ba3tdc2qqf29lf22os8o"
+}

@@ -101,12 +101,14 @@ class AtendentesDepartamento extends Controllers
         if (ob_get_level()) {
             ob_end_clean();
         }
-
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Método inválido']);
-            return;
+            exit;
         }
 
         $dados = json_decode(file_get_contents('php://input'), true);
@@ -114,7 +116,7 @@ class AtendentesDepartamento extends Controllers
         if (empty($dados['usuario_id']) || empty($dados['departamento_id'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não fornecidos']);
-            return;
+            exit;
         }
 
         try {
@@ -127,7 +129,7 @@ class AtendentesDepartamento extends Controllers
             if ($jaAtribuido) {
                 http_response_code(409);
                 echo json_encode(['success' => false, 'message' => 'Usuário já está atribuído a este departamento']);
-                return;
+                exit;
             }
 
             // Adicionar usuário ao departamento
@@ -142,6 +144,7 @@ class AtendentesDepartamento extends Controllers
             );
 
             if ($resultado) {
+                http_response_code(200);
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Atendente adicionado ao departamento com sucesso!'
@@ -152,9 +155,12 @@ class AtendentesDepartamento extends Controllers
             }
 
         } catch (Exception $e) {
+            error_log("Erro ao adicionar atendente: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
         }
+        
+        exit;
     }
 
     /**
@@ -162,10 +168,18 @@ class AtendentesDepartamento extends Controllers
      */
     public function removerAtendente()
     {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Método inválido']);
-            return;
+            exit;
         }
 
         $dados = json_decode(file_get_contents('php://input'), true);
@@ -173,7 +187,7 @@ class AtendentesDepartamento extends Controllers
         if (empty($dados['usuario_id']) || empty($dados['departamento_id'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não fornecidos']);
-            return;
+            exit;
         }
 
         try {
@@ -184,6 +198,7 @@ class AtendentesDepartamento extends Controllers
             );
 
             if ($resultado) {
+                http_response_code(200);
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Atendente removido do departamento com sucesso!'
@@ -194,9 +209,12 @@ class AtendentesDepartamento extends Controllers
             }
 
         } catch (Exception $e) {
+            error_log("Erro ao remover atendente: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
         }
+        
+        exit;
     }
 
     /**
@@ -204,10 +222,18 @@ class AtendentesDepartamento extends Controllers
      */
     public function atualizarConfiguracao()
     {
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Método inválido']);
-            return;
+            exit;
         }
 
         $dados = json_decode(file_get_contents('php://input'), true);
@@ -215,7 +241,7 @@ class AtendentesDepartamento extends Controllers
         if (empty($dados['usuario_id']) || empty($dados['departamento_id'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não fornecidos']);
-            return;
+            exit;
         }
 
         try {
@@ -232,6 +258,7 @@ class AtendentesDepartamento extends Controllers
             );
 
             if ($resultado) {
+                http_response_code(200);
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Configuração atualizada com sucesso!'
@@ -242,9 +269,12 @@ class AtendentesDepartamento extends Controllers
             }
 
         } catch (Exception $e) {
+            error_log("Erro ao atualizar configuração: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()]);
         }
+        
+        exit;
     }
 
     /**

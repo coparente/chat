@@ -497,13 +497,21 @@ class Webhook extends Controllers
             return (array) $conversa;
         }
 
-        // Se não existe conversa ativa, criar nova conversa como PENDENTE
-        // (porque é um número novo)
+        // Se não existe conversa ativa, identificar departamento pelo phone_number_id do webhook
+        $departamentoId = $this->identificarDepartamentoPeloWebhook();
+
+        // Criar nova conversa como PENDENTE
         $dadosConversa = [
             'contato_id' => $contatoId,
             'sessao_id' => 1,
             'status' => 'pendente' // Número novo = pendente
         ];
+        
+        // Adicionar departamento_id se foi identificado
+        if ($departamentoId) {
+            $dadosConversa['departamento_id'] = $departamentoId;
+            error_log("✅ Departamento identificado pelo webhook: {$departamentoId}");
+        }
 
         $conversaId = $this->conversaModel->criarConversa($dadosConversa);
 
@@ -513,6 +521,57 @@ class Webhook extends Controllers
         }
 
         return false;
+    }
+    
+    /**
+     * [ identificarDepartamentoPeloWebhook ] - Identifica departamento pelo phone_number_id do webhook
+     * 
+     * @return int|null ID do departamento
+     */
+    private function identificarDepartamentoPeloWebhook()
+    {
+        try {
+            // Obter dados do webhook
+            $dadosWebhook = json_decode(file_get_contents('php://input'), true);
+            
+            if (!$dadosWebhook) {
+                error_log("❌ Dados do webhook não encontrados");
+                return null;
+            }
+            
+            // Extrair phone_number_id do webhook
+            $phoneNumberId = null;
+            
+            // Verificar formato do webhook
+            if (is_array($dadosWebhook) && isset($dadosWebhook[0]['body']['metadata']['phone_number_id'])) {
+                $phoneNumberId = $dadosWebhook[0]['body']['metadata']['phone_number_id'];
+            } elseif (isset($dadosWebhook['metadata']['phone_number_id'])) {
+                $phoneNumberId = $dadosWebhook['metadata']['phone_number_id'];
+            }
+            
+            if (!$phoneNumberId) {
+                error_log("❌ Phone Number ID não encontrado no webhook");
+                return null;
+            }
+            
+            error_log("✅ Phone Number ID extraído do webhook: {$phoneNumberId}");
+            
+            // Buscar credencial por phone_number_id
+            $credencialSerproModel = new CredencialSerproModel();
+            $credencial = $credencialSerproModel->obterCredencialPorPhoneNumberId($phoneNumberId);
+            
+            if ($credencial) {
+                error_log("✅ Credencial encontrada: {$credencial->nome} -> Departamento: {$credencial->departamento_id}");
+                return $credencial->departamento_id;
+            } else {
+                error_log("❌ Nenhuma credencial encontrada para phone_number_id: {$phoneNumberId}");
+                return null;
+            }
+            
+        } catch (Exception $e) {
+            error_log("❌ Erro ao identificar departamento pelo webhook: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**

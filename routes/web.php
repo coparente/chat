@@ -90,6 +90,10 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/verificar-conversa-reativada/{conversa_id}', 'Chat@verificarConversaReativada');
         Route::get('/verificar-resposta-template/{conversa_id}', 'Chat@verificarRespostaTemplate');
         
+        // ✅ NOVO: Rotas para badges de mensagens não lidas
+        Route::get('/verificar-novas-mensagens', 'Chat@verificarNovasMensagens');
+        Route::post('/marcar-mensagens-lidas/{conversa_id}', 'Chat@marcarMensagensLidas');
+        
         // Templates
         Route::post('/iniciar/{contato_id}', 'Chat@iniciarConversa');
         Route::post('/reenviar-template', 'Chat@reenviarTemplate');
