@@ -1,0 +1,20 @@
+[
+    {
+        "message_id": "wamid.HBgMNTU2Mjk2MTg1ODkyFQIAEhgWM0VCMEM4NkVFMTY0QjQxMDA0QUIwMwA=",
+        "status": "read",
+        "scheduled_time": 1754488746,
+        "created_at": "2025-08-06 10:59:04"
+    },
+    {
+        "message_id": "wamid.HBgMNTU2Mjk2MTg1ODkyFQIAEhgWM0VCMEM4NkVFMTY0QjQxMDA0QUIwMwA=",
+        "status": "read",
+        "scheduled_time": 1754488800,
+        "created_at": "2025-08-06 10:59:56"
+    },
+    {
+        "message_id": "wamid.HBgMNTU2Mjk2MTg1ODkyFQIAEhgWM0VCMEM4NkVFMTY0QjQxMDA0QUIwMwA=",
+        "status": "read",
+        "scheduled_time": 1754488893,
+        "created_at": "2025-08-06 11:01:31"
+    }
+]

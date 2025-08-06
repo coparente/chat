@@ -1,0 +1,26 @@
+{
+    "timestamp": "2025-08-06 10:59:04",
+    "type": "ErrorException",
+    "message": "Undefined variable: departamentoId",
+    "file": "C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php",
+    "line": 338,
+    "trace": "#0 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(338): Handler::handleError(8, 'Undefined varia...', 'C:\\\\xampp\\\\htdocs...', 338, Array)\n#1 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(287): Webhook->processarMensagensAutomaticas('556296185892', 96, Array)\n#2 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(123): Webhook->processarMensagemRecebida(Array, Array)\n#3 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(75): Webhook->processarEvento(Array)\n#4 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(221): Webhook->serpro()\n#5 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(158): Route::executeRoute(Array, Array)\n#6 C:\\xampp\\htdocs\\chat\\index.php(28): Route::dispatch()\n#7 {main}",
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0"
+}
+--------------------------------------------------------------------------------
+{
+    "timestamp": "2025-08-06 10:59:56",
+    "type": "Error",
+    "message": "Call to undefined method ConversaModel::buscarPorId()",
+    "file": "C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php",
+    "line": 330,
+    "trace": "#0 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(287): Webhook->processarMensagensAutomaticas('556296185892', 96, Array)\n#1 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(123): Webhook->processarMensagemRecebida(Array, Array)\n#2 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(75): Webhook->processarEvento(Array)\n#3 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(221): Webhook->serpro()\n#4 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(158): Route::executeRoute(Array, Array)\n#5 C:\\xampp\\htdocs\\chat\\index.php(28): Route::dispatch()\n#6 {main}",
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0"
+}
+--------------------------------------------------------------------------------

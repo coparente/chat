@@ -327,7 +327,7 @@ class Webhook extends Controllers
             // Buscar departamento da conversa
             $departamentoId = null;
             if ($conversaId) {
-                $conversa = $this->conversaModel->buscarPorId($conversaId);
+                $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
                 $departamentoId = $conversa ? $conversa->departamento_id : null;
             }
             
