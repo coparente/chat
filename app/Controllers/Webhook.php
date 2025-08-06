@@ -803,7 +803,7 @@ class Webhook extends Controllers
             
             // Passo 2: Obter credenciais do departamento
             $credencialSerproModel = new CredencialSerproModel();
-            $credencial = $credencialSerproModel->buscarCredencialAtiva($departamentoId);
+            $credencial = $credencialSerproModel->obterCredencialAtiva($departamentoId);
             
             if (!$credencial) {
                 error_log("❌ Credencial não encontrada para departamento ID: {$departamentoId}");

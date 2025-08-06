@@ -24,3 +24,29 @@
     "user_agent": "insomnia\/11.4.0"
 }
 --------------------------------------------------------------------------------
+{
+    "timestamp": "2025-08-06 11:09:34",
+    "type": "Error",
+    "message": "Call to undefined method CredencialSerproModel::buscarCredencialAtiva()",
+    "file": "C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php",
+    "line": 806,
+    "trace": "#0 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(237): Webhook->baixarESalvarMidiaMinIO('109657336257511...', 'image', 'image\/jpeg', NULL)\n#1 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(123): Webhook->processarMensagemRecebida(Array, Array)\n#2 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(75): Webhook->processarEvento(Array)\n#3 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(221): Webhook->serpro()\n#4 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(158): Route::executeRoute(Array, Array)\n#5 C:\\xampp\\htdocs\\chat\\index.php(28): Route::dispatch()\n#6 {main}",
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0"
+}
+--------------------------------------------------------------------------------
+{
+    "timestamp": "2025-08-06 11:09:53",
+    "type": "Error",
+    "message": "Call to undefined method CredencialSerproModel::buscarCredencialAtiva()",
+    "file": "C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php",
+    "line": 806,
+    "trace": "#0 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(237): Webhook->baixarESalvarMidiaMinIO('109657336257511...', 'image', 'image\/jpeg', NULL)\n#1 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(123): Webhook->processarMensagemRecebida(Array, Array)\n#2 C:\\xampp\\htdocs\\chat\\app\\Controllers\\Webhook.php(75): Webhook->processarEvento(Array)\n#3 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(221): Webhook->serpro()\n#4 C:\\xampp\\htdocs\\chat\\app\\Libraries\\Route.php(158): Route::executeRoute(Array, Array)\n#5 C:\\xampp\\htdocs\\chat\\index.php(28): Route::dispatch()\n#6 {main}",
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0"
+}
+--------------------------------------------------------------------------------

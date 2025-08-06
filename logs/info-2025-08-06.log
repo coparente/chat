@@ -2302,3 +2302,611 @@
     "user_id": 1,
     "session_id": "deipcv8akec8s27964m6otm35o"
 }
+{
+    "timestamp": "2025-08-06 11:03:35",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:03:35",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:04:06",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:04:06",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:04:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:04:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:05:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:05:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:06:35",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:06:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:06:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:07:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:07:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:08:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:08:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:09:34",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/webhook\/serpro",
+        "method": "POST",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0",
+    "user_id": "N\/A",
+    "session_id": "1tpcei2v01pbduiiei33g7vst4"
+}
+{
+    "timestamp": "2025-08-06 11:09:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:09:37",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:09:53",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/webhook\/serpro",
+        "method": "POST",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0",
+    "user_id": "N\/A",
+    "session_id": "1tpcei2v01pbduiiei33g7vst4"
+}
+{
+    "timestamp": "2025-08-06 11:10:06",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:10:06",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:10:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:10:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:11:35",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:11:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:11:36",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:11:55",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/webhook\/serpro",
+        "method": "POST",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/webhook\/serpro",
+    "method": "POST",
+    "ip": "127.0.0.1",
+    "user_agent": "insomnia\/11.4.0",
+    "user_id": "N\/A",
+    "session_id": "1tpcei2v01pbduiiei33g7vst4"
+}
+{
+    "timestamp": "2025-08-06 11:12:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:07",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:15",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/verificar-resposta-template\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/verificar-resposta-template\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:35",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:12:35",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:13:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/buscar-mensagens\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/buscar-mensagens\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
+{
+    "timestamp": "2025-08-06 11:13:05",
+    "level": "INFO",
+    "message": "Aplicação iniciada",
+    "context": {
+        "url": "\/chat\/chat\/status-conversa\/96",
+        "method": "GET",
+        "ip": "127.0.0.1"
+    },
+    "url": "\/chat\/chat\/status-conversa\/96",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": 1,
+    "session_id": "deipcv8akec8s27964m6otm35o"
+}
