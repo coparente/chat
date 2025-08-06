@@ -176,12 +176,13 @@ class ConversaModel
                 AVG(c.tempo_resposta_medio) as tempo_medio_resposta
             FROM conversas c
             LEFT JOIN mensagens m ON c.id = m.conversa_id AND m.atendente_id = :atendente_id
-            WHERE c.atendente_id = :atendente_id 
+            WHERE c.atendente_id = :atendente_id2 
             AND DATE(c.criado_em) = :data
         ";
         
         $this->db->query($sql);
         $this->db->bind(':atendente_id', $atendenteId);
+        $this->db->bind(':atendente_id2', $atendenteId);
         $this->db->bind(':data', $data);
         return $this->db->resultado();
     }
@@ -205,11 +206,12 @@ class ConversaModel
                 AVG(c.tempo_resposta_medio) as tempo_medio_resposta
             FROM conversas c
             LEFT JOIN mensagens m ON c.id = m.conversa_id
-            WHERE DATE(c.criado_em) = :data OR DATE(m.criado_em) = :data
+            WHERE DATE(c.criado_em) = :data OR DATE(m.criado_em) = :data2
         ";
         
         $this->db->query($sql);
         $this->db->bind(':data', $data);
+        $this->db->bind(':data2', $data);
         return $this->db->resultado();
     }
 
@@ -234,7 +236,7 @@ class ConversaModel
                 AVG(c.tempo_resposta_medio) as tempo_medio
             FROM usuarios u
             LEFT JOIN conversas c ON u.id = c.atendente_id AND DATE(c.criado_em) = :data
-            LEFT JOIN mensagens m ON u.id = m.atendente_id AND DATE(m.criado_em) = :data
+            LEFT JOIN mensagens m ON u.id = m.atendente_id AND DATE(m.criado_em) = :data2
             WHERE u.perfil = 'atendente'
             GROUP BY u.id, u.nome, u.status
             ORDER BY total_conversas DESC
@@ -242,6 +244,7 @@ class ConversaModel
         
         $this->db->query($sql);
         $this->db->bind(':data', $data);
+        $this->db->bind(':data2', $data);
         return $this->db->resultados();
     }
 

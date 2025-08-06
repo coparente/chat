@@ -62,7 +62,7 @@ $usuario = [
                         <p class="text-muted">Gerencie os usuários do ChatSerpro</p>
                     </div>
                     
-                    <?php if ($usuario_logado['perfil'] === 'admin'): ?>
+                    <?php if ($usuario_logado['perfil'] === 'admin' || $usuario_logado['perfil'] === 'supervisor'): ?>
                     <div>
                         <a href="<?= URL ?>/usuarios/cadastrar" class="btn btn-primary">
                             <i class="fas fa-user-plus me-2"></i>Novo Usuário

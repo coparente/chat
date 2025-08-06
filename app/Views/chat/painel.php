@@ -861,7 +861,7 @@ $usuario = [
                 // Se está próximo do final, pode carregar mais conversas (futuro)
                 if (scrollTop + containerHeight >= scrollHeight - 50) {
                     // Placeholder para carregamento de mais conversas
-                    console.log('Próximo do final da lista de conversas');
+                    // console.log('Próximo do final da lista de conversas');
                 }
             });
 
@@ -1033,7 +1033,7 @@ $usuario = [
                 method: 'POST',
                 success: function(response) {
                     if (response.success) {
-                        console.log('Mensagens marcadas como lidas');
+                        // console.log('Mensagens marcadas como lidas');
                     }
                 },
                 error: function() {
@@ -1358,7 +1358,7 @@ $usuario = [
                         }, 200);
                         
                         // Status será atualizado automaticamente via consulta da API
-                        console.log('📱 Mensagem enviada - aguardando status real da API');
+                        // console.log('📱 Mensagem enviada - aguardando status real da API');
                     } else {
                         // Restaurar mensagem se houve erro
                         $('#messageInput').val(mensagem);
@@ -1436,7 +1436,7 @@ $usuario = [
         function simularProgressaoStatus(serproMessageId) {
             // REMOVIDO: Não simular mais status automaticamente
             // Deixar apenas a consulta real da API determinar o status
-            console.log(`📱 Mensagem ${serproMessageId} enviada - aguardando status real da API`);
+            // console.log(`📱 Mensagem ${serproMessageId} enviada - aguardando status real da API`);
         }
         
         // REMOVIDO: Não marcar mais mensagens como lidas automaticamente
@@ -1457,7 +1457,7 @@ $usuario = [
                 const statusIcon = gerarIconeStatus(novoStatus);
                 messageElement.find('.message-time i').replaceWith(statusIcon);
                 
-                console.log(`Status da mensagem ${serproMessageId} atualizado para: ${novoStatus}`);
+                // console.log(`Status da mensagem ${serproMessageId} atualizado para: ${novoStatus}`);
             }
         }
 
@@ -1495,7 +1495,7 @@ $usuario = [
                 departamento_id: departamento
             };
 
-            console.log('Enviando dados:', dados);
+            // console.log('Enviando dados:', dados);
 
             $('#btnEnviarTemplate').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Enviando...');
 
@@ -1507,11 +1507,11 @@ $usuario = [
                 dataType: 'text', // Mudança para text para processar manualmente
                 timeout: 30000,
                 beforeSend: function(xhr) {
-                    console.log('Enviando requisição AJAX...');
+                    // console.log('Enviando requisição AJAX...');
                 },
                 success: function(responseText, textStatus, xhr) {
-                    console.log('Resposta recebida - Status HTTP:', xhr.status);
-                    console.log('Resposta bruta:', responseText);
+                    // console.log('Resposta recebida - Status HTTP:', xhr.status);
+                    // console.log('Resposta bruta:', responseText);
 
                     // Tentar extrair JSON válido da resposta
                     let response = null;
@@ -1523,7 +1523,7 @@ $usuario = [
                         if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
                             let jsonString = responseText.substring(jsonStart, jsonEnd + 1);
                             response = JSON.parse(jsonString);
-                            console.log('JSON extraído:', response);
+                            // console.log('JSON extraído:', response);
                         } else {
                             throw new Error('JSON não encontrado na resposta');
                         }
@@ -1538,7 +1538,7 @@ $usuario = [
                     // Verificar se a resposta é um objeto válido
                     if (typeof response === 'object' && response !== null) {
                         if (response.success === true) {
-                            console.log('✅ Sucesso detectado');
+                            // console.log('✅ Sucesso detectado');
                             $('#novaConversaModal').modal('hide');
                             $('#formNovaConversa')[0].reset();
                             $('#parametrosContainer').hide();
@@ -1549,20 +1549,20 @@ $usuario = [
                                 location.reload();
                             }, 1500);
                         } else {
-                            console.log('❌ Falha na resposta:', response.message);
+                            // console.log('❌ Falha na resposta:', response.message);
                             mostrarToast(response.message || 'Erro desconhecido', 'error');
                         }
                     } else {
-                        console.log('❌ Resposta inválida:', response);
+                        // console.log('❌ Resposta inválida:', response);
                         mostrarToast('Resposta inválida do servidor', 'error');
                     }
                 },
                 error: function(xhr, textStatus, errorThrown) {
-                    console.log('❌ Erro AJAX');
-                    console.log('Status:', xhr.status);
-                    console.log('TextStatus:', textStatus);
-                    console.log('ErrorThrown:', errorThrown);
-                    console.log('ResponseText:', xhr.responseText);
+                    // console.log('❌ Erro AJAX');
+                    // console.log('Status:', xhr.status);
+                    // console.log('TextStatus:', textStatus);
+                    // console.log('ErrorThrown:', errorThrown);
+                    // console.log('ResponseText:', xhr.responseText);
 
                     let mensagemErro = 'Erro ao enviar template';
 
@@ -1596,7 +1596,7 @@ $usuario = [
                     mostrarToast(mensagemErro, 'error');
                 },
                 complete: function() {
-                    console.log('Requisição completada');
+                    // console.log('Requisição completada');
                     $('#btnEnviarTemplate').prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Enviar Template');
                 }
             });

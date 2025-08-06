@@ -79,7 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    console.log('Dark mode inicializado com sucesso!');
 });
 
 

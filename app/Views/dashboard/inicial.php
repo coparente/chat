@@ -406,7 +406,7 @@ $usuario = [
                 .then(data => {
                     if (data.success) {
                         // Atualizar valores na tela
-                        console.log('Estatísticas atualizadas:', data.dados);
+                        // console.log('Estatísticas atualizadas:', data.dados);
                     }
                 })
                 .catch(error => console.error('Erro ao atualizar estatísticas:', error));

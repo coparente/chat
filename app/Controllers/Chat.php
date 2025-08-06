@@ -32,7 +32,7 @@ class Chat extends Controllers
         
         // Verificar se usuário está logado
         if (!isset($_SESSION['usuario_id'])) {
-            Helper::redirecionar('login-chat');
+            Helper::redirecionar('login');
             return;
         }
         
@@ -306,7 +306,7 @@ class Chat extends Controllers
                 // Se falhou o envio, deletar a conversa criada
                 $this->conversaModel->atualizarConversa($conversaId, ['status' => 'fechado']);
                 
-                error_log("❌ Erro ao enviar template: " . ($resultado['message'] ?? 'Erro desconhecido'));
+                //error_log("❌ Erro ao enviar template: " . ($resultado['message'] ?? 'Erro desconhecido'));
                 http_response_code(500);
                 echo json_encode([
                     'success' => false, 
@@ -316,8 +316,8 @@ class Chat extends Controllers
             }
 
         } catch (Exception $e) {
-            error_log("❌ Erro em iniciarConversa: " . $e->getMessage());
-            error_log("❌ Stack trace: " . $e->getTraceAsString());
+            //error_log("❌ Erro em iniciarConversa: " . $e->getMessage());
+            //error_log("❌ Stack trace: " . $e->getTraceAsString());
             
             if (APP_ENV === 'development') {
                 http_response_code(500);
@@ -426,19 +426,19 @@ class Chat extends Controllers
                         $resultado = $serproApiDepartamento->enviarMensagemTexto($conversa->numero, $mensagem);
                         
                         if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
-                            error_log("✅ Mensagem enviada usando credenciais do departamento ID: {$departamentoId}");
+                                ////error_log("✅ Mensagem enviada usando credenciais do departamento ID: {$departamentoId}");
                         } else {
-                            error_log("⚠️ Falha com credenciais do departamento, tentando API padrão");
+                            //error_log("⚠️ Falha com credenciais do departamento, tentando API padrão");
                             // Se falhar, tentar API padrão
                             $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
                         }
                     } else {
                         // Se não há credencial específica, usar API padrão
                         $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
-                        error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                        //error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
                     }
                 } catch (Exception $e) {
-                    error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
+                    //error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
                     // Em caso de erro, usar API padrão
                     $resultado = $this->serproApi->enviarMensagemTexto($conversa->numero, $mensagem);
                 }
@@ -585,7 +585,7 @@ class Chat extends Controllers
         } else {
             $caminhoMinio = $uploadMinio['caminho_minio'];
             $urlMinio = $uploadMinio['url_minio'];
-            error_log("✅ Mídia ENVIADA salva no MinIO: {$caminhoMinio}");
+            //error_log("✅ Mídia ENVIADA salva no MinIO: {$caminhoMinio}");
         }
 
         // Fazer upload do arquivo para API Serpro
@@ -607,19 +607,19 @@ class Chat extends Controllers
                     $uploadResult = $serproApiDepartamento->uploadMidia($arquivo, $arquivo['type']);
                     
                     if ($uploadResult['status'] >= 200 && $uploadResult['status'] < 300) {
-                        error_log("✅ Upload de mídia usando credenciais do departamento ID: {$departamentoId}");
+                        //error_log("✅ Upload de mídia usando credenciais do departamento ID: {$departamentoId}");
                     } else {
-                        error_log("⚠️ Falha no upload com credenciais do departamento, tentando API padrão");
+                        //error_log("⚠️ Falha no upload com credenciais do departamento, tentando API padrão");
                         // Se falhar, tentar API padrão
                         $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
                     }
                 } else {
                     // Se não há credencial específica, usar API padrão
                     $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
-                    error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                    ///error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
                 }
             } catch (Exception $e) {
-                error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
+                //error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
                 // Em caso de erro, usar API padrão
                 $uploadResult = $this->serproApi->uploadMidia($arquivo, $arquivo['type']);
             }
@@ -655,9 +655,9 @@ class Chat extends Controllers
                         );
                         
                         if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
-                            error_log("✅ Mídia enviada usando credenciais do departamento ID: {$departamentoId}");
+                            //error_log("✅ Mídia enviada usando credenciais do departamento ID: {$departamentoId}");
                         } else {
-                            error_log("⚠️ Falha no envio com credenciais do departamento, tentando API padrão");
+                            //error_log("⚠️ Falha no envio com credenciais do departamento, tentando API padrão");
                             // Se falhar, tentar API padrão
                             $resultado = $this->serproApi->enviarMidia(
                                 $conversa->numero, 
@@ -678,10 +678,10 @@ class Chat extends Controllers
                             null, 
                             $tipoMidia === 'document' ? $arquivo['name'] : null
                         );
-                        error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                        //error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
                     }
                 } catch (Exception $e) {
-                    error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
+                    //error_log("❌ Erro com API do departamento: " . $e->getMessage() . " - Usando API padrão");
                     // Em caso de erro, usar API padrão
                     $resultado = $this->serproApi->enviarMidia(
                         $conversa->numero, 
@@ -1106,7 +1106,7 @@ class Chat extends Controllers
 
         if ($resultado) {
             // Log da transferência
-            error_log("🔄 Conversa {$conversaId} transferida para atendente {$atendente->nome} (ID: {$atendenteId}) por {$_SESSION['usuario_nome']}");
+           // error_log("🔄 Conversa {$conversaId} transferida para atendente {$atendente->nome} (ID: {$atendenteId}) por {$_SESSION['usuario_nome']}");
 
             http_response_code(200);
             echo json_encode([
@@ -1299,9 +1299,9 @@ class Chat extends Controllers
                     $serproApiDepartamento = new SerproApi();
                     $serproApiDepartamento->configurarComCredencial($credencial);
                     
-                    error_log("✅ Verificando status usando credenciais do departamento ID: {$departamentoId}");
+                    //error_log("✅ Verificando status usando credenciais do departamento ID: {$departamentoId}");
                 } else {
-                    error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
+                    //error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
                 }
             } catch (Exception $e) {
                 error_log("❌ Erro ao configurar credenciais do departamento: " . $e->getMessage());
@@ -1526,7 +1526,7 @@ class Chat extends Controllers
                     $resultadoApi = $serproApiDepartamento->confirmarStatusMensagem($serproMessageId, $statusApi);
                     
                     if ($resultadoApi['status'] >= 200 && $resultadoApi['status'] < 300) {
-                        error_log("✅ Status confirmado via API usando credenciais do departamento ID: {$departamentoId}");
+                        //error_log("✅ Status confirmado via API usando credenciais do departamento ID: {$departamentoId}");
                     } else {
                         error_log("⚠️ Erro ao confirmar status via API: " . ($resultadoApi['error'] ?? 'Erro desconhecido'));
                     }

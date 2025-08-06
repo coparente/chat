@@ -60,10 +60,21 @@ class Dashboard extends Controllers
                     $dados = $this->getDashboardAtendente();
             }
         } catch (Exception $e) {
-            error_log("Erro no dashboard: " . $e->getMessage());
+            error_log("Erro no dashboard ({$perfil}): " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            // Dados de fallback para evitar erro na view
             $dados = [
                 'erro' => 'Erro ao carregar dados do dashboard',
-                'tipo_dashboard' => $perfil
+                'tipo_dashboard' => $perfil,
+                'minhas_conversas' => [],
+                'conversas_pendentes' => [],
+                'estatisticas_hoje' => (object)[
+                    'conversas_atendidas' => 0,
+                    'mensagens_enviadas' => 0,
+                    'tempo_medio_resposta' => 0
+                ],
+                'mensagens_nao_lidas' => 0
             ];
         }
 

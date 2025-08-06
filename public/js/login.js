@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    console.log('Dark mode inicializado com sucesso na página de login!');
+    // console.log('Dark mode inicializado com sucesso na página de login!');
 });
 
 // Validação em tempo real

@@ -27,7 +27,7 @@ function verificarAcesso($caminhoArquivo) {
         $db = new Database();
         
         // Admins têm acesso total
-        if (isset($_SESSION['usuario_perfil']) && ($_SESSION['usuario_perfil'] === 'admin' || $_SESSION['usuario_perfil'] === 'analista')) {
+        if (isset($_SESSION['usuario_perfil']) && ($_SESSION['usuario_perfil'] === 'admin' || $_SESSION['usuario_perfil'] === 'supervisor' || $_SESSION['usuario_perfil'] === 'analista')) {
             return true;
         }
         
