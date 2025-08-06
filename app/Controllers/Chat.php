@@ -170,6 +170,7 @@ class Chat extends Controllers
             $contato = $this->criarOuBuscarContato($numero, $dados['nome'] ?? null);
             
             if (!$contato) {
+                error_log("❌ Erro ao criar/buscar contato para número: {$numero}");
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Erro ao criar contato']);
                 exit;
@@ -220,11 +221,22 @@ class Chat extends Controllers
             }
 
             // Criar conversa com departamento
-            $conversaId = $this->criarConversaComDepartamento($contato['id'], $_SESSION['usuario_id'], $departamentoId);
-            
-            if (!$conversaId) {
+            try {
+                $conversaId = $this->criarConversaComDepartamento($contato['id'], $_SESSION['usuario_id'], $departamentoId);
+                
+                if (!$conversaId) {
+                    error_log("❌ Erro ao criar conversa - conversaId retornou false");
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'message' => 'Erro ao criar conversa']);
+                    exit;
+                }
+                
+                error_log("✅ Conversa criada com sucesso: ID {$conversaId}, Departamento {$departamentoId}");
+                
+            } catch (Exception $e) {
+                error_log("❌ Exceção ao criar conversa: " . $e->getMessage());
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Erro ao criar conversa']);
+                echo json_encode(['success' => false, 'message' => 'Erro ao criar conversa: ' . $e->getMessage()]);
                 exit;
             }
 
@@ -285,6 +297,7 @@ class Chat extends Controllers
                 // Se falhou o envio, deletar a conversa criada
                 $this->conversaModel->atualizarConversa($conversaId, ['status' => 'fechado']);
                 
+                error_log("❌ Erro ao enviar template: " . ($resultado['message'] ?? 'Erro desconhecido'));
                 http_response_code(500);
                 echo json_encode([
                     'success' => false, 
@@ -294,9 +307,21 @@ class Chat extends Controllers
             }
 
         } catch (Exception $e) {
-            error_log("Erro em iniciarConversa: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+            error_log("❌ Erro em iniciarConversa: " . $e->getMessage());
+            error_log("❌ Stack trace: " . $e->getTraceAsString());
+            
+            if (APP_ENV === 'development') {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Erro interno do servidor: ' . $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+            }
         }
     }
 

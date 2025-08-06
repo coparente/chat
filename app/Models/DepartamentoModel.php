@@ -661,4 +661,37 @@ class DepartamentoModel
             'taxa_atendimento' => $taxaAtendimento
         ];
     }
+
+    /**
+     * [ buscarDepartamentoPadrao ] - Busca o departamento padrão (Geral)
+     * 
+     * @return object|null Departamento padrão
+     */
+    public function buscarDepartamentoPadrao()
+    {
+        // Primeiro, tentar buscar departamento "Geral"
+        $departamento = $this->buscarPorNome('Geral');
+        
+        if ($departamento && $departamento->status === 'ativo') {
+            return $departamento;
+        }
+        
+        // Se não encontrar "Geral", buscar o primeiro departamento ativo
+        $departamentos = $this->listarTodos(true);
+        if (!empty($departamentos)) {
+            return $departamentos[0];
+        }
+        
+        return null;
+    }
+
+    /**
+     * [ listarDepartamentosAtivos ] - Lista apenas departamentos ativos
+     * 
+     * @return array Lista de departamentos ativos
+     */
+    public function listarDepartamentosAtivos()
+    {
+        return $this->listarTodos(true);
+    }
 } 

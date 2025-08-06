@@ -1,242 +1,502 @@
--- =====================================================
--- BANCO DE DADOS: SISTEMA DE CHAT MULTIATENDIMENTO 
--- =====================================================
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
--- Criar o banco meu_framework se não existir
-CREATE DATABASE IF NOT EXISTS meu_framework CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE meu_framework;
+CREATE DATABASE IF NOT EXISTS `meu_framework` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `meu_framework`;
 
--- Remover tabelas existentes na ordem correta (respeitando foreign keys)
-DROP TABLE IF EXISTS mensagens;
-DROP TABLE IF EXISTS conversas;
-DROP TABLE IF EXISTS contatos;
-DROP TABLE IF EXISTS sessoes_whatsapp;
-DROP TABLE IF EXISTS permissoes_usuario;
-DROP TABLE IF EXISTS log_acessos;
-DROP TABLE IF EXISTS modulos;
-DROP TABLE IF EXISTS usuarios;
+DELIMITER $$
+--
+-- Procedimentos
+--
+CREATE PROCEDURE `sp_atendentes_departamento` (IN `p_departamento_id` INT)  
+BEGIN
+    SELECT 
+        u.id,
+        u.nome,
+        u.email,
+        u.perfil,
+        u.status,
+        ad.perfil as perfil_departamento,
+        ad.max_conversas,
+        ad.horario_inicio,
+        ad.horario_fim
+    FROM usuarios u
+    JOIN atendentes_departamento ad ON u.id = ad.usuario_id
+    WHERE ad.departamento_id = p_departamento_id 
+    AND ad.status = 'ativo'
+    AND u.status = 'ativo'
+    ORDER BY ad.perfil DESC, u.nome ASC;
+END$$
 
--- =====================================================
--- TABELA: USUÁRIOS (ATENDENTES, SUPERVISORES, ADMINS)
--- =====================================================
-CREATE TABLE usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL,
-    perfil ENUM('admin', 'supervisor', 'atendente') DEFAULT 'atendente',
-    avatar VARCHAR(255) DEFAULT NULL,
-    status ENUM('ativo', 'inativo', 'ausente', 'ocupado') DEFAULT 'ativo',
-    max_chats INT DEFAULT 5,
-    ultimo_acesso DATETIME DEFAULT NULL,
-    token_recuperacao VARCHAR(64) DEFAULT NULL,
-    token_expiracao DATETIME DEFAULT NULL,
-    configuracoes JSON DEFAULT NULL, -- Para guardar preferências do usuário
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE PROCEDURE `sp_obter_credencial_departamento` (IN `p_departamento_id` INT)  
+BEGIN
+    SELECT 
+        cs.*,
+        d.nome as departamento_nome
+    FROM credenciais_serpro_departamento cs
+    JOIN departamentos d ON cs.departamento_id = d.id
+    WHERE cs.departamento_id = p_departamento_id 
+    AND cs.status = 'ativo'
+    ORDER BY cs.prioridade ASC
+    LIMIT 1;
+END$$
 
--- =====================================================
--- TABELA: SESSÕES WHATSAPP (CONEXÕES ATIVAS)
--- =====================================================
-CREATE TABLE sessoes_whatsapp (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    numero VARCHAR(20) NOT NULL UNIQUE,
-    serpro_session_id VARCHAR(255) DEFAULT NULL,
-    serpro_waba_id VARCHAR(255) DEFAULT NULL,
-    serpro_phone_number_id VARCHAR(255) DEFAULT NULL,
-    webhook_token VARCHAR(255) DEFAULT NULL,
-    status ENUM('conectado', 'desconectado', 'conectando', 'erro') DEFAULT 'desconectado',
-    qr_code TEXT DEFAULT NULL,
-    ultima_conexao DATETIME DEFAULT NULL,
-    configuracoes JSON DEFAULT NULL,
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
-);
+DELIMITER ;
 
--- =====================================================
--- TABELA: CONTATOS
--- =====================================================
-CREATE TABLE contatos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(255) DEFAULT NULL,
-    numero VARCHAR(20) NOT NULL,
-    foto_perfil VARCHAR(255) DEFAULT NULL,
-    email VARCHAR(255) DEFAULT NULL,
-    tags JSON DEFAULT NULL, -- ['cliente', 'vip', 'suporte']
-    notas TEXT DEFAULT NULL,
-    sessao_id INT NOT NULL,
-    bloqueado BOOLEAN DEFAULT FALSE,
-    ultima_mensagem DATETIME DEFAULT NULL,
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_numero (numero),
-    INDEX idx_sessao (sessao_id),
-    CONSTRAINT fk_contato_sessao FOREIGN KEY (sessao_id) REFERENCES sessoes_whatsapp(id) ON DELETE CASCADE
-);
+-- --------------------------------------------------------
+-- Estrutura das tabelas
+-- --------------------------------------------------------
 
--- =====================================================
--- TABELA: CONVERSAS (TICKETS/ATENDIMENTOS)
--- =====================================================
-CREATE TABLE conversas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    contato_id INT NOT NULL,
-    atendente_id INT DEFAULT NULL,
-    sessao_id INT NOT NULL,
-    status ENUM('aberto', 'pendente', 'fechado', 'transferindo') DEFAULT 'pendente',
-    prioridade ENUM('baixa', 'normal', 'alta', 'urgente') DEFAULT 'normal',
-    departamento VARCHAR(100) DEFAULT 'Geral',
-    tags JSON DEFAULT NULL,
-    notas_internas TEXT DEFAULT NULL,
-    tempo_resposta_medio INT DEFAULT 0, -- em segundos
-    ultima_mensagem DATETIME DEFAULT NULL,
-    fechado_em DATETIME DEFAULT NULL,
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_status (status),
-    INDEX idx_atendente (atendente_id),
-    INDEX idx_contato (contato_id),
-    INDEX idx_sessao (sessao_id),
-    CONSTRAINT fk_conversa_contato FOREIGN KEY (contato_id) REFERENCES contatos(id) ON DELETE CASCADE,
-    CONSTRAINT fk_conversa_atendente FOREIGN KEY (atendente_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-    CONSTRAINT fk_conversa_sessao FOREIGN KEY (sessao_id) REFERENCES sessoes_whatsapp(id) ON DELETE CASCADE
-);
+CREATE TABLE `atendentes_departamento` (
+  `id` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
+  `departamento_id` int(11) NOT NULL,
+  `perfil` enum('atendente','supervisor','admin') DEFAULT 'atendente',
+  `status` enum('ativo','inativo') DEFAULT 'ativo',
+  `max_conversas` int(11) DEFAULT 5,
+  `horario_inicio` time DEFAULT '08:00:00',
+  `horario_fim` time DEFAULT '18:00:00',
+  `dias_semana` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dias_semana`)),
+  `configuracoes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracoes`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =====================================================
--- TABELA: MENSAGENS
--- =====================================================
-CREATE TABLE mensagens (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    conversa_id INT NOT NULL,
-    contato_id INT NOT NULL,
-    atendente_id INT DEFAULT NULL,
-    serpro_message_id VARCHAR(255) DEFAULT NULL,
-    tipo ENUM('texto', 'imagem', 'audio', 'video', 'documento', 'localizacao', 'contato', 'sistema') DEFAULT 'texto',
-    conteudo TEXT NOT NULL,
-    midia_url VARCHAR(500) DEFAULT NULL,
-    midia_nome VARCHAR(255) DEFAULT NULL,
-    midia_tipo VARCHAR(100) DEFAULT NULL,
-    direcao ENUM('entrada', 'saida') NOT NULL,
-    status_entrega ENUM('enviando', 'enviado', 'entregue', 'lido', 'erro') DEFAULT 'enviando',
-    lida BOOLEAN DEFAULT FALSE,
-    lida_em DATETIME DEFAULT NULL,
-    metadata JSON DEFAULT NULL, -- Para guardar dados extras da API
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_conversa (conversa_id),
-    INDEX idx_contato (contato_id),
-    INDEX idx_direcao (direcao),
-    INDEX idx_data (criado_em),
-    CONSTRAINT fk_mensagem_conversa FOREIGN KEY (conversa_id) REFERENCES conversas(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mensagem_contato FOREIGN KEY (contato_id) REFERENCES contatos(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mensagem_atendente FOREIGN KEY (atendente_id) REFERENCES usuarios(id) ON DELETE SET NULL
-);
+CREATE TABLE `atividades` (
+  `id` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
+  `acao` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `data_hora` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- =====================================================
--- TABELA: MÓDULOS (SISTEMA DE PERMISSÕES)
--- =====================================================
-CREATE TABLE modulos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    descricao TEXT DEFAULT NULL,
-    rota VARCHAR(255) NOT NULL,
-    icone VARCHAR(50) DEFAULT NULL,
-    pai_id INT DEFAULT NULL,
-    status ENUM('ativo', 'inativo') DEFAULT 'ativo',
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_pai_modulo FOREIGN KEY (pai_id) REFERENCES modulos(id) ON DELETE CASCADE
-);
+CREATE TABLE `configuracoes` (
+  `id` int(11) NOT NULL,
+  `chave` varchar(100) NOT NULL,
+  `valor` text NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =====================================================
--- TABELA: PERMISSÕES DE USUÁRIO
--- =====================================================
-CREATE TABLE permissoes_usuario (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT NOT NULL,
-    modulo_id INT NOT NULL,
-    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_usuario_modulo (usuario_id, modulo_id),
-    CONSTRAINT fk_usuario_permissao FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-    CONSTRAINT fk_modulo_permissao FOREIGN KEY (modulo_id) REFERENCES modulos(id) ON DELETE CASCADE
-);
+CREATE TABLE `contatos` (
+  `id` int(11) NOT NULL,
+  `nome` varchar(255) DEFAULT NULL,
+  `numero` varchar(20) NOT NULL,
+  `telefone` varchar(20) NOT NULL,
+  `foto_perfil` varchar(255) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `empresa` varchar(255) DEFAULT NULL,
+  `observacoes` text DEFAULT NULL,
+  `fonte` enum('manual','whatsapp','importacao','api') DEFAULT 'manual',
+  `ultimo_contato` timestamp NULL DEFAULT NULL,
+  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
+  `notas` text DEFAULT NULL,
+  `sessao_id` int(11) NOT NULL,
+  `bloqueado` tinyint(1) DEFAULT 0,
+  `ultima_mensagem` datetime DEFAULT NULL,
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =====================================================
--- TABELA: LOG DE ACESSOS
--- =====================================================
-CREATE TABLE log_acessos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT,
-    email VARCHAR(255) DEFAULT NULL,
-    ip VARCHAR(45) NOT NULL,
-    user_agent TEXT DEFAULT NULL,
-    sucesso BOOLEAN NOT NULL DEFAULT FALSE,
-    data_hora DATETIME NOT NULL,
-    CONSTRAINT fk_usuario_log FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
-);
+CREATE TABLE `contato_tags` (
+  `id` int(11) NOT NULL,
+  `contato_id` int(11) NOT NULL,
+  `tag` varchar(50) NOT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =====================================================
--- INSERÇÃO DE DADOS INICIAIS
--- =====================================================
+CREATE TABLE `conversas` (
+  `id` int(11) NOT NULL,
+  `contato_id` int(11) NOT NULL,
+  `atendente_id` int(11) DEFAULT NULL,
+  `sessao_id` int(11) NOT NULL,
+  `status` enum('aberto','pendente','fechado','transferindo') DEFAULT 'pendente',
+  `prioridade` enum('baixa','normal','alta','urgente') DEFAULT 'normal',
+  `departamento` varchar(100) DEFAULT 'Geral',
+  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
+  `notas_internas` text DEFAULT NULL,
+  `tempo_resposta_medio` int(11) DEFAULT 0,
+  `ultima_mensagem` datetime DEFAULT NULL,
+  `fechado_em` datetime DEFAULT NULL,
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  `departamento_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Usuários padrão do sistema
-INSERT INTO usuarios (nome, email, senha, perfil, status, max_chats, criado_em) VALUES
-('Administrador', 'admin@gmail.com', '$2y$10$0W8VdFyOmiXd3eFvyndgg.dj9nSbnttGvJYW29VcfU4TOrbM1cSfi', 'admin', 'ativo', 10, NOW()),
-('Supervisor', 'supervisor@gmail.com', '$2y$10$0W8VdFyOmiXd3eFvyndgg.dj9nSbnttGvJYW29VcfU4TOrbM1cSfi', 'supervisor', 'ativo', 8, NOW()),
-('Atendente 1', 'atendente1@gmail.com', '$2y$10$0W8VdFyOmiXd3eFvyndgg.dj9nSbnttGvJYW29VcfU4TOrbM1cSfi', 'atendente', 'ativo', 5, NOW()),
-('Atendente 2', 'atendente2@gmail.com', '$2y$10$0W8VdFyOmiXd3eFvyndgg.dj9nSbnttGvJYW29VcfU4TOrbM1cSfi', 'atendente', 'ativo', 5, NOW());
+CREATE TABLE `credenciais_serpro_departamento` (
+  `id` int(11) NOT NULL,
+  `departamento_id` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `client_id` varchar(255) NOT NULL,
+  `client_secret` varchar(255) NOT NULL,
+  `base_url` varchar(255) NOT NULL DEFAULT 'https://api.whatsapp.serpro.gov.br',
+  `waba_id` varchar(255) NOT NULL,
+  `phone_number_id` varchar(255) NOT NULL,
+  `webhook_verify_token` varchar(255) DEFAULT NULL,
+  `status` enum('ativo','inativo','teste') DEFAULT 'ativo',
+  `prioridade` int(11) DEFAULT 0,
+  `configuracoes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracoes`)),
+  `token_cache` text DEFAULT NULL,
+  `token_expiracao` datetime DEFAULT NULL,
+  `ultimo_teste` datetime DEFAULT NULL,
+  `resultado_teste` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`resultado_teste`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Módulos do sistema de chat
-INSERT INTO modulos (nome, descricao, rota, icone, pai_id, status, criado_em) VALUES
--- Módulos principais
-('Dashboard', 'Painel principal com estatísticas', 'dashboard', 'fas fa-chart-line', NULL, 'ativo', NOW()),
-('Chat', 'Sistema de conversas', 'chat', 'fas fa-comments', NULL, 'ativo', NOW()),
-('Contatos', 'Gerenciamento de contatos', 'contatos', 'fas fa-address-book', NULL, 'ativo', NOW()),
-('Relatórios', 'Relatórios e estatísticas', 'relatorios', 'fas fa-chart-bar', NULL, 'ativo', NOW()),
-('Configurações', 'Configurações do sistema', 'configuracoes', 'fas fa-cog', NULL, 'ativo', NOW()),
-('Usuários', 'Gerenciamento de usuários', 'usuarios', 'fas fa-users', NULL, 'ativo', NOW()),
+CREATE TABLE `departamentos` (
+  `id` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `cor` varchar(7) DEFAULT '#007bff',
+  `icone` varchar(50) DEFAULT 'fas fa-building',
+  `status` enum('ativo','inativo') DEFAULT 'ativo',
+  `prioridade` int(11) DEFAULT 0,
+  `configuracoes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracoes`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Submódulos de Chat
-('Conversas Ativas', 'Conversas em andamento', 'chat/ativas', 'fas fa-comment-dots', 2, 'ativo', NOW()),
-('Conversas Pendentes', 'Conversas aguardando atendimento', 'chat/pendentes', 'fas fa-clock', 2, 'ativo', NOW()),
-('Conversas Fechadas', 'Histórico de conversas', 'chat/fechadas', 'fas fa-archive', 2, 'ativo', NOW()),
+CREATE TABLE `log_acessos` (
+  `id` int(11) NOT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `ip` varchar(45) NOT NULL,
+  `user_agent` text DEFAULT NULL,
+  `sucesso` tinyint(1) NOT NULL DEFAULT 0,
+  `data_hora` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Submódulos de Configurações  
-('Conexões WhatsApp', 'Gerenciar conexões', 'configuracoes/conexoes', 'fab fa-whatsapp', 5, 'ativo', NOW()),
-('API Serpro', 'Configurações da API', 'configuracoes/serpro', 'fas fa-plug', 5, 'ativo', NOW()),
-('Mensagens Automáticas', 'Configurar respostas automáticas', 'configuracoes/mensagens', 'fas fa-robot', 5, 'ativo', NOW());
+CREATE TABLE `mensagens` (
+  `id` int(11) NOT NULL,
+  `conversa_id` int(11) NOT NULL,
+  `contato_id` int(11) NOT NULL,
+  `atendente_id` int(11) DEFAULT NULL,
+  `serpro_message_id` varchar(255) DEFAULT NULL,
+  `tipo` enum('texto','imagem','audio','video','documento','localizacao','contato','sistema') DEFAULT 'texto',
+  `conteudo` text NOT NULL,
+  `midia_url` varchar(500) DEFAULT NULL,
+  `midia_nome` varchar(255) DEFAULT NULL,
+  `midia_tipo` varchar(100) DEFAULT NULL,
+  `direcao` enum('entrada','saida') NOT NULL,
+  `status_entrega` enum('enviando','enviado','entregue','lido','erro') DEFAULT 'enviando',
+  `lida` tinyint(1) DEFAULT 0,
+  `lida_em` datetime DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Sessão WhatsApp padrão
-INSERT INTO sessoes_whatsapp (nome, numero, status, criado_em) VALUES
-('Principal', '5511999999999', 'desconectado', NOW());
+CREATE TABLE `mensagens_automaticas_departamento` (
+  `id` int(11) NOT NULL,
+  `departamento_id` int(11) NOT NULL,
+  `tipo` enum('boas_vindas','ausencia','encerramento','fora_horario','personalizada') NOT NULL,
+  `titulo` varchar(100) NOT NULL,
+  `mensagem` text NOT NULL,
+  `ativo` tinyint(1) DEFAULT 1,
+  `horario_inicio` time DEFAULT NULL,
+  `horario_fim` time DEFAULT NULL,
+  `dias_semana` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dias_semana`)),
+  `configuracoes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracoes`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Permissões para Administrador (acesso total)
-INSERT INTO permissoes_usuario (usuario_id, modulo_id, criado_em)
-SELECT 1, id, NOW() FROM modulos WHERE status = 'ativo';
+CREATE TABLE `modulos` (
+  `id` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `rota` varchar(255) NOT NULL,
+  `icone` varchar(50) DEFAULT NULL,
+  `pai_id` int(11) DEFAULT NULL,
+  `status` enum('ativo','inativo') DEFAULT 'ativo',
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Permissões para Supervisor (tudo exceto configurações avançadas)
-INSERT INTO permissoes_usuario (usuario_id, modulo_id, criado_em) VALUES
-(2, 1, NOW()), -- Dashboard
-(2, 2, NOW()), -- Chat
-(2, 3, NOW()), -- Contatos
-(2, 4, NOW()), -- Relatórios
-(2, 6, NOW()), -- Usuários
-(2, 7, NOW()), -- Conversas Ativas
-(2, 8, NOW()), -- Conversas Pendentes
-(2, 9, NOW()); -- Conversas Fechadas
+CREATE TABLE `sessoes_whatsapp` (
+  `id` int(11) NOT NULL,
+  `departamento_id` int(11) DEFAULT NULL,
+  `nome` varchar(100) NOT NULL,
+  `numero` varchar(20) NOT NULL,
+  `serpro_session_id` varchar(255) DEFAULT NULL,
+  `serpro_waba_id` varchar(255) DEFAULT NULL,
+  `serpro_phone_number_id` varchar(255) DEFAULT NULL,
+  `webhook_token` varchar(255) DEFAULT NULL,
+  `status` enum('conectado','desconectado','conectando','erro') DEFAULT 'desconectado',
+  `qr_code` text DEFAULT NULL,
+  `ultima_conexao` datetime DEFAULT NULL,
+  `configuracoes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracoes`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Permissões para Atendentes (apenas chat e contatos)
-INSERT INTO permissoes_usuario (usuario_id, modulo_id, criado_em) VALUES
-(3, 1, NOW()), -- Dashboard
-(3, 2, NOW()), -- Chat
-(3, 3, NOW()), -- Contatos
-(3, 7, NOW()), -- Conversas Ativas
-(3, 8, NOW()), -- Conversas Pendentes
-(3, 9, NOW()), -- Conversas Fechadas
-(4, 1, NOW()), -- Dashboard
-(4, 2, NOW()), -- Chat  
-(4, 3, NOW()), -- Contatos
-(4, 7, NOW()), -- Conversas Ativas
-(4, 8, NOW()), -- Conversas Pendentes
-(4, 9, NOW()); -- Conversas Fechadas 
+CREATE TABLE `templates_departamento` (
+  `id` int(11) NOT NULL,
+  `departamento_id` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `nome_serpro` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `categoria` varchar(50) DEFAULT 'geral',
+  `parametros` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`parametros`)),
+  `exemplo_parametros` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`exemplo_parametros`)),
+  `status` enum('ativo','inativo') DEFAULT 'ativo',
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `usuarios` (
+  `id` int(11) NOT NULL,
+  `nome` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `senha` varchar(255) NOT NULL,
+  `perfil` enum('admin','supervisor','atendente') DEFAULT 'atendente',
+  `avatar` varchar(255) DEFAULT NULL,
+  `status` enum('ativo','inativo','ausente','ocupado') DEFAULT 'ativo',
+  `max_chats` int(11) DEFAULT 5,
+  `ultimo_acesso` datetime DEFAULT NULL,
+  `token_recuperacao` varchar(64) DEFAULT NULL,
+  `token_expiracao` datetime DEFAULT NULL,
+  `configuracoes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`configuracoes`)),
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Views
+-- --------------------------------------------------------
+
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_credenciais_ativas` AS 
+SELECT 
+    `d`.`id` AS `departamento_id`,
+    `d`.`nome` AS `departamento_nome`,
+    `cs`.`id` AS `credencial_id`,
+    `cs`.`nome` AS `credencial_nome`,
+    `cs`.`status` AS `credencial_status`,
+    `cs`.`prioridade` AS `credencial_prioridade`,
+    `cs`.`ultimo_teste` AS `ultimo_teste`,
+    `cs`.`resultado_teste` AS `resultado_teste`
+FROM `departamentos` `d`
+LEFT JOIN `credenciais_serpro_departamento` `cs` 
+    ON `d`.`id` = `cs`.`departamento_id`
+WHERE `d`.`status` = 'ativo' 
+AND `cs`.`status` = 'ativo'
+ORDER BY `d`.`prioridade` ASC, `cs`.`prioridade` ASC;
+
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_estatisticas_departamento` AS 
+SELECT 
+    `d`.`id` AS `departamento_id`,
+    `d`.`nome` AS `departamento_nome`,
+    `d`.`cor` AS `departamento_cor`,
+    COUNT(`c`.`id`) AS `total_conversas`,
+    SUM(CASE WHEN `c`.`status` = 'aberto' THEN 1 ELSE 0 END) AS `conversas_abertas`,
+    SUM(CASE WHEN `c`.`status` = 'pendente' THEN 1 ELSE 0 END) AS `conversas_pendentes`,
+    SUM(CASE WHEN `c`.`status` = 'fechado' THEN 1 ELSE 0 END) AS `conversas_fechadas`,
+    COUNT(DISTINCT `c`.`atendente_id`) AS `atendentes_ativos`,
+    AVG(`c`.`tempo_resposta_medio`) AS `tempo_resposta_medio`
+FROM `departamentos` `d`
+LEFT JOIN `conversas` `c` 
+    ON `d`.`id` = `c`.`departamento_id`
+WHERE `d`.`status` = 'ativo'
+GROUP BY `d`.`id`, `d`.`nome`, `d`.`cor`;
+
+-- --------------------------------------------------------
+-- Índices
+-- --------------------------------------------------------
+
+ALTER TABLE `atendentes_departamento`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_usuario_departamento` (`usuario_id`,`departamento_id`),
+  ADD KEY `idx_departamento` (`departamento_id`),
+  ADD KEY `idx_status` (`status`);
+
+ALTER TABLE `atividades`
+  ADD PRIMARY KEY (`id`);
+
+ALTER TABLE `configuracoes`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `chave_unique` (`chave`),
+  ADD KEY `idx_chave` (`chave`);
+
+ALTER TABLE `contatos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_numero` (`numero`),
+  ADD KEY `idx_sessao` (`sessao_id`),
+  ADD KEY `idx_telefone` (`telefone`),
+  ADD KEY `idx_ultimo_contato` (`ultimo_contato`);
+
+ALTER TABLE `contato_tags`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `contato_tag_unique` (`contato_id`,`tag`),
+  ADD KEY `idx_tag` (`tag`);
+
+ALTER TABLE `conversas`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_atendente` (`atendente_id`),
+  ADD KEY `idx_contato` (`contato_id`),
+  ADD KEY `idx_sessao` (`sessao_id`),
+  ADD KEY `idx_departamento` (`departamento`),
+  ADD KEY `fk_conversa_departamento` (`departamento_id`);
+
+ALTER TABLE `credenciais_serpro_departamento`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_departamento` (`departamento_id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_prioridade` (`prioridade`);
+
+ALTER TABLE `departamentos`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `nome` (`nome`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_prioridade` (`prioridade`);
+
+ALTER TABLE `log_acessos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_usuario_log` (`usuario_id`);
+
+ALTER TABLE `mensagens`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_conversa` (`conversa_id`),
+  ADD KEY `idx_contato` (`contato_id`),
+  ADD KEY `idx_direcao` (`direcao`),
+  ADD KEY `idx_data` (`criado_em`),
+  ADD KEY `fk_mensagem_atendente` (`atendente_id`);
+
+ALTER TABLE `mensagens_automaticas_departamento`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_departamento` (`departamento_id`),
+  ADD KEY `idx_tipo` (`tipo`),
+  ADD KEY `idx_ativo` (`ativo`);
+
+ALTER TABLE `modulos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_pai_modulo` (`pai_id`);
+
+ALTER TABLE `sessoes_whatsapp`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `numero` (`numero`),
+  ADD KEY `idx_departamento` (`departamento_id`);
+
+ALTER TABLE `templates_departamento`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_departamento` (`departamento_id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_categoria` (`categoria`);
+
+ALTER TABLE `usuarios`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+-- --------------------------------------------------------
+-- AUTO_INCREMENT
+-- --------------------------------------------------------
+
+ALTER TABLE `atendentes_departamento`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `atividades`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `configuracoes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `contatos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `contato_tags`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `conversas`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `credenciais_serpro_departamento`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `departamentos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `log_acessos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `mensagens`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `mensagens_automaticas_departamento`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `modulos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `sessoes_whatsapp`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `templates_departamento`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `usuarios`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+-- --------------------------------------------------------
+-- Relacionamentos
+-- --------------------------------------------------------
+
+ALTER TABLE `atendentes_departamento`
+  ADD CONSTRAINT `fk_atendente_departamento` FOREIGN KEY (`departamento_id`) REFERENCES `departamentos` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_atendente_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `contatos`
+  ADD CONSTRAINT `fk_contato_sessao` FOREIGN KEY (`sessao_id`) REFERENCES `sessoes_whatsapp` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `contato_tags`
+  ADD CONSTRAINT `fk_contato_tags_contato` FOREIGN KEY (`contato_id`) REFERENCES `contatos` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `conversas`
+  ADD CONSTRAINT `fk_conversa_atendente` FOREIGN KEY (`atendente_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_conversa_contato` FOREIGN KEY (`contato_id`) REFERENCES `contatos` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_conversa_departamento` FOREIGN KEY (`departamento_id`) REFERENCES `departamentos` (`id`),
+  ADD CONSTRAINT `fk_conversa_sessao` FOREIGN KEY (`sessao_id`) REFERENCES `sessoes_whatsapp` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `credenciais_serpro_departamento`
+  ADD CONSTRAINT `fk_credencial_departamento` FOREIGN KEY (`departamento_id`) REFERENCES `departamentos` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `log_acessos`
+  ADD CONSTRAINT `fk_usuario_log` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL;
+
+ALTER TABLE `mensagens`
+  ADD CONSTRAINT `fk_mensagem_atendente` FOREIGN KEY (`atendente_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_mensagem_contato` FOREIGN KEY (`contato_id`) REFERENCES `contatos` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_mensagem_conversa` FOREIGN KEY (`conversa_id`) REFERENCES `conversas` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `mensagens_automaticas_departamento`
+  ADD CONSTRAINT `fk_mensagem_auto_departamento` FOREIGN KEY (`departamento_id`) REFERENCES `departamentos` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `modulos`
+  ADD CONSTRAINT `fk_pai_modulo` FOREIGN KEY (`pai_id`) REFERENCES `modulos` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `sessoes_whatsapp`
+  ADD CONSTRAINT `fk_sessao_departamento` FOREIGN KEY (`departamento_id`) REFERENCES `departamentos` (`id`) ON DELETE SET NULL;
+
+ALTER TABLE `templates_departamento`
+  ADD CONSTRAINT `fk_template_departamento` FOREIGN KEY (`departamento_id`) REFERENCES `departamentos` (`id`) ON DELETE CASCADE;
+
+-- --------------------------------------------------------
+-- Triggers
+-- --------------------------------------------------------
+
+DELIMITER $$
+CREATE TRIGGER `tr_credenciais_update` BEFORE UPDATE ON `credenciais_serpro_departamento` FOR EACH ROW 
+BEGIN
+    SET NEW.atualizado_em = NOW();
+END
+$$
+
+CREATE TRIGGER `tr_departamentos_update` BEFORE UPDATE ON `departamentos` FOR EACH ROW 
+BEGIN
+    SET NEW.atualizado_em = NOW();
+END
+$$
+DELIMITER ;
+
+COMMIT;

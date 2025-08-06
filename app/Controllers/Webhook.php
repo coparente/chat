@@ -790,18 +790,42 @@ class Webhook extends Controllers
     private function baixarESalvarMidiaMinIO($midiaId, $tipo, $mimeType, $filename = null)
     {
         try {
-            // Passo 1: Baixar mídia da API SERPRO
-            $serproApi = new SerproApi();
+            // Passo 1: Identificar departamento para obter credenciais corretas
+            $departamentoId = $this->identificarDepartamentoParaMidia();
+            
+            if (!$departamentoId) {
+                error_log("❌ Não foi possível identificar departamento para download de mídia");
+                return [
+                    'sucesso' => false,
+                    'erro' => 'Departamento não identificado para download de mídia'
+                ];
+            }
+            
+            // Passo 2: Obter credenciais do departamento
+            $credencialSerproModel = new CredencialSerproModel();
+            $credencial = $credencialSerproModel->buscarCredencialAtiva($departamentoId);
+            
+            if (!$credencial) {
+                error_log("❌ Credencial não encontrada para departamento ID: {$departamentoId}");
+                return [
+                    'sucesso' => false,
+                    'erro' => 'Credencial não encontrada para o departamento'
+                ];
+            }
+            
+            // Passo 3: Configurar SerproApi com credenciais específicas
+            $serproApi = new SerproApi($credencial);
             $resultadoDownload = $serproApi->downloadMidia($midiaId);
             
             if ($resultadoDownload['status'] !== 200) {
+                error_log("❌ Erro ao baixar mídia da API SERPRO: " . ($resultadoDownload['error'] ?? 'Status ' . $resultadoDownload['status']));
                 return [
                     'sucesso' => false,
                     'erro' => 'Erro ao baixar mídia da API SERPRO: ' . ($resultadoDownload['error'] ?? 'Status ' . $resultadoDownload['status'])
                 ];
             }
             
-            // Passo 2: Upload para MinIO
+            // Passo 4: Upload para MinIO
             $resultadoUpload = MinioHelper::uploadMidia(
                 $resultadoDownload['data'], 
                 $tipo, 
@@ -837,6 +861,57 @@ class Webhook extends Controllers
                 'erro' => 'Exceção: ' . $e->getMessage()
             ];
         }
+    }
+    
+    /**
+     * [ identificarDepartamentoParaMidia ] - Identifica departamento para download de mídia
+     * 
+     * @return int|null ID do departamento
+     */
+    private function identificarDepartamentoParaMidia()
+    {
+        try {
+            // Tentar obter departamento da conversa atual
+            $conversaAtual = $this->obterConversaAtual();
+            if ($conversaAtual && $conversaAtual->departamento_id) {
+                return $conversaAtual->departamento_id;
+            }
+            
+            // Se não há conversa atual, usar departamento padrão
+            $departamentoModel = new DepartamentoModel();
+            $departamentoPadrao = $departamentoModel->buscarDepartamentoPadrao();
+            
+            if ($departamentoPadrao) {
+                return $departamentoPadrao->id;
+            }
+            
+            // Se não há departamento padrão, usar o primeiro ativo
+            $departamentos = $departamentoModel->listarDepartamentosAtivos();
+            if (!empty($departamentos)) {
+                return $departamentos[0]->id;
+            }
+            
+            return null;
+            
+        } catch (Exception $e) {
+            error_log("❌ Erro ao identificar departamento para mídia: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * [ obterConversaAtual ] - Obtém conversa atual do contexto
+     * 
+     * @return object|null Conversa atual
+     */
+    private function obterConversaAtual()
+    {
+        // Esta é uma implementação simplificada
+        // Em um sistema real, você pode armazenar o contexto da conversa
+        // ou usar outras estratégias para identificar a conversa atual
+        
+        // Por enquanto, retornar null para usar departamento padrão
+        return null;
     }
 
     /**
