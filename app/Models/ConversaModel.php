@@ -201,8 +201,8 @@ class ConversaModel
         
         $sql = "
             SELECT 
-                COUNT(DISTINCT c.id) as conversas_hoje,
-                COUNT(DISTINCT m.id) as mensagens_hoje,
+                COUNT(DISTINCT c.id) as conversas_atendidas,
+                COUNT(DISTINCT m.id) as total_mensagens,
                 AVG(c.tempo_resposta_medio) as tempo_medio_resposta
             FROM conversas c
             LEFT JOIN mensagens m ON c.id = m.conversa_id
@@ -818,6 +818,69 @@ class ConversaModel
         
         $this->db->query($sql);
         $this->db->bind(':atendente_id', $atendenteId);
+        $this->db->bind(':limite', $limite);
+        return $this->db->resultados();
+    }
+
+    /**
+     * [ contarConversasFechadas ] - Conta conversas fechadas hoje
+     * 
+     * @param string $data Data para análise (padrão hoje)
+     * @return int Número de conversas fechadas
+     */
+    public function contarConversasFechadas($data = null)
+    {
+        if (!$data) {
+            $data = date('Y-m-d');
+        }
+        
+        $sql = "SELECT COUNT(*) as total FROM conversas 
+                WHERE status = 'fechado' 
+                AND DATE(atualizado_em) = :data";
+        
+        $this->db->query($sql);
+        $this->db->bind(':data', $data);
+        $resultado = $this->db->resultado();
+        return $resultado ? $resultado->total : 0;
+    }
+
+    /**
+     * [ getConversasFechadas ] - Busca conversas fechadas
+     * 
+     * @param int $limite Limite de resultados
+     * @param string $data Data para análise (padrão hoje)
+     * @return array Lista de conversas fechadas
+     */
+    public function getConversasFechadas($limite = 10, $data = null)
+    {
+        if (!$data) {
+            $data = date('Y-m-d');
+        }
+        
+        $sql = "
+            SELECT 
+                c.id,
+                ct.nome as contato_nome,
+                ct.numero,
+                u.nome as atendente_nome,
+                c.status,
+                c.criado_em,
+                c.atualizado_em,
+                c.departamento_id,
+                d.nome as departamento_nome,
+                d.cor as departamento_cor
+            FROM conversas c
+            LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN usuarios u ON c.atendente_id = u.id
+            LEFT JOIN departamentos d ON c.departamento_id = d.id
+            WHERE c.status = 'fechado'
+            AND DATE(c.atualizado_em) = :data
+            ORDER BY c.atualizado_em DESC
+            LIMIT :limite
+        ";
+        
+        $this->db->query($sql);
+        $this->db->bind(':data', $data);
         $this->db->bind(':limite', $limite);
         return $this->db->resultados();
     }

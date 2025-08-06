@@ -127,6 +127,10 @@ class Dashboard extends Controllers
         // Conversas em andamento
         $dados['conversas_ativas'] = $this->conversaModel->getConversasAtivas(10);
 
+        // Conversas fechadas hoje
+        $dados['conversas_fechadas'] = $this->conversaModel->getConversasFechadas(10);
+        $dados['total_conversas_fechadas'] = $this->conversaModel->contarConversasFechadas();
+
         // Atendentes online
         $dados['atendentes_online'] = $this->usuarioModel->getAtendentesOnline(5);
 

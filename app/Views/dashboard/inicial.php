@@ -287,6 +287,80 @@ $usuario = [
                         </div>
                     <?php endif; ?>
 
+                    <?php if ($tipo_dashboard === 'supervisor' && isset($atendentes_online)): ?>
+                        <!-- Atendentes Online (Supervisor) -->
+                        <div class="content-card">
+                            <div class="content-card-header">
+                                <h3 class="content-card-title">Atendentes Online</h3>
+                                <span class="badge bg-success"><?= count($atendentes_online) ?></span>
+                            </div>
+                            <div class="content-card-body">
+                                <?php if (empty($atendentes_online)): ?>
+                                    <p class="text-muted text-center">Nenhum atendente online</p>
+                                <?php else: ?>
+                                    <ul class="item-list">
+                                        <?php foreach ($atendentes_online as $atendente): ?>
+                                            <li style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0;">
+                                                <div class="item-info" style="display: flex; align-items: center; flex: 1;">
+                                                    <div class="item-avatar">
+                                                        <?php 
+                                                        // Criar iniciais únicas baseadas no nome
+                                                        $nomes = explode(' ', trim($atendente->nome));
+                                                        if (count($nomes) >= 2) {
+                                                            $iniciais = strtoupper(substr($nomes[0], 0, 1) . substr($nomes[count($nomes)-1], 0, 1));
+                                                        } else {
+                                                            $iniciais = strtoupper(substr($atendente->nome, 0, 2));
+                                                        }
+                                                        echo $iniciais;
+                                                        ?>
+                                                    </div>
+                                                    <div class="item-details">
+                                                        <h6><?= $atendente->nome ?></h6>
+                                                        <small><?= ucfirst($atendente->status) ?></small>
+                                                    </div>
+                                                </div>
+                                                <?php 
+                                                // Determinar status baseado no último acesso
+                                                $ultimoAcesso = strtotime($atendente->ultimo_acesso);
+                                                $agora = time();
+                                                $diferencaMinutos = ($agora - $ultimoAcesso) / 60;
+                                                
+                                                $statusClass = 'offline';
+                                                $statusText = 'Offline';
+                                                $statusColor = '#808080';
+                                                
+                                                if ($diferencaMinutos <= 5) {
+                                                    // Online (últimos 5 minutos)
+                                                    $statusClass = 'online';
+                                                    $statusText = 'Online';
+                                                    $statusColor = '#00ff00';
+                                                } elseif ($diferencaMinutos <= 15) {
+                                                    // Ausente (últimos 15 minutos)
+                                                    $statusClass = 'away';
+                                                    $statusText = 'Ausente';
+                                                    $statusColor = '#ffff00';
+                                                } else {
+                                                    // Offline (mais de 15 minutos)
+                                                    $statusClass = 'offline';
+                                                    $statusText = 'Offline';
+                                                    $statusColor = '#808080';
+                                                }
+                                                ?>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+                                                    <span class="status-indicator status-<?= $statusClass ?>" 
+                                                          style="background-color: <?= $statusColor ?> !important; 
+                                                                 background: <?= $statusColor ?> !important; 
+                                                                 border-color: <?= $statusColor ?> !important;"></span>
+                                                    <small style="color: #6c757d; font-size: 0.75rem; font-weight: 500;"><?= $statusText ?></small>
+                                                </div>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($tipo_dashboard === 'supervisor' && isset($conversas_ativas)): ?>
                         <!-- Conversas Ativas -->
                         <div class="content-card">
@@ -311,6 +385,36 @@ $usuario = [
                                                     </div>
                                                 </div>
                                                 <span class="badge bg-<?= $conversa->status === 'aberto' ? 'success' : 'warning' ?>"><?= ucfirst($conversa->status) ?></span>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Conversas Fechadas -->
+                        <div class="content-card">
+                            <div class="content-card-header">
+                                <h3 class="content-card-title">Conversas Finalizadas Hoje</h3>
+                                <span class="badge bg-secondary"><?= $total_conversas_fechadas ?? 0 ?></span>
+                            </div>
+                            <div class="content-card-body">
+                                <?php if (empty($conversas_fechadas)): ?>
+                                    <p class="text-muted text-center">Nenhuma conversa finalizada hoje</p>
+                                <?php else: ?>
+                                    <ul class="item-list">
+                                        <?php foreach (array_slice($conversas_fechadas, 0, 5) as $conversa): ?>
+                                            <li>
+                                                <div class="item-info">
+                                                    <div class="item-avatar">
+                                                        <i class="fas fa-user-check"></i>
+                                                    </div>
+                                                    <div class="item-details">
+                                                        <h6><?= $conversa->contato_nome ?: $conversa->numero ?></h6>
+                                                        <small><?= $conversa->atendente_nome ?: 'Sem atendente' ?> • <?= Helper::dataBr($conversa->atualizado_em) ?></small>
+                                                    </div>
+                                                </div>
+                                                <span class="badge bg-success">Finalizada</span>
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>

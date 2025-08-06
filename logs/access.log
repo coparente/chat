@@ -1,0 +1,45 @@
+{
+    "timestamp": "2025-08-06 16:06:19",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36"
+    },
+    "url": "\/chat\/login",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": "N\/A",
+    "session_id": "i1j6hv09pnad3imcc8cqe3qhi9"
+}
+{
+    "timestamp": "2025-08-06 16:10:04",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36"
+    },
+    "url": "\/chat\/login",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": "N\/A",
+    "session_id": "rn2ktd01lta0drb9o36254v24c"
+}
+{
+    "timestamp": "2025-08-06 16:10:57",
+    "level": "INFO",
+    "message": "Acesso à página de login",
+    "context": {
+        "ip": "127.0.0.1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36"
+    },
+    "url": "\/chat\/login",
+    "method": "GET",
+    "ip": "127.0.0.1",
+    "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36",
+    "user_id": "N\/A",
+    "session_id": "smjvniragno87q7a8lekpvc938"
+}
