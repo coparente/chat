@@ -1803,7 +1803,7 @@ class Chat extends Controllers
         $tamanhoMax = 16 * 1024 * 1024; // 16MB
         $tiposPermitidos = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/mp4',
+            'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/wav', 'audio/mp4',
             'video/mp4', 'video/avi', 'video/mov', 'video/wmv',
             'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1844,7 +1844,10 @@ class Chat extends Controllers
     }
 
     /**
-     * [ limparNumero ] - Limpa número de telefone
+     * [ limparNumero ] - Limpa e formata número de telefone
+     * 
+     * @param string $numero Número a ser limpo
+     * @return string Número formatado
      */
     private function limparNumero($numero)
     {
@@ -1856,9 +1859,127 @@ class Chat extends Controllers
             $numero = substr($numero, 1);
         }
         
-        // Se não começar com 55, adiciona (código do Brasil)
-        if (substr($numero, 0, 2) !== '55') {
+        // ✅ NOVA LÓGICA: Verificar se é número brasileiro antes de adicionar 55
+        $ddi = substr($numero, 0, 2);
+        
+        // Se não começar com 55 e não for outro DDI conhecido, adiciona 55 (código do Brasil)
+        if (substr($numero, 0, 2) !== '55' && !$this->isOutroDDI($ddi)) {
             $numero = '55' . $numero;
+        }
+        
+        // ✅ NOVA REGRA: Adicionar dígito 9 para áreas específicas
+        $numero = $this->adicionarDigito9($numero);
+        
+        return $numero;
+    }
+
+    /**
+     * [ isOutroDDI ] - Verifica se é um DDI de outro país
+     * 
+     * @param string $ddi DDI a verificar
+     * @return bool True se é DDI de outro país
+     */
+    private function isOutroDDI($ddi)
+    {
+        // Lista de DDIs de outros países comuns
+        $outrosDDIs = [
+            '1',   // EUA/Canadá
+            '33',  // França
+            '34',  // Espanha
+            '39',  // Itália
+            '44',  // Reino Unido
+            '49',  // Alemanha
+            '52',  // México
+            '54',  // Argentina
+            '56',  // Chile
+            '57',  // Colômbia
+            '58',  // Venezuela
+            '593', // Equador
+            '595', // Paraguai
+            '598', // Uruguai
+            '51',  // Peru
+            '591', // Bolívia
+            '593', // Equador
+            '595', // Paraguai
+            '598', // Uruguai
+            '51',  // Peru
+            '591', // Bolívia
+        ];
+        
+        return in_array($ddi, $outrosDDIs);
+    }
+
+    /**
+     * [ adicionarDigito9 ] - Adiciona dígito 9 para áreas específicas
+     * 
+     * Regra: Para números das áreas 11-19, 21, 22, 24, 27, 28 (SP, RJ, ES)
+     * é obrigatório incluir o dígito 9 antes do número de celular
+     * 
+     * Aplica APENAS para:
+     * - Números brasileiros (DDI 55)
+     * - Números de celular (não fixo)
+     * - Áreas específicas que precisam do dígito 9
+     * 
+     * @param string $numero Número já com código do Brasil (55)
+     * @return string Número com dígito 9 adicionado se necessário
+     */
+    private function adicionarDigito9($numero)
+    {
+        // ✅ Verificar se é número brasileiro (DDI 55)
+        if (substr($numero, 0, 2) !== '55') {
+            // Se não é brasileiro, retornar sem alteração
+            Logger::info('Número não brasileiro - dígito 9 não aplicado', [
+                'numero' => $numero,
+                'ddi' => substr($numero, 0, 2)
+            ]);
+            return $numero;
+        }
+        
+        // Verificar se já tem 13 dígitos (55 + 2 DDD + 9 + 8 celular)
+        if (strlen($numero) === 13) {
+            return $numero; // Já está no formato correto
+        }
+        
+        // Verificar se tem 12 dígitos (55 + 2 DDD + 8 celular)
+        if (strlen($numero) === 12) {
+            $ddd = substr($numero, 2, 2); // Extrair DDD
+            
+            // ✅ Verificar se é número de celular (não fixo)
+            // Números de celular começam com 6, 7, 8, 9
+            // Números fixos começam com 2, 3, 4, 5
+            $primeiroDigitoCelular = substr($numero, 4, 1);
+            $digitosCelular = ['6', '7', '8', '9'];
+            
+            if (!in_array($primeiroDigitoCelular, $digitosCelular)) {
+                // É número fixo - não aplicar dígito 9
+                Logger::info('Número fixo - dígito 9 não aplicado', [
+                    'numero' => $numero,
+                    'ddd' => $ddd,
+                    'primeiro_digito' => $primeiroDigitoCelular
+                ]);
+                return $numero;
+            }
+            
+            // ✅ Áreas que precisam do dígito 9 (APENAS estas)
+            $areasComDigito9 = ['11', '12', '13', '14', '15', '16', '17', '18', '19', '21', '22', '24', '27', '28'];
+            
+            if (in_array($ddd, $areasComDigito9)) {
+                // Adicionar dígito 9 após o DDD
+                $numero = substr($numero, 0, 4) . '9' . substr($numero, 4);
+                // Se chegou aqui, a validação passou
+                Logger::info('Dígito 9 adicionado para DDD '. $ddd, [
+                    'numero' => $numero,
+                    'ddd' => $ddd,
+                    'tipo' => 'celular'
+                ]);
+            } else {
+                // Área não está na lista - não aplicar dígito 9
+                Logger::info('Área não aplicável para dígito 9', [
+                    'numero' => $numero,
+                    'ddd' => $ddd,
+                    'areas_aplicaveis' => $areasComDigito9
+                ]);
+            }
         }
         
         return $numero;
@@ -2224,6 +2345,254 @@ class Chat extends Controllers
             echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
         }
         
+        exit;
+    }
+
+    /**
+     * [ enviarAudio ] - Enviar áudio gravado via JavaScript
+     */
+    public function enviarAudio()
+    {
+        // Suprimir avisos de depreciação do AWS SDK
+        error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+        ini_set('display_errors', 0);
+        
+        // Definir variável de ambiente para suprimir aviso do AWS SDK
+        putenv('AWS_SUPPRESS_PHP_DEPRECATION_WARNING=true');
+        
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        $conversaId = $_POST['conversa_id'] ?? null;
+        $audioData = $_POST['audio'] ?? null;
+
+        if (!$conversaId) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Conversa é obrigatória']);
+            exit;
+        }
+
+        // Verificar se a conversa existe e está ativa
+        $conversa = $this->verificarConversa($conversaId);
+        
+        if (!$conversa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+            exit;
+        }
+
+        // ✅ NOVO: Verificar se o atendente tem permissão para esta conversa
+        if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Você não tem permissão para enviar áudios nesta conversa']);
+            exit;
+        }
+
+        // Verificar se conversa ainda está dentro do prazo (24h)
+        if (!$this->conversaAindaAtiva($conversa)) {
+            http_response_code(410);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Conversa expirada. Envie um novo template para reiniciar o contato.',
+                'expirada' => true
+            ]);
+            exit;
+        }
+
+        // Verificar se o contato já respondeu
+        if (!$this->contatoJaRespondeu($conversaId)) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Aguarde o contato responder ao template antes de enviar áudios.'
+            ]);
+            exit;
+        }
+
+        // ✅ NOVO: Processar áudio gravado
+        $audioData = $_POST['audio'] ?? null;
+        
+        if (!$audioData) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Dados de áudio não encontrados']);
+            exit;
+        }
+
+        // Decodificar dados do áudio (base64)
+        $audioDecoded = base64_decode(str_replace('data:audio/ogg;base64,', '', $audioData));
+        
+        if (!$audioDecoded) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Erro ao decodificar áudio']);
+            exit;
+        }
+
+        // ✅ NOVO: Criar arquivo temporário
+        $tempFile = tempnam(sys_get_temp_dir(), 'audio_');
+        $bytesWritten = file_put_contents($tempFile, $audioDecoded);
+        
+        if ($bytesWritten === false) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro ao criar arquivo temporário']);
+            exit;
+        }
+        
+        // Criar array de arquivo similar ao $_FILES
+        $arquivo = [
+            'name' => 'audio.ogg',
+            'type' => 'audio/ogg',
+            'tmp_name' => $tempFile,
+            'error' => 0,
+            'size' => strlen($audioDecoded)
+        ];
+
+        // Validar arquivo
+        $validacao = $this->validarArquivo($arquivo);
+        if (!$validacao['success']) {
+            unlink($tempFile); // Limpar arquivo temporário
+            http_response_code(400);
+            echo json_encode($validacao);
+            exit;
+        }
+
+        // Determinar tipo de mídia
+        $tipoMidia = $this->determinarTipoMidia($arquivo);
+
+        // ✅ NOVO: Upload para MinIO
+        try {
+            $uploadMinio = MinioHelper::uploadMidia(
+                file_get_contents($arquivo['tmp_name']),
+                $tipoMidia,
+                $arquivo['type'],
+                $arquivo['name']
+            );
+
+            if (!$uploadMinio['sucesso']) {
+                Logger::info('❌ Erro ao fazer upload para MinIO: ' . $uploadMinio['erro']);
+                $caminhoMinio = null;
+                $urlMinio = null;
+            } else {
+                $caminhoMinio = $uploadMinio['caminho_minio'];
+                $urlMinio = $uploadMinio['url_minio'];
+            }
+        } catch (Exception $e) {
+            Logger::info('❌ Erro no upload MinIO: ' . $e->getMessage());
+            $caminhoMinio = null;
+            $urlMinio = null;
+        }
+
+        // Fazer upload do arquivo para API Serpro
+        $departamentoId = $conversa->departamento_id;
+        $uploadResult = null;
+        
+        try {
+            // ✅ NOVO: Obter credencial do departamento
+            $credencialSerproModel = new CredencialSerproModel();
+            $credencial = $credencialSerproModel->obterCredencialAtiva($departamentoId);
+
+            if (!$credencial) {
+                throw new Exception('Credencial do departamento não encontrada');
+            }
+
+            // ✅ NOVO: Inicializar SerproApi com a credencial do departamento
+            $serproApi = new SerproApi($credencial);
+
+            // ✅ NOVO: Primeiro fazer upload do arquivo
+            $uploadResult = $serproApi->uploadMidia($arquivo, $arquivo['type']);
+            
+            if ($uploadResult['status'] >= 200 && $uploadResult['status'] < 300) {
+                $idMedia = $uploadResult['response']['id'] ?? null;
+                
+                if (!$idMedia) {
+                    throw new Exception('ID da mídia não retornado pela API');
+                }
+                
+                // ✅ NOVO: Agora enviar a mídia
+                $resultadoEnvio = $serproApi->enviarMidia(
+                    $conversa->numero,
+                    $tipoMidia,
+                    $idMedia,
+                    null, // ✅ CORREÇÃO: Não enviar caption para áudio
+                    null,
+                    null
+                );
+                
+                if ($resultadoEnvio['status'] >= 200 && $resultadoEnvio['status'] < 300) {
+                    $uploadResult = $resultadoEnvio;
+                } else {
+                    throw new Exception('Erro ao enviar mídia: ' . ($resultadoEnvio['error'] ?? 'Erro desconhecido'));
+                }
+            } else {
+                throw new Exception('Erro no upload: ' . ($uploadResult['error'] ?? 'Erro desconhecido'));
+            }
+
+        } catch (Exception $e) {
+            Logger::info('❌ Erro ao enviar áudio via API Serpro: ' . $e->getMessage());
+            unlink($tempFile); // Limpar arquivo temporário
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro ao enviar áudio: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+
+        // Limpar arquivo temporário
+        unlink($tempFile);
+
+        // ✅ CORREÇÃO: Verificar se o envio foi bem-sucedido baseado no status
+        if (!$uploadResult || $uploadResult['status'] < 200 || $uploadResult['status'] >= 300) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro ao enviar áudio via API Serpro'
+            ]);
+            exit;
+        }
+
+        // ✅ NOVO: Salvar mensagem no banco
+        $contatoId = $conversa->contato_id;
+        $this->salvarMensagemMidia(
+            $conversaId,
+            $contatoId,
+            $tipoMidia,
+            $arquivo,
+            'Áudio gravado', // ✅ CORREÇÃO: Usar legenda padrão para áudio
+            $uploadResult,
+            $caminhoMinio,
+            $urlMinio
+        );
+
+        // ✅ NOVO: Registrar atividade
+        LogHelper::enviarMensagem($_SESSION['usuario_id'], $conversaId, 'áudio');
+
+        // ✅ NOVO: Atualizar última mensagem da conversa
+        $this->conversaModel->atualizarConversa($conversaId, [
+            'ultima_mensagem' => date('Y-m-d H:i:s')
+        ]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Áudio enviado com sucesso!',
+            'data' => [
+                'conversa_id' => $conversaId,
+                'tipo' => $tipoMidia,
+                'legenda' => 'Áudio gravado', // ✅ CORREÇÃO: Usar legenda padrão para áudio
+                'caminho_minio' => $caminhoMinio,
+                'url_minio' => $urlMinio
+            ]
+        ]);
         exit;
     }
 }

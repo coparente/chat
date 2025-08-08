@@ -77,6 +77,7 @@ Route::group(['middleware' => ['auth']], function() {
         // Mensagens
         Route::post('/enviar-mensagem', 'Chat@enviarMensagem');
         Route::post('/enviar-midia', 'Chat@enviarMidia');
+        Route::post('/enviar-audio', 'Chat@enviarAudio'); // ✅ NOVO: Rota para enviar áudio gravado
         Route::get('/buscar-mensagens/{conversa_id}', 'Chat@buscarMensagens');
         Route::post('/marcar-lida/{mensagem_id}', 'Chat@marcarComoLida');
         

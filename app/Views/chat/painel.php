@@ -332,11 +332,14 @@ $usuario = [
                             <!-- Área de Digitação -->
                             <div class="chat-input-area" id="chatInputArea">
                                 <div class="input-group">
-                                    <button class="btn btn-outline-secondary" type="button" id="btnAnexar">
+                                    <button type="button" class="btn btn-outline-secondary" id="btnAnexo" title="Anexar arquivo">
                                         <i class="fas fa-paperclip"></i>
                                     </button>
-                                    <input type="text" class="form-control" id="messageInput" placeholder="Digite sua mensagem...">
-                                    <button class="btn btn-primary" type="button" id="btnEnviar">
+                                    <button type="button" class="btn btn-outline-secondary" id="btnGravarAudio" title="Gravar áudio">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                    <input type="text" class="form-control" id="mensagem" placeholder="Digite sua mensagem..." maxlength="1000">
+                                    <button type="button" class="btn btn-primary" id="btnEnviar">
                                         <i class="fas fa-paper-plane"></i>
                                     </button>
                                 </div>
@@ -371,6 +374,11 @@ $usuario = [
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Importante:</strong> A primeira mensagem sempre deve ser um template. Você só poderá enviar mensagens de texto após o contato responder.
                         </div>
+                        <!-- <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Atenção:</strong> Se você for enviar mensagens para números das áreas 11 a 19, 21, 22, 24, 27 ou 28, nos estados de São Paulo, Rio de Janeiro ou Espírito Santo, não se esqueça de incluir o dígito 9 antes do número de celular.
+                            Essa mudança é obrigatória para mensagens enviadas a celulares dessas regiões.
+                        </div> -->
 
                         <div class="row">
                             <div class="col-md-6">
@@ -431,6 +439,65 @@ $usuario = [
                             <h6 class="mb-3">Parâmetros do Template</h6>
                             <div id="parametrosInputs">
                                 <!-- Inputs dos parâmetros serão adicionados aqui -->
+                            </div>
+                        </div>
+
+                        <!-- Mensagens Rápidas -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">
+                                    <i class="fas fa-bolt me-1"></i>
+                                    Mensagens Rápidas
+                                </label>
+                                <button type="button" class="btn btn-sm btn-secondary" id="toggleMensagensRapidas">
+                                    <i class="fas fa-chevron-down me-1"></i>
+                                    Mostrar
+                                </button>
+                            </div>
+                            <div class="mensagens-rapidas" id="mensagensRapidasContainer" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0"><i class="fas fa-gavel me-1"></i> Intimações</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mensagem-rapida" data-mensagem="Somos da Central de Intimação do Tribunal de Justiça do Estado de Goiás (TJGO) ⚖️. Informamos que existe um processo judicial em seu nome, de número XX, em andamento na Comarca de XX.">
+                                                    <i class="fas fa-copy me-1"></i>
+                                                    Somos da Central de Intimação do Tribunal de Justiça do Estado de Goiás (TJGO) ⚖️. Informamos que existe um processo judicial em seu nome, de número XX, em andamento na Comarca de XX.
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0"><i class="fas fa-info-circle me-1"></i> Informações</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mensagem-rapida" data-mensagem="Informações sobre processo judicial">
+                                                    <i class="fas fa-copy me-1"></i>
+                                                    Informações sobre processo judicial
+                                                </div>
+                                                <div class="mensagem-rapida" data-mensagem="Agendamento de audiência">
+                                                    <i class="fas fa-copy me-1"></i>
+                                                    Agendamento de audiência
+                                                </div>
+                                                <div class="mensagem-rapida" data-mensagem="Consulta de andamento processual">
+                                                    <i class="fas fa-copy me-1"></i>
+                                                    Consulta de andamento processual
+                                                </div>
+                                                <div class="mensagem-rapida" data-mensagem="Orientações sobre procedimento">
+                                                    <i class="fas fa-copy me-1"></i>
+                                                    Orientações sobre procedimento
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                
                             </div>
                         </div>
                     </form>
@@ -575,8 +642,178 @@ $usuario = [
         </div>
     </div>
 
+    <!-- Modal de Upload -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-paperclip me-2"></i>
+                        Anexar Arquivo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm">
+                        <div class="mb-3">
+                            <label for="arquivo" class="form-label">Selecione o arquivo:</label>
+                            <input type="file" class="form-control" id="arquivo" accept="image/*,video/*,audio/*,.pdf,.doc,.docx">
+                        </div>
+                        <div class="mb-3">
+                            <label for="legenda" class="form-label">Legenda (opcional):</label>
+                            <textarea class="form-control" id="legenda" rows="3" placeholder="Digite uma legenda para o arquivo..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnEnviarArquivo">
+                        <i class="fas fa-paper-plane me-1"></i>
+                        Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Gravação de Áudio -->
+    <div class="modal fade" id="audioModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-microphone me-2"></i>
+                        Gravar Áudio
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="audio-recorder">
+                        <div class="recorder-status mb-3">
+                            <i class="fas fa-microphone fa-2x text-primary" id="micIcon"></i>
+                            <div class="recording-time mt-2" id="recordingTime">00:00</div>
+                            <div class="recording-status" id="recordingStatus">Clique para começar</div>
+                        </div>
+                        
+                        <div class="recorder-controls">
+                            <button type="button" class="btn btn-danger btn-lg" id="btnIniciarGravacao">
+                                <i class="fas fa-microphone"></i>
+                                Iniciar
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg d-none" id="btnPararGravacao">
+                                <i class="fas fa-stop"></i>
+                                Parar
+                            </button>
+                        </div>
+                        
+                        <div class="audio-preview mt-3 d-none" id="audioPreview">
+                            <audio controls class="w-100">
+                                <source id="audioSource" src="" type="audio/wav">
+                                Seu navegador não suporta o elemento de áudio.
+                            </audio>
+                        </div>
+                        
+                        <div class="audio-actions mt-3 d-none" id="audioActions">
+                            <div class="mb-3">
+                                <label for="legendaAudio" class="form-label">Legenda (opcional):</label>
+                                <input type="text" class="form-control" id="legendaAudio" placeholder="Digite uma legenda para o áudio...">
+                            </div>
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRegravar">
+                                    <i class="fas fa-redo"></i>
+                                    Regravar
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" id="btnEnviarAudio">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Enviar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <?php include 'app/Views/include/linkjs.php' ?>
+
+    <style>
+        /* Estilos para o Gravador de Áudio */
+        .audio-recorder {
+            padding: 20px;
+        }
+        
+        .recorder-status {
+            text-align: center;
+        }
+        
+        .recording-time {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #dc3545;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .recording-status {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .recorder-controls {
+            text-align: center;
+        }
+        
+        .recorder-controls .btn {
+            margin: 0 5px;
+        }
+        
+        .audio-preview {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .audio-actions {
+            text-align: center;
+        }
+        
+        .audio-actions .btn {
+            margin: 0 5px;
+        }
+        
+        /* Animação de gravação */
+        .recording .fa-microphone {
+            animation: pulse 1s infinite;
+            color: #dc3545 !important;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Estilos para o botão de gravação no chat */
+        #btnGravarAudio {
+            transition: all 0.3s ease;
+        }
+        
+        #btnGravarAudio:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        
+        #btnGravarAudio.recording {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+    </style>
 
     <script>
         // Variáveis globais
@@ -587,10 +824,20 @@ $usuario = [
         let lastScrollPosition = 0;
         let audioIsPlaying = false;
 
+        // ✅ NOVO: Variáveis para gravação de áudio
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let audioBlob = null;
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let isRecording = false;
+
         // Inicialização
         $(document).ready(function() {
             initializeChat();
             setupEventListeners();
+            setupMensagensRapidas();
+            setupAudioRecording(); // ✅ NOVO: Configurar gravação de áudio
             
             // Detectar quando um áudio começa a tocar
             $(document).on('play', 'audio', function() {
@@ -620,6 +867,113 @@ $usuario = [
             // Inicializar layout
             adjustChatLayout();
         });
+        
+        // ✅ NOVO: Configurar mensagens rápidas
+        function setupMensagensRapidas() {
+            $(document).on('click', '.mensagem-rapida', function() {
+                const mensagem = $(this).data('mensagem');
+                const parametrosContainer = $('#parametrosContainer');
+                const parametrosInputs = $('#parametrosInputs input');
+                
+                // Verificar se há inputs de parâmetros
+                if (parametrosInputs.length > 0) {
+                    // Se há inputs, colar no primeiro input disponível
+                    const primeiroInput = parametrosInputs.first();
+                    primeiroInput.val(mensagem);
+                    primeiroInput.focus();
+                    
+                    // Mostrar feedback visual
+                    mostrarFeedbackCopiado($(this));
+                    
+                    // Mostrar toast de confirmação
+                    mostrarToast('Mensagem copiada para o primeiro parâmetro!', 'success');
+                } else {
+                    // Se não há inputs, copiar para área de transferência
+                    copiarParaAreaTransferencia(mensagem);
+                    
+                    // Mostrar feedback visual
+                    mostrarFeedbackCopiado($(this));
+                    
+                    // Mostrar toast de confirmação
+                    mostrarToast('Mensagem copiada para área de transferência! Cole no campo de parâmetro.', 'success');
+                }
+            });
+            
+            // ✅ NOVO: Adicionar funcionalidade de colar em qualquer input de parâmetro
+            $(document).on('click', '#parametrosInputs input', function() {
+                // Mostrar dica de que pode colar mensagens rápidas
+                if (!$(this).hasClass('dica-mostrada')) {
+                    $(this).addClass('dica-mostrada');
+                    mostrarToast('💡 Dica: Clique em uma mensagem rápida para copiar automaticamente!', 'info');
+                }
+            });
+            
+            // ✅ NOVO: Controlar botão de expandir/recolher mensagens rápidas
+            $('#toggleMensagensRapidas').on('click', function() {
+                const container = $('#mensagensRapidasContainer');
+                const button = $(this);
+                const icon = button.find('i');
+                
+                if (container.is(':visible')) {
+                    container.slideUp(300);
+                    button.html('<i class="fas fa-chevron-down me-1"></i>Mostrar');
+                } else {
+                    container.slideDown(300);
+                    button.html('<i class="fas fa-chevron-up me-1"></i>Ocultar');
+                }
+            });
+        }
+        
+        // ✅ NOVO: Mostrar feedback visual de cópia
+        function mostrarFeedbackCopiado(elemento) {
+            // Remover classe de outros elementos
+            $('.mensagem-rapida').removeClass('copiada');
+            
+            // Adicionar classe ao elemento clicado
+            elemento.addClass('copiada');
+            
+            // Remover classe após 2 segundos
+            setTimeout(() => {
+                elemento.removeClass('copiada');
+            }, 2000);
+        }
+        
+        // ✅ NOVO: Copiar para área de transferência
+        function copiarParaAreaTransferencia(texto) {
+            if (navigator.clipboard && window.isSecureContext) {
+                // Usar Clipboard API moderna
+                navigator.clipboard.writeText(texto).then(() => {
+                    console.log('Texto copiado para área de transferência');
+                }).catch(err => {
+                    console.error('Erro ao copiar:', err);
+                    fallbackCopyTextToClipboard(texto);
+                });
+            } else {
+                // Fallback para navegadores mais antigos
+                fallbackCopyTextToClipboard(texto);
+            }
+        }
+        
+        // ✅ NOVO: Fallback para copiar texto
+        function fallbackCopyTextToClipboard(texto) {
+            const textArea = document.createElement('textarea');
+            textArea.value = texto;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                console.log('Texto copiado via fallback');
+            } catch (err) {
+                console.error('Erro no fallback:', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
         
         // Verificar status das mensagens periodicamente
         function verificarStatusMensagens() {
@@ -764,14 +1118,14 @@ $usuario = [
 
             // Enviar mensagem
             $('#btnEnviar').on('click', enviarMensagem);
-            $('#messageInput').on('keypress', function(e) {
+            $('#mensagem').on('keypress', function(e) {
                 if (e.which === 13) {
                     enviarMensagem();
                 }
             });
 
             // Anexar arquivo
-            $('#btnAnexar').on('click', function() {
+            $('#btnAnexo').on('click', function() {
                 $('#uploadModal').modal('show');
             });
 
@@ -814,14 +1168,16 @@ $usuario = [
             // Busca de conversas
             $('#searchConversas').on('input', function() {
                 const termo = $(this).val().toLowerCase();
-                buscarConversas(termo);
+                const filtroAtual = $('.btn-group .btn.active').data('filter');
+                filtrarConversas(filtroAtual);
             });
 
             // Limpar busca ao pressionar Escape
             $('#searchConversas').on('keydown', function(e) {
                 if (e.key === 'Escape') {
                     $(this).val('');
-                    buscarConversas('');
+                    const filtroAtual = $('.btn-group .btn.active').data('filter');
+                    filtrarConversas(filtroAtual);
                 }
             });
 
@@ -866,7 +1222,7 @@ $usuario = [
             });
 
             // Auto-resize do textarea da mensagem
-            $('#messageInput').on('input', function() {
+            $('#mensagem').on('input', function() {
                 this.style.height = 'auto';
                 this.style.height = (this.scrollHeight) + 'px';
 
@@ -1327,7 +1683,7 @@ $usuario = [
 
         // Enviar mensagem
         function enviarMensagem() {
-            const mensagem = $('#messageInput').val().trim();
+            const mensagem = $('#mensagem').val().trim();
             
             if (!mensagem || !conversaAtiva) {
                 return;
@@ -1339,7 +1695,7 @@ $usuario = [
             };
             
             // Limpar input imediatamente para melhor UX
-            $('#messageInput').val('').css('height', 'auto');
+            $('#mensagem').val('').css('height', 'auto');
             
             $.ajax({
                 url: '<?= URL ?>/chat/enviar-mensagem',
@@ -1361,7 +1717,7 @@ $usuario = [
                         // console.log('📱 Mensagem enviada - aguardando status real da API');
                     } else {
                         // Restaurar mensagem se houve erro
-                        $('#messageInput').val(mensagem);
+                        $('#mensagem').val(mensagem);
                         mostrarToast(response.message, 'error');
                     }
                 },
@@ -1373,7 +1729,7 @@ $usuario = [
                     console.log('ResponseText:', xhr.responseText);
                     
                     // Restaurar mensagem em caso de erro
-                    $('#messageInput').val(mensagem);
+                    $('#mensagem').val(mensagem);
                     
                     let mensagemErro = 'Erro ao enviar mensagem';
                     
@@ -1750,44 +2106,79 @@ $usuario = [
             $('#contadorConversas').text(`Mostrando ${conversasVisiveis} de ${totalConversas} conversas`);
         }
 
-        // Função para buscar conversas
-        function buscarConversas(termo) {
-            if (termo.trim() === '') {
-                // Se não há termo de busca, mostrar todas as conversas
-                $('.chat-item').show();
-                // Aplicar filtro ativo novamente
-                const filtroAtivo = $('.chat-filters .btn.active').data('filter');
-                filtrarConversas(filtroAtivo);
-                return;
-            }
+        // Filtrar conversas (atualizada)
+        function filtrarConversas(filtro) {
+            // Remover mensagem de busca vazia
+            removerMensagemNenhumaConversa();
 
-            const termoLower = termo.toLowerCase();
-            let encontrouAlguma = false;
+            const termoBusca = $('#searchConversas').val().trim();
+            const departamentoId = $('#filtroDepartamento').length > 0 ? $('#filtroDepartamento').val() : '';
+            const atendenteId = $('#filtroAtendente').length > 0 ? $('#filtroAtendente').val() : '';
 
-            $('.chat-item').each(function() {
-                const item = $(this);
-                const nome = item.find('.chat-name').text().toLowerCase();
-                const numero = item.find('.chat-last-message').text().toLowerCase();
-                const status = item.find('.chat-status .badge').text().toLowerCase();
+            $('.chat-item').each(function(index) {
+                const status = $(this).data('status');
+                const departamentoConversa = $(this).data('departamento-id');
+                const atendenteConversa = $(this).data('atendente-id');
+                let mostrar = true;
 
-                // Buscar em nome, número ou status
-                const encontrou = nome.includes(termoLower) ||
-                    numero.includes(termoLower) ||
-                    status.includes(termoLower);
-
-                if (encontrou) {
-                    item.show();
-                    encontrouAlguma = true;
-                } else {
-                    item.hide();
+                // Aplicar filtro de status
+                if (filtro === 'ativas' && status !== 'aberto') {
+                    mostrar = false;
+                } else if (filtro === 'pendentes' && status !== 'pendente') {
+                    mostrar = false;
                 }
+
+                // Aplicar filtro de departamento (se selecionado)
+                if (mostrar && departamentoId !== '' && departamentoId !== null) {
+                    // Converter para string para comparação
+                    const deptId = String(departamentoId);
+                    const deptConversa = String(departamentoConversa || '');
+                    
+                    if (deptId !== deptConversa) {
+                        mostrar = false;
+                    }
+                }
+
+                // Aplicar filtro de atendente (se selecionado)
+                if (mostrar && atendenteId !== '' && atendenteId !== null) {
+                    // Converter para string para comparação
+                    const atendId = String(atendenteId);
+                    const atendConversa = String(atendenteConversa || '');
+                    
+                    if (atendId !== atendConversa) {
+                        mostrar = false;
+                    }
+                }
+
+                // Se há busca ativa, aplicar também o filtro de busca
+                if (mostrar && termoBusca !== '') {
+                    const termoLower = termoBusca.toLowerCase();
+                    const nomeElement = $(this).find('.chat-name');
+                    const nome = nomeElement.text().toLowerCase();
+                    const numero = $(this).find('.chat-last-message').text().toLowerCase();
+                    const statusTexto = $(this).find('.chat-status .badge').text().toLowerCase();
+                    const departamentoTexto = $(this).find('.chat-department').text().toLowerCase();
+                    const atendenteTexto = $(this).find('.chat-attendant').text().toLowerCase();
+
+                    const encontrou = nome.includes(termoLower) ||
+                        numero.includes(termoLower) ||
+                        statusTexto.includes(termoLower) ||
+                        departamentoTexto.includes(termoLower) ||
+                        atendenteTexto.includes(termoLower);
+
+                    if (!encontrou) {
+                        mostrar = false;
+                    }
+                }
+
+                $(this).toggle(mostrar);
             });
 
-            // Mostrar mensagem se não encontrou nada
-            if (!encontrouAlguma) {
+            // Verificar se há conversas visíveis
+            const conversasVisiveis = $('.chat-item:visible').length;
+            
+            if (conversasVisiveis === 0) {
                 mostrarMensagemNenhumaConversa();
-            } else {
-                removerMensagemNenhumaConversa();
             }
 
             // Atualizar contador
@@ -1813,71 +2204,6 @@ $usuario = [
         // Remover mensagem de busca vazia
         function removerMensagemNenhumaConversa() {
             $('.no-results-message').remove();
-        }
-
-        // Filtrar conversas (atualizada)
-        function filtrarConversas(filtro) {
-            // Remover mensagem de busca vazia
-            removerMensagemNenhumaConversa();
-
-            const termoBusca = $('#searchConversas').val().trim();
-            const departamentoId = $('#filtroDepartamento').val();
-            const atendenteId = $('#filtroAtendente').val();
-
-            $('.chat-item').each(function() {
-                const status = $(this).data('status');
-                const departamentoConversa = $(this).data('departamento-id');
-                const atendenteConversa = $(this).data('atendente-id');
-                let mostrar = true;
-
-                // Aplicar filtro de status
-                if (filtro === 'ativas' && status !== 'aberto') {
-                    mostrar = false;
-                } else if (filtro === 'pendentes' && status !== 'pendente') {
-                    mostrar = false;
-                }
-
-                // Aplicar filtro de departamento (se selecionado)
-                if (mostrar && departamentoId !== '' && departamentoConversa !== departamentoId) {
-                    mostrar = false;
-                }
-
-                // Aplicar filtro de atendente (se selecionado)
-                if (mostrar && atendenteId !== '' && atendenteConversa !== atendenteId) {
-                    mostrar = false;
-                }
-
-                // Se há busca ativa, aplicar também o filtro de busca
-                if (mostrar && termoBusca !== '') {
-                    const termoLower = termoBusca.toLowerCase();
-                    const nome = $(this).find('.chat-name').text().toLowerCase();
-                    const numero = $(this).find('.chat-last-message').text().toLowerCase();
-                    const statusTexto = $(this).find('.chat-status .badge').text().toLowerCase();
-                    const departamentoTexto = $(this).find('.chat-department').text().toLowerCase();
-                    const atendenteTexto = $(this).find('.chat-attendant').text().toLowerCase();
-
-                    const encontrou = nome.includes(termoLower) ||
-                        numero.includes(termoLower) ||
-                        statusTexto.includes(termoLower) ||
-                        departamentoTexto.includes(termoLower) ||
-                        atendenteTexto.includes(termoLower);
-
-                    if (!encontrou) {
-                        mostrar = false;
-                    }
-                }
-
-                $(this).toggle(mostrar);
-            });
-
-            // Verificar se há conversas visíveis
-            const conversasVisiveis = $('.chat-item:visible').length;
-            if (conversasVisiveis === 0) {
-                mostrarMensagemNenhumaConversa();
-            }
-
-            // Atualizar contador
-            atualizarContadorConversas();
         }
 
         // Filtrar por departamento
@@ -2030,8 +2356,8 @@ $usuario = [
 
                         // Atualizar indicador visual se o contato ainda não respondeu
                         if (!status.contato_respondeu) {
-                            $('#messageInput').attr('placeholder', 'Aguarde o contato responder ao template antes de enviar mensagens...');
-                            $('#messageInput').prop('disabled', true);
+                            $('#mensagem').attr('placeholder', 'Aguarde o contato responder ao template antes de enviar mensagens...');
+                            $('#mensagem').prop('disabled', true);
                             $('#btnEnviar').prop('disabled', true);
                             
                             // Mostrar aviso visual
@@ -2050,8 +2376,8 @@ $usuario = [
                                 $('#chatMessages').prepend(avisoHtml);
                             }
                         } else {
-                            $('#messageInput').attr('placeholder', 'Digite sua mensagem...');
-                            $('#messageInput').prop('disabled', false);
+                            $('#mensagem').attr('placeholder', 'Digite sua mensagem...');
+                            $('#mensagem').prop('disabled', false);
                             $('#btnEnviar').prop('disabled', false);
                             
                             // Remover aviso se existir
@@ -2444,7 +2770,7 @@ $usuario = [
             }
 
             // Se já verificamos que o contato respondeu e o input está habilitado, parar verificação
-            if (contatoJaRespondeuVerificado && !$('#messageInput').prop('disabled')) {
+            if (contatoJaRespondeuVerificado && !$('#mensagem').prop('disabled')) {
                 return;
             }
 
@@ -2455,8 +2781,8 @@ $usuario = [
                     if (response.success) {
                         if (response.contato_respondeu) {
                             // Se o contato respondeu, habilitar envio de mensagens
-                            $('#messageInput').attr('placeholder', 'Digite sua mensagem...');
-                            $('#messageInput').prop('disabled', false);
+                            $('#mensagem').attr('placeholder', 'Digite sua mensagem...');
+                            $('#mensagem').prop('disabled', false);
                             $('#btnEnviar').prop('disabled', false);
                             
                             // Remover aviso se existir
@@ -2472,8 +2798,8 @@ $usuario = [
                             // }
                         } else {
                             // Se o contato não respondeu, manter desabilitado
-                            $('#messageInput').attr('placeholder', 'Aguarde o contato responder ao template antes de enviar mensagens...');
-                            $('#messageInput').prop('disabled', true);
+                            $('#mensagem').attr('placeholder', 'Aguarde o contato responder ao template antes de enviar mensagens...');
+                            $('#mensagem').prop('disabled', true);
                             $('#btnEnviar').prop('disabled', true);
                             
                             // Resetar contador quando não há resposta
@@ -2543,6 +2869,232 @@ $usuario = [
                     badge.remove();
                 }
             }
+        }
+
+        // ✅ NOVO: Configurar gravação de áudio
+        function setupAudioRecording() {
+            // Botão para abrir modal de gravação
+            $('#btnGravarAudio').on('click', function() {
+                if (!conversaAtiva) {
+                    mostrarToast('Selecione uma conversa primeiro!', 'warning');
+                    return;
+                }
+                
+                // Verificar se o contato respondeu
+                if ($('#mensagem').prop('disabled')) {
+                    mostrarToast('Aguarde o contato responder ao template antes de enviar mensagens!', 'warning');
+                    return;
+                }
+                
+                $('#audioModal').modal('show');
+                resetAudioRecorder();
+            });
+            
+            // Iniciar gravação
+            $('#btnIniciarGravacao').on('click', iniciarGravacao);
+            
+            // Parar gravação
+            $('#btnPararGravacao').on('click', pararGravacao);
+            
+            // Regravar
+            $('#btnRegravar').on('click', function() {
+                resetAudioRecorder();
+                $('#legendaAudio').val(''); // Limpar legenda
+            });
+            
+            // Enviar áudio
+            $('#btnEnviarAudio').on('click', enviarAudio);
+            
+            // Fechar modal
+            $('#audioModal').on('hidden.bs.modal', function() {
+                if (isRecording) {
+                    pararGravacao();
+                }
+                resetAudioRecorder();
+            });
+            
+            // ✅ NOVO: Parar gravação quando pressionar ESC
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && isRecording) {
+                    pararGravacao();
+                }
+            });
+        }
+        
+        // ✅ NOVO: Iniciar gravação
+        async function iniciarGravacao() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Configurar MediaRecorder para OGG
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'audio/ogg;codecs=opus'
+                });
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    $('#audioSource').attr('src', audioUrl);
+                    $('#audioPreview').removeClass('d-none');
+                    $('#audioActions').removeClass('d-none');
+                    
+                    // Parar o stream
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                recordingStartTime = Date.now();
+                
+                // Atualizar UI
+                $('#btnIniciarGravacao').addClass('d-none');
+                $('#btnPararGravacao').removeClass('d-none');
+                $('#recordingStatus').text('Gravando...');
+                $('.recorder-status').addClass('recording');
+                
+                // ✅ NOVO: Adicionar classe recording ao botão do chat
+                $('#btnGravarAudio').addClass('recording');
+                
+                // Iniciar timer
+                iniciarTimer();
+                
+            } catch (error) {
+                console.error('Erro ao acessar microfone:', error);
+                mostrarToast('Erro ao acessar microfone. Verifique as permissões!', 'error');
+            }
+        }
+        
+        // ✅ NOVO: Parar gravação
+        function pararGravacao() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                // Parar timer
+                if (recordingTimer) {
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                }
+                
+                // Atualizar UI
+                $('#btnIniciarGravacao').removeClass('d-none');
+                $('#btnPararGravacao').addClass('d-none');
+                $('#recordingStatus').text('Gravação finalizada');
+                $('.recorder-status').removeClass('recording');
+            }
+        }
+        
+        // ✅ NOVO: Iniciar timer
+        function iniciarTimer() {
+            recordingTimer = setInterval(() => {
+                const elapsed = Date.now() - recordingStartTime;
+                const seconds = Math.floor(elapsed / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                
+                const timeString = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                $('#recordingTime').text(timeString);
+                
+                // ✅ NOVO: Atualizar botão do chat com tempo
+                $('#btnGravarAudio').html(`<i class="fas fa-microphone"></i> ${timeString}`);
+                
+                // Limite de 5 minutos
+                if (seconds >= 300) {
+                    pararGravacao();
+                    mostrarToast('Tempo máximo de gravação atingido (5 minutos)', 'warning');
+                }
+            }, 1000);
+        }
+        
+        // ✅ NOVO: Resetar gravador
+        function resetAudioRecorder() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+            }
+            
+            isRecording = false;
+            audioChunks = [];
+            audioBlob = null;
+            
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+            }
+            
+            // Resetar UI
+            $('#recordingTime').text('00:00');
+            $('#recordingStatus').text('Clique para começar');
+            $('.recorder-status').removeClass('recording');
+            $('#btnIniciarGravacao').removeClass('d-none');
+            $('#btnPararGravacao').addClass('d-none');
+            $('#audioPreview').addClass('d-none');
+            $('#audioActions').addClass('d-none');
+            
+            // ✅ NOVO: Restaurar botão do chat
+            $('#btnGravarAudio').html('<i class="fas fa-microphone"></i>');
+            $('#btnGravarAudio').removeClass('recording');
+        }
+        
+        // ✅ NOVO: Enviar áudio
+        function enviarAudio() {
+            if (!audioBlob || !conversaAtiva) {
+                mostrarToast('Nenhum áudio gravado!', 'warning');
+                return;
+            }
+            
+            const legenda = $('#legendaAudio').val().trim() || 'Áudio gravado';
+            
+            // ✅ NOVO: Converter Blob para base64
+            const reader = new FileReader();
+            reader.onload = function() {
+                const audioData = reader.result; // Base64 data
+                
+                // Mostrar loading
+                $('#btnEnviarAudio').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Enviando...');
+                
+                $.ajax({
+                    url: 'chat/enviar-audio', // ✅ NOVO: Rota dedicada para áudio
+                    type: 'POST',
+                    data: {
+                        conversa_id: conversaAtiva,
+                        audio: audioData, // ✅ NOVO: Enviar base64
+                        csrf_token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            mostrarToast('Áudio enviado com sucesso!', 'success');
+                            $('#audioModal').modal('hide');
+                            
+                            // Atualizar conversa
+                            buscarMensagensConversa(conversaAtiva);
+                        } else {
+                            mostrarToast(response.message || 'Erro ao enviar áudio', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        let mensagem = 'Erro ao enviar áudio';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            mensagem = xhr.responseJSON.message;
+                        }
+                        mostrarToast(mensagem, 'error');
+                    },
+                    complete: function() {
+                        $('#btnEnviarAudio').prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Enviar');
+                    }
+                });
+            };
+            
+            reader.onerror = function() {
+                mostrarToast('Erro ao processar áudio', 'error');
+            };
+            
+            reader.readAsDataURL(audioBlob);
         }
     </script>
 

@@ -57,6 +57,7 @@ class ConversaModel
                 c.id,
                 ct.nome as contato_nome,
                 ct.numero,
+                c.atendente_id,
                 u.nome as atendente_nome,
                 c.status,
                 c.criado_em,
@@ -95,6 +96,8 @@ class ConversaModel
                 c.id,
                 ct.nome as contato_nome,
                 ct.numero,
+                c.atendente_id,
+                u.nome as atendente_nome,
                 c.status,
                 c.criado_em,
                 c.ultima_mensagem,
@@ -104,6 +107,7 @@ class ConversaModel
                 (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
             FROM conversas c
             LEFT JOIN contatos ct ON c.contato_id = ct.id
+            LEFT JOIN usuarios u ON c.atendente_id = u.id
             LEFT JOIN departamentos d ON c.departamento_id = d.id
             WHERE c.atendente_id = ? 
             AND c.status IN ($statusPlaceholders)
@@ -134,6 +138,7 @@ class ConversaModel
                 c.id,
                 ct.nome as contato_nome,
                 ct.numero,
+                c.atendente_id,
                 c.criado_em,
                 c.ultima_mensagem,
                 c.departamento_id,
@@ -576,10 +581,12 @@ class ConversaModel
                 c.id,
                 ct.nome as contato_nome,
                 ct.numero,
+                c.atendente_id,
                 u.nome as atendente_nome,
                 c.status,
                 c.criado_em,
                 c.ultima_mensagem,
+                c.departamento_id,
                 d.nome as departamento_nome,
                 d.cor as departamento_cor,
                 (SELECT COUNT(*) FROM mensagens WHERE conversa_id = c.id AND lida = 0 AND direcao = 'entrada') as mensagens_nao_lidas
@@ -613,8 +620,10 @@ class ConversaModel
                 c.id,
                 ct.nome as contato_nome,
                 ct.numero,
+                c.atendente_id,
                 c.criado_em,
                 c.ultima_mensagem,
+                c.departamento_id,
                 d.nome as departamento_nome,
                 d.cor as departamento_cor,
                 u.nome as atendente_nome,
