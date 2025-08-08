@@ -39,10 +39,10 @@ class LoginChat extends Controllers
         try {
         // Se já estiver logado, redireciona para o dashboard
         if (isset($_SESSION['usuario_id'])) {
-            Logger::info('Usuário já logado, redirecionando', [
-                'user_id' => $_SESSION['usuario_id'],
-                'email' => $_SESSION['usuario_email']
-            ]);
+            // Logger::info('Usuário já logado, redirecionando', [
+            //     'user_id' => $_SESSION['usuario_id'],
+            //     'email' => $_SESSION['usuario_email']
+            // ]);
             Helper::redirecionar('dashboard');
             return;
         }
@@ -54,10 +54,10 @@ class LoginChat extends Controllers
         }
 
         // Log de acesso à página de login
-        Logger::access('Acesso à página de login', [
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'N/A',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'N/A'
-            ]);
+        // Logger::access('Acesso à página de login', [
+        //     'ip' => $_SERVER['REMOTE_ADDR'] ?? 'N/A',
+        //     'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'N/A'
+        //     ]);
 
             // Exibe formulário de login
             $this->exibirFormularioLogin();
@@ -126,6 +126,9 @@ class LoginChat extends Controllers
         $usuario = $this->loginModel->checarLogin($dados['email'], $dados['senha']);
 
         if (!$usuario) {
+            // Registrar tentativa de login falhada
+            LogHelper::login($dados['email'], false);
+            
             $dados['erro_geral'] = 'Email ou senha incorretos';
             $this->view('login/chat_login', $dados);
             return;
@@ -133,6 +136,9 @@ class LoginChat extends Controllers
 
         // Verificar se usuário está ativo
         if ($usuario->status === 'inativo') {
+            // Registrar tentativa de login com conta inativa
+            LogHelper::login($dados['email'], false);
+            
             $dados['erro_geral'] = 'Conta desativada. Entre em contato com o administrador.';
             $this->view('login/chat_login', $dados);
             return;
@@ -140,10 +146,16 @@ class LoginChat extends Controllers
 
         // Verificar se o perfil é válido para o sistema de chat
         if (!in_array($usuario->perfil, ['admin', 'supervisor', 'atendente'])) {
+            // Registrar tentativa de login com perfil inválido
+            LogHelper::login($dados['email'], false);
+            
             $dados['erro_geral'] = 'Perfil não autorizado para o sistema de chat.';
             $this->view('login/chat_login', $dados);
             return;
         }
+        
+        // Registrar login bem-sucedido
+        LogHelper::login($dados['email'], true);
         
         // Criar sessão do usuário
         $this->criarSessaoUsuario($usuario, $dados['status_inicial']);
@@ -243,13 +255,10 @@ class LoginChat extends Controllers
      */
     public function sair()
     {
-        // Atualizar status para inativo antes de sair
-        // if (isset($_SESSION['usuario_id'])) {
-        //     $this->atualizarStatusUsuario($_SESSION['usuario_id'], 'inativo');
-            
-        //     // Log de logout
-            Helper::registrarAtividade('Logout Chat', 'Usuário saiu do sistema');
-        // }
+        // Registrar logout se usuário estiver logado
+        if (isset($_SESSION['usuario_id'])) {
+            LogHelper::logout($_SESSION['usuario_id']);
+        }
 
         // Limpar todas as variáveis de sessão
         $_SESSION = array();

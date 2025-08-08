@@ -145,7 +145,6 @@ $usuario = [
                                             <th>E-mail</th>
                                             <th style="width: 120px;">Perfil</th>
                                             <th style="width: 120px;">Status</th>
-                                            <th style="width: 100px;">Max Chats</th>
                                             <th style="width: 150px;">Último Acesso</th>
                                             <th style="width: 200px;">Ações</th>
                                         </tr>
@@ -181,9 +180,6 @@ $usuario = [
                                                     <option value="ausente" <?= $usuario->status === 'ausente' ? 'selected' : '' ?>>Ausente</option>
                                                     <option value="ocupado" <?= $usuario->status === 'ocupado' ? 'selected' : '' ?>>Ocupado</option>
                                                 </select>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-secondary"><?= $usuario->max_chats ?? 5 ?></span>
                                             </td>
                                             <td>
                                                 <?php if ($usuario->ultimo_acesso): ?>

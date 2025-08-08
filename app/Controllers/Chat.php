@@ -295,6 +295,9 @@ class Chat extends Controllers
                     'ultima_mensagem' => date('Y-m-d H:i:s')
                 ]);
 
+                // ✅ NOVO: Registrar log de criação de conversa
+                LogHelper::criarConversa($conversaId, $numero);
+
                 echo json_encode([
                     'success' => true,
                     'message' => 'Conversa iniciada com sucesso!',
@@ -455,6 +458,9 @@ class Chat extends Controllers
                 $this->conversaModel->atualizarConversa($conversaId, [
                     'ultima_mensagem' => date('Y-m-d H:i:s')
                 ]);
+
+                // ✅ NOVO: Registrar log de envio de mensagem
+                LogHelper::enviarMensagem($conversaId, 'texto');
 
                 http_response_code(200);
                 echo json_encode([
@@ -908,6 +914,9 @@ class Chat extends Controllers
         ]);
 
         if ($resultado) {
+            // ✅ NOVO: Registrar log de assunção de conversa
+            LogHelper::assumirConversa($conversaId, $conversa->numero ?? 'N/A');
+            
             http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Conversa assumida com sucesso']);
         } else {
@@ -1011,6 +1020,9 @@ class Chat extends Controllers
             ]);
 
             if ($resultado) {
+                // ✅ NOVO: Registrar log de fechamento de conversa
+                LogHelper::fecharConversa($conversaId, $contato->numero ?? 'N/A');
+                
                 http_response_code(200);
                 echo json_encode([
                     'success' => true, 
@@ -1166,7 +1178,7 @@ class Chat extends Controllers
             $atendentesComStats = [];
             foreach ($atendentes as $atendente) {
                 $conversasAtivas = $this->conversaModel->contarConversasPorAtendente($atendente->id);
-                $maxConversas = $atendente->max_conversas ?? 5;
+                // $maxConversas = $atendente->max_conversas ?? 5;
                 
                 $atendentesComStats[] = [
                     'id' => $atendente->id,
@@ -1174,8 +1186,8 @@ class Chat extends Controllers
                     'email' => $atendente->email,
                     'status' => $atendente->status,
                     'conversas_ativas' => $conversasAtivas,
-                    'max_conversas' => $maxConversas,
-                    'disponivel' => $conversasAtivas < $maxConversas,
+                    // 'max_conversas' => $maxConversas,
+                    'disponivel' => $conversasAtivas,
                     'departamento_id' => $departamentoId ?? null
                 ];
             }
@@ -2028,6 +2040,19 @@ class Chat extends Controllers
                 exit;
             }
 
+            // ✅ NOVO: Obter credencial do departamento da conversa
+            $credencialSerproModel = new CredencialSerproModel();
+            $credencial = $credencialSerproModel->obterCredencialAtiva($conversa->departamento_id);
+            
+            if (!$credencial) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Erro ao obter credencial do departamento']);
+                exit;
+            }
+
+            // ✅ NOVO: Inicializar SerproApi com a credencial do departamento
+            $serproApi = new SerproApi($credencial);
+
             // Converter parâmetros para formato correto da API Serpro
             $parametros = [];
             foreach ($parametrosRaw as $parametro) {
@@ -2040,7 +2065,7 @@ class Chat extends Controllers
             }
 
             // Enviar template via API Serpro
-            $resultado = $this->serproApi->enviarTemplate($conversa->numero, $template, $parametros);
+            $resultado = $serproApi->enviarTemplate($conversa->numero, $template, $parametros);
 
             if ($resultado['status'] >= 200 && $resultado['status'] < 300) {
                 // Salvar mensagem no banco

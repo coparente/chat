@@ -213,7 +213,6 @@ class UsuarioModel
             AND ad.status = 'ativo'
             AND u.status = 'ativo'
             AND u.ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
-            HAVING conversas_ativas < ad.max_conversas
             ORDER BY conversas_ativas ASC, u.nome ASC
         ";
         

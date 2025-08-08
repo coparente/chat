@@ -222,6 +222,9 @@ Route::group(['middleware' => ['auth']], function() {
         Route::post('/mensagens/salvar', 'Configuracoes@salvarMensagens');
         Route::get('/configuracoes/mensagens/buscar/{id}', 'Configuracoes@buscarMensagem');
 
+        // Logs do Sistema
+        Route::get('/logs', 'Configuracoes@logs');
+        Route::post('/limpar-logs', 'Configuracoes@limparLogs');
     });
 
     // ========================================================================

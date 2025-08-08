@@ -412,5 +412,95 @@ class Configuracoes extends Controllers
         }
     }
 
+    /**
+     * [ logs ] - Página de logs do sistema
+     */
+    public function logs()
+    {
+        // Verificar se usuário está logado
+        if (!isset($_SESSION['usuario_id'])) {
+            Helper::redirecionar('login-chat');
+            return;
+        }
+
+        // Verificar se é admin
+        if ($_SESSION['usuario_perfil'] !== 'admin') {
+            Helper::mensagem('configuracao', '<i class="fas fa-ban"></i> Acesso negado - Apenas administradores podem acessar logs', 'alert alert-danger');
+            Helper::redirecionar('dashboard');
+            return;
+        }
+
+        // Carregar modelo de logs
+        $logModel = $this->model('LogModel');
+
+        // Filtros
+        $filtros = [
+            'tipo' => $_GET['tipo'] ?? 'todos',
+            'usuario_id' => $_GET['usuario_id'] ?? '',
+            'data_inicio' => $_GET['data_inicio'] ?? date('Y-m-d', strtotime('-7 days')),
+            'data_fim' => $_GET['data_fim'] ?? date('Y-m-d'),
+            'pagina' => $_GET['pagina'] ?? 1,
+            'limite' => 50
+        ];
+
+        // Buscar dados
+        $dados = [
+            'usuario_logado' => [
+                'id' => $_SESSION['usuario_id'],
+                'nome' => $_SESSION['usuario_nome'],
+                'email' => $_SESSION['usuario_email'],
+                'perfil' => $_SESSION['usuario_perfil'],
+                'status' => $_SESSION['usuario_status']
+            ],
+            'filtros' => $filtros,
+            'atividades' => $logModel->getAtividades($filtros),
+            'acessos' => $logModel->getLogAcessos($filtros),
+            'usuarios' => $this->model('UsuarioModel')->listarUsuarios(),
+            'estatisticas' => $logModel->getEstatisticasLogs($filtros)
+        ];
+
+        $this->view('configuracoes/logs', $dados);
+    }
+
+    /**
+     * [ limparLogs ] - Limpar logs antigos
+     */
+    public function limparLogs()
+    {
+        // header('Content-Type: application/json');
+        // Limpar qualquer output buffer
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método inválido']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $dias = $input['dias'] ?? 30;
+
+        try {
+            $logModel = $this->model('LogModel');
+            $resultado = $logModel->limparLogsAntigos($dias);
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Logs antigos (mais de {$dias} dias) foram removidos com sucesso",
+                'logs_removidos' => $resultado
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro ao limpar logs: ' . $e->getMessage()
+            ]);
+        }
+    }
+
   
 } 

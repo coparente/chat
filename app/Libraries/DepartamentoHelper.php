@@ -191,11 +191,10 @@ class DepartamentoHelper
     /**
      * [ identificarPorDisponibilidade ] - Identifica departamento por disponibilidade de atendentes
      * 
-     * @return int|null ID do departamento
+     * @return int|null ID do departamento ou null
      */
     private function identificarPorDisponibilidade()
     {
-        // Buscar departamentos com atendentes disponíveis
         $departamentos = $this->departamentoModel->listarTodos(true);
         
         foreach ($departamentos as $departamento) {
@@ -205,13 +204,11 @@ class DepartamentoHelper
                 // Verificar se há atendentes online
                 foreach ($atendentes as $atendente) {
                     if ($atendente->status === 'ativo') {
-                        // Verificar se o atendente não está sobrecarregado
+                        // Verificar se o atendente está disponível
                         $conversasAtivas = $this->contarConversasAtendente($atendente->id);
-                        $maxConversas = $atendente->max_conversas ?? 5;
                         
-                        if ($conversasAtivas < $maxConversas) {
-                            return $departamento->id;
-                        }
+                        // Removida validação de limite - atendentes sempre disponíveis
+                        return $departamento->id;
                     }
                 }
             }

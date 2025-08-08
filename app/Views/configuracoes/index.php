@@ -66,7 +66,7 @@ $usuario = [
                 <div class="row g-4">
 
                     <!-- Mensagens Automáticas -->
-                    <div class="col-md-6 col-lg-4">
+                    <!-- <div class="col-md-6 col-lg-4">
                         <div class="content-card h-100">
                             <div class="content-card-body text-center">
                                 <div class="config-icon mb-3">
@@ -84,10 +84,10 @@ $usuario = [
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Configurações Gerais -->
-                    <div class="col-md-6 col-lg-4">
+                    <!-- <div class="col-md-6 col-lg-4">
                         <div class="content-card h-100">
                             <div class="content-card-body text-center">
                                 <div class="config-icon mb-3">
@@ -105,7 +105,7 @@ $usuario = [
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Backup & Restore -->
                     <!-- <div class="col-md-6 col-lg-4">

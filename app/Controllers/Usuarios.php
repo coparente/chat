@@ -172,6 +172,9 @@ class Usuarios extends Controllers
                 ];
 
                 if ($this->usuarioModel->criarUsuario($dadosUsuario)) {
+                    // ✅ NOVO: Registrar log de criação de usuário
+                    LogHelper::criarUsuario($dados['nome'], $dados['perfil']);
+                    
                     Helper::mensagem('usuario', '<i class="fas fa-check"></i> Usuário cadastrado com sucesso!', 'alert alert-success');
                     Helper::redirecionar('usuarios');
                 } else {
@@ -290,6 +293,9 @@ class Usuarios extends Controllers
                 }
 
                 if (empty($dados['senha_erro']) && $this->usuarioModel->atualizarUsuario($id, $dadosAtualizacao)) {
+                    // ✅ NOVO: Registrar log de edição de usuário
+                    LogHelper::editarUsuario($id, $dados['nome']);
+                    
                     Helper::mensagem('usuario', '<i class="fas fa-check"></i> Usuário atualizado com sucesso!', 'alert alert-success');
                     Helper::redirecionar('usuarios');
                 } else {
@@ -353,6 +359,9 @@ class Usuarios extends Controllers
         }
 
         if ($this->usuarioModel->excluirUsuario($id)) {
+            // ✅ NOVO: Registrar log de exclusão de usuário
+            LogHelper::excluirUsuario($id, $usuario->nome);
+            
             Helper::mensagem('usuario', '<i class="fas fa-check"></i> Usuário excluído com sucesso!', 'alert alert-success');
         } else {
             Helper::mensagem('usuario', '<i class="fas fa-exclamation-triangle"></i> Erro ao excluir usuário', 'alert alert-danger');
