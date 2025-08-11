@@ -79,6 +79,7 @@ Route::group(['middleware' => ['auth']], function() {
         Route::post('/enviar-midia', 'Chat@enviarMidia');
         Route::post('/enviar-audio', 'Chat@enviarAudio'); // ✅ NOVO: Rota para enviar áudio gravado
         Route::get('/buscar-mensagens/{conversa_id}', 'Chat@buscarMensagens');
+        Route::get('/carregar-mensagens-antigas/{conversa_id}/{offset}', 'Chat@carregarMensagensAntigas'); // ✅ NOVO: Rota para carregar mensagens antigas
         Route::post('/marcar-lida/{mensagem_id}', 'Chat@marcarComoLida');
         
         // Mídia do MinIO
@@ -94,6 +95,9 @@ Route::group(['middleware' => ['auth']], function() {
         // ✅ NOVO: Rotas para badges de mensagens não lidas
         Route::get('/verificar-novas-mensagens', 'Chat@verificarNovasMensagens');
         Route::post('/marcar-mensagens-lidas/{conversa_id}', 'Chat@marcarMensagensLidas');
+        
+        // ✅ NOVO: Rota para carregar mais conversas
+        Route::get('/carregar-mais-conversas/{tipo}/{offset}', 'Chat@carregarMaisConversas');
         
         // Templates
         Route::post('/iniciar/{contato_id}', 'Chat@iniciarConversa');

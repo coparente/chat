@@ -262,7 +262,49 @@ class ConversaModel
     {
         $sql = "SELECT COUNT(*) as total FROM conversas WHERE status IN ('aberto', 'pendente')";
         $this->db->query($sql);
-        return $this->db->resultado()->total;
+        $resultado = $this->db->resultado();
+        return $resultado->total ?? 0;
+    }
+    
+    /**
+     * [ contarConversasPendentes ] - Conta conversas pendentes (sem atendente)
+     * 
+     * @return int Número de conversas pendentes
+     */
+    public function contarConversasPendentes()
+    {
+        $sql = "SELECT COUNT(*) as total FROM conversas WHERE status = 'pendente' AND atendente_id IS NULL";
+        $this->db->query($sql);
+        $resultado = $this->db->resultado();
+        return $resultado->total ?? 0;
+    }
+    
+    /**
+     * [ contarConversasPendentesPorAtendente ] - Conta conversas pendentes de um atendente específico
+     * 
+     * @param int $atendenteId ID do atendente
+     * @return int Número de conversas pendentes do atendente
+     */
+    public function contarConversasPendentesPorAtendente($atendenteId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM conversas WHERE status = 'pendente' AND atendente_id = ?";
+        $this->db->query($sql);
+        $this->db->bind(1, $atendenteId);
+        $resultado = $this->db->resultado();
+        return $resultado->total ?? 0;
+    }
+    
+    /**
+     * [ contarConversasAtivas ] - Conta conversas ativas (abertas)
+     * 
+     * @return int Número de conversas ativas
+     */
+    public function contarConversasAtivas()
+    {
+        $sql = "SELECT COUNT(*) as total FROM conversas WHERE status = 'aberto'";
+        $this->db->query($sql);
+        $resultado = $this->db->resultado();
+        return $resultado->total ?? 0;
     }
 
     /**

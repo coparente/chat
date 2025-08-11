@@ -254,6 +254,26 @@ $usuario = [
                                     </small>
                                 </div>
                             <?php endif; ?>
+                            
+                            <!-- ✅ NOVO: Indicador de carregamento de mais conversas -->
+                            <div class="loading-conversas" id="loadingConversas" style="display: none;">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    <span class="text-muted">Carregando mais conversas...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- ✅ NOVO: Indicador para carregar mais conversas -->
+                            <div class="load-more-conversas" id="loadMoreConversas" style="display: none;">
+                                <div class="text-center py-2">
+                                    <button class="btn btn-outline-primary btn-sm" id="btnCarregarMaisConversas">
+                                        <i class="fas fa-chevron-down me-2"></i>
+                                        Carregar mais conversas
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -326,6 +346,22 @@ $usuario = [
 
                             <!-- Mensagens -->
                             <div class="chat-messages" id="chatMessages">
+                                <!-- ✅ NOVO: Indicador de carregamento de mensagens antigas -->
+                                <div class="loading-messages-older" id="loadingMessagesOlder" style="display: none;">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                            <span class="visually-hidden">Carregando...</span>
+                                        </div>
+                                        <span class="text-muted">Carregando mensagens antigas...</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- ✅ NOVO: Indicador para carregar mais mensagens antigas -->
+                                <div class="load-more-indicator" id="loadMoreIndicator" style="display: none;">
+                                    <i class="fas fa-chevron-up me-2"></i>
+                                    <span>Clique para carregar mais mensagens antigas</span>
+                                </div>
+                                
                                 <!-- Mensagens serão carregadas aqui -->
                             </div>
 
@@ -813,6 +849,67 @@ $usuario = [
             color: white;
             animation: pulse 1s infinite;
         }
+        
+        /* ✅ NOVO: Estilos para carregamento de mensagens antigas */
+        .loading-messages-older {
+            border-bottom: 1px solid #dee2e6;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .loading-messages-older .spinner-border {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        /* Indicador de "carregar mais" no topo */
+        .load-more-indicator {
+            text-align: center;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 8px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .load-more-indicator:hover {
+            background: #dee2e6;
+        }
+        
+        .load-more-indicator:active {
+            background: #ced4da;
+        }
+        
+        /* ✅ NOVO: Estilos para carregamento de conversas */
+        .loading-conversas {
+            border-top: 1px solid #dee2e6;
+            background: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .loading-conversas .spinner-border {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        .load-more-conversas {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .load-more-conversas .btn {
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+        }
+        
+        .load-more-conversas .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
     </style>
 
     <script>
@@ -831,6 +928,22 @@ $usuario = [
         let recordingStartTime = null;
         let recordingTimer = null;
         let isRecording = false;
+
+        // ✅ NOVO: Variáveis para carregamento sob demanda
+        let carregandoMensagensAntigas = false;
+        let offsetMensagensAntigas = 0;
+        let temMaisMensagensAntigas = true;
+        let primeiraMensagemId = null;
+        let alturaScrollAntesCarregamento = 0;
+        
+        let carregandoConversas = false;
+        let offsetConversas = 0;
+        let temMaisConversas = true;
+        let tipoConversasAtual = 'ativas';
+        let conversasCarregadas = 0;
+        
+        let contatoJaRespondeuVerificado = false;
+        let pollingInterval;
 
         // Inicialização
         $(document).ready(function() {
@@ -1208,16 +1321,23 @@ $usuario = [
             });
 
             // Scroll automático na lista de conversas quando há muitas
+            let scrollTimeoutConversas = null;
             $('.chat-list').on('scroll', function() {
                 const container = $(this);
                 const scrollTop = container.scrollTop();
                 const scrollHeight = container[0].scrollHeight;
                 const containerHeight = container.height();
 
-                // Se está próximo do final, pode carregar mais conversas (futuro)
+                // ✅ NOVO: Se está próximo do final, carregar mais conversas (com debounce)
                 if (scrollTop + containerHeight >= scrollHeight - 50) {
-                    // Placeholder para carregamento de mais conversas
-                    // console.log('Próximo do final da lista de conversas');
+                    // Usar debounce para evitar múltiplas chamadas
+                    if (scrollTimeoutConversas) {
+                        clearTimeout(scrollTimeoutConversas);
+                    }
+                    
+                    scrollTimeoutConversas = setTimeout(() => {
+                        verificarCarregamentoConversas();
+                    }, 200); // Aguardar 200ms após parar de scrollar
                 }
             });
 
@@ -1256,6 +1376,9 @@ $usuario = [
                     }
                 }
                 lastScrollPosition = currentScrollPosition;
+                
+                // ✅ NOVO: Verificar se deve carregar mensagens antigas
+                verificarCarregamentoMensagensAntigas();
             });
             
             // Event listener para quando a página fica visível/invisível
@@ -1268,6 +1391,20 @@ $usuario = [
             // Event listener para quando o usuário clica na área de mensagens
             $(document).on('click', '#chatMessages', function() {
                 // Status das mensagens é verificado automaticamente
+            });
+            
+            // ✅ NOVO: Event listener para carregar mais mensagens antigas
+            $(document).on('click', '#loadMoreIndicator', function() {
+                if (conversaAtiva && !carregandoMensagensAntigas && temMaisMensagensAntigas) {
+                    carregarMensagensAntigas(conversaAtiva);
+                }
+            });
+            
+            // ✅ NOVO: Event listener para carregar mais conversas
+            $(document).on('click', '#btnCarregarMaisConversas', function() {
+                if (!carregandoConversas && temMaisConversas) {
+                    carregarMaisConversas();
+                }
             });
         }
 
@@ -1315,6 +1452,14 @@ $usuario = [
 
             // Scroll automático para a conversa ativa na lista
             scrollToActiveChat();
+            
+            // ✅ NOVO: Atualizar botões após abrir conversa
+            setTimeout(atualizarBotoesConversa, 100);
+            
+            // ✅ NOVO: Resetar variáveis de carregamento de mensagens
+            offsetMensagensAntigas = 0;
+            temMaisMensagensAntigas = true;
+            primeiraMensagemId = null;
         }
 
         // Scroll para a conversa ativa na lista
@@ -2762,7 +2907,7 @@ $usuario = [
         };
 
         // Verificar se o contato respondeu ao template periodicamente
-        let contatoJaRespondeuVerificado = false; // Flag para controlar se já verificamos
+        // let contatoJaRespondeuVerificado = false; // Flag para controlar se já verificamos
         
         function verificarRespostaTemplate() {
             if (!conversaAtiva) {
@@ -2817,7 +2962,7 @@ $usuario = [
         setInterval(verificarRespostaTemplate, 10000);
 
         // ✅ NOVO: Sistema de polling para verificar novas mensagens
-        let pollingInterval;
+        // let pollingInterval;
         
         function iniciarPollingMensagens() {
             // Verificar novas mensagens a cada 10 segundos
@@ -3095,6 +3240,404 @@ $usuario = [
             };
             
             reader.readAsDataURL(audioBlob);
+        }
+
+        // ✅ NOVO: Carregar mensagens antigas
+        function carregarMensagensAntigas(conversaId) {
+            if (carregandoMensagensAntigas || !temMaisMensagensAntigas) {
+                return;
+            }
+            
+            carregandoMensagensAntigas = true;
+            
+            // Salvar altura do scroll antes do carregamento
+            const container = $('#chatMessages');
+            alturaScrollAntesCarregamento = container.scrollTop();
+            
+            // Mostrar indicador de carregamento
+            $('#loadingMessagesOlder').show();
+            
+            $.ajax({
+                url: `<?= URL ?>/chat/carregar-mensagens-antigas/${conversaId}/${offsetMensagensAntigas}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        // Adicionar mensagens antigas no topo
+                        adicionarMensagensAntigas(response.mensagens);
+                        
+                        // Atualizar offset e verificar se há mais mensagens
+                        offsetMensagensAntigas = response.proximo_offset || 0;
+                        temMaisMensagensAntigas = response.tem_mais;
+                        
+                        // ✅ NOVO: Mostrar/esconder indicador de carregar mais
+                        if (temMaisMensagensAntigas) {
+                            $('#loadMoreIndicator').show();
+                        } else {
+                            $('#loadMoreIndicator').hide();
+                        }
+                        
+                        // Restaurar posição do scroll
+                        setTimeout(() => {
+                            restaurarPosicaoScroll();
+                        }, 100);
+                    }
+                },
+                error: function() {
+                    console.log('Erro ao carregar mensagens antigas');
+                },
+                complete: function() {
+                    carregandoMensagensAntigas = false;
+                    $('#loadingMessagesOlder').hide();
+                }
+            });
+        }
+
+        // ✅ NOVO: Adicionar mensagens antigas no topo
+        function adicionarMensagensAntigas(mensagens) {
+            if (mensagens.length === 0) return;
+            
+            const container = $('#chatMessages');
+            const mensagensExistentes = container.find('.message');
+            
+            // Adicionar mensagens antigas no topo (após o indicador de carregamento)
+            mensagens.reverse().forEach(mensagem => {
+                const isOutgoing = mensagem.direcao === 'saida';
+                const messageClass = isOutgoing ? 'message-outgoing' : 'message-incoming';
+                
+                // Gerar ícone de status baseado no status_entrega
+                let statusIcon = '';
+                if (isOutgoing) {
+                    statusIcon = gerarIconeStatus(mensagem.status_entrega || 'enviando');
+                }
+                
+                // Gerar conteúdo da mensagem baseado no tipo
+                let messageContent = '';
+                
+                // Determinar tipo real da mensagem
+                let tipoReal = mensagem.tipo;
+                if (!tipoReal && mensagem.midia_tipo) {
+                    if (mensagem.midia_tipo.startsWith('image/')) {
+                        tipoReal = 'imagem';
+                    } else if (mensagem.midia_tipo.startsWith('audio/')) {
+                        tipoReal = 'audio';
+                    } else if (mensagem.midia_tipo.startsWith('video/')) {
+                        tipoReal = 'video';
+                    } else {
+                        tipoReal = 'documento';
+                    }
+                }
+                
+                if (tipoReal === 'texto' || tipoReal === 'text') {
+                    messageContent = `<div class="message-text">${mensagem.conteudo}</div>`;
+                } else if ((tipoReal === 'imagem' || tipoReal === 'image') && mensagem.midia_url) {
+                    let imageSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        imageSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    messageContent = `
+                        <div class="message-media">
+                            <img src="${imageSrc}" alt="Imagem" class="message-image" 
+                                 onclick="visualizarMidia('${imageSrc}', 'image', '${mensagem.midia_nome || 'Imagem'}')"
+                                 onerror="this.src='<?= Helper::asset('img/image-error.png') ?>'; this.onerror=null;">
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else if (tipoReal === 'audio' && mensagem.midia_url) {
+                    let audioSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        audioSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    messageContent = `
+                        <div class="message-media">
+                            <div class="audio-player">
+                                <audio controls preload="metadata">
+                                    <source src="${audioSrc}" type="${mensagem.midia_tipo || 'audio/mpeg'}">
+                                    Seu navegador não suporta o elemento de áudio.
+                                </audio>
+                                <div class="audio-info">
+                                    <i class="fas fa-music"></i>
+                                    <span>${mensagem.midia_nome || 'Áudio'}</span>
+                                </div>
+                            </div>
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else if (tipoReal === 'video' && mensagem.midia_url) {
+                    let videoSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        videoSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    messageContent = `
+                        <div class="message-media">
+                            <video controls preload="metadata" class="message-video">
+                                <source src="${videoSrc}" type="${mensagem.midia_tipo || 'video/mp4'}">
+                                Seu navegador não suporta o elemento de vídeo.
+                            </video>
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else if ((tipoReal === 'documento' || tipoReal === 'document') && mensagem.midia_url) {
+                    let documentSrc = mensagem.midia_url;
+                    if (mensagem.midia_url.startsWith('document/') || mensagem.midia_url.startsWith('image/') || 
+                        mensagem.midia_url.startsWith('audio/') || mensagem.midia_url.startsWith('video/')) {
+                        documentSrc = `<?= URL ?>/media.php?file=${encodeURIComponent(mensagem.midia_url)}`;
+                    }
+                    
+                    const fileIcon = obterIconeArquivo(mensagem.midia_tipo || '', mensagem.midia_nome || '');
+                    messageContent = `
+                        <div class="message-media">
+                            <div class="document-preview" onclick="window.open('${documentSrc}', '_blank')">
+                                <div class="document-icon">
+                                    <i class="fas ${fileIcon}"></i>
+                                </div>
+                                <div class="document-info">
+                                    <div class="document-name">${mensagem.midia_nome || 'Documento'}</div>
+                                    <div class="document-type">${obterTipoArquivo(mensagem.midia_tipo || '')}</div>
+                                </div>
+                                <div class="document-action">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                            </div>
+                            ${mensagem.conteudo && mensagem.conteudo !== 'Arquivo: ' + mensagem.midia_nome ? 
+                                `<div class="message-caption">${mensagem.conteudo}</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    messageContent = `<div class="message-text">${mensagem.conteudo}</div>`;
+                }
+                
+                const messageHtml = `
+                    <div class="message ${messageClass}" 
+                         data-message-id="${mensagem.id}" 
+                         data-serpro-id="${mensagem.serpro_message_id || ''}"
+                         data-status="${mensagem.status_entrega || 'enviando'}"
+                         data-tipo="${tipoReal}">
+                        <div class="message-content">
+                            ${messageContent}
+                            <div class="message-time">
+                                ${formatarTempo(mensagem.criado_em)}
+                                ${statusIcon}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Inserir após o indicador de carregamento
+                container.find('#loadingMessagesOlder').after(messageHtml);
+            });
+            
+            // Atualizar primeira mensagem ID
+            if (mensagens.length > 0) {
+                primeiraMensagemId = mensagens[mensagens.length - 1].id;
+            }
+            
+            // ✅ NOVO: Resetar variáveis de paginação
+            offsetMensagensAntigas = 0;
+            temMaisMensagensAntigas = true;
+            
+            // ✅ NOVO: Mostrar indicador de carregar mais mensagens antigas
+            if (mensagens.length >= 20) { // Se há pelo menos 20 mensagens, provavelmente há mais
+                $('#loadMoreIndicator').show();
+            } else {
+                $('#loadMoreIndicator').hide();
+            }
+        }
+
+        // ✅ NOVO: Restaurar posição do scroll após carregar mensagens antigas
+        function restaurarPosicaoScroll() {
+            const container = $('#chatMessages');
+            const novaAltura = container[0].scrollHeight;
+            const diferencaAltura = novaAltura - alturaScrollAntesCarregamento;
+            
+            if (diferencaAltura > 0) {
+                container.scrollTop(diferencaAltura);
+            }
+        }
+        
+        // ✅ NOVO: Verificar se deve carregar mensagens antigas
+        function verificarCarregamentoMensagensAntigas() {
+            const container = $('#chatMessages');
+            const scrollTop = container.scrollTop();
+            
+            // Se está próximo do topo (primeiras mensagens), carregar mais
+            if (scrollTop < 100 && !carregandoMensagensAntigas && temMaisMensagensAntigas) {
+                carregarMensagensAntigas(conversaAtiva);
+            }
+        }
+        
+        // ✅ NOVO: Adicionar novas conversas na lista
+        function adicionarConversas(conversas) {
+            if (conversas.length === 0) return;
+            
+            const chatList = $('.chat-list');
+            
+            // Remover indicadores de carregamento temporariamente
+            $('#loadingConversas, #loadMoreConversas').detach();
+            
+            // Adicionar cada conversa (evitando duplicatas)
+            conversas.forEach(conversa => {
+                // ✅ NOVO: Verificar se a conversa já existe
+                const conversaExistente = chatList.find(`[data-conversa-id="${conversa.id}"]`);
+                if (conversaExistente.length > 0) {
+                    return; // Pular esta conversa
+                }
+                
+                const conversaHtml = `
+                    <div class="chat-item" data-conversa-id="${conversa.id}" data-status="${conversa.status}" data-departamento-id="${conversa.departamento_id || ''}" data-atendente-id="${conversa.atendente_id || ''}">
+                        <div class="chat-avatar">
+                            <div class="avatar-circle">
+                                ${(conversa.contato_nome || 'C').substring(0, 2).toUpperCase()}
+                            </div>
+                            ${conversa.mensagens_nao_lidas > 0 ? `<span class="badge bg-danger">${conversa.mensagens_nao_lidas}</span>` : ''}
+                        </div>
+                        <div class="chat-info">
+                            <div class="chat-name">${conversa.contato_nome || 'Sem nome'}</div>
+                            <div class="chat-last-message">
+                                <i class="fas fa-phone me-1"></i>
+                                ${conversa.numero}
+                            </div>
+                            ${conversa.departamento_nome ? `
+                            <div class="chat-department">
+                                <i class="fas fa-building me-1" style="color: ${conversa.departamento_cor || '#6c757d'}"></i>
+                                <small class="text-muted">${conversa.departamento_nome}</small>
+                            </div>
+                            ` : ''}
+                            ${conversa.atendente_nome ? `
+                            <div class="chat-attendant">
+                                <i class="fas fa-user me-1" style="color: var(--primary-color);"></i>
+                                <small class="text-muted">${conversa.atendente_nome}</small>
+                            </div>
+                            ` : ''}
+                            <div class="chat-time">
+                                ${formatarTempo(conversa.ultima_mensagem || conversa.criado_em)}
+                            </div>
+                        </div>
+                        <div class="chat-status">
+                            <span class="badge bg-${conversa.status === 'aberto' ? 'success' : (conversa.status === 'pendente' ? 'warning' : 'secondary')}">
+                                ${conversa.status.charAt(0).toUpperCase() + conversa.status.slice(1)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                chatList.append(conversaHtml);
+            });
+            
+            // Recolocar indicadores de carregamento
+            chatList.append($('#loadingConversas, #loadMoreConversas'));
+            
+            // Adicionar event listeners para as novas conversas
+            $('.chat-item').off('click').on('click', function() {
+                const conversaId = $(this).data('conversa-id');
+                if (conversaId) {
+                    abrirConversa(conversaId);
+                }
+            });
+        }
+        
+        // ✅ NOVO: Carregar mais conversas
+        function carregarMaisConversas() {
+            if (carregandoConversas || !temMaisConversas) {
+                return;
+            }
+            
+            carregandoConversas = true;
+            
+            // Mostrar indicador de carregamento
+            $('#loadingConversas').show();
+            $('#loadMoreConversas').hide();
+            
+            $.ajax({
+                url: `<?= URL ?>/chat/carregar-mais-conversas/${tipoConversasAtual}/${offsetConversas}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        // ✅ NOVO: Verificar se realmente há conversas novas
+                        if (response.conversas && response.conversas.length > 0) {
+                            // Adicionar novas conversas na lista
+                            adicionarConversas(response.conversas);
+                            
+                            // Atualizar offset e verificar se há mais conversas
+                            offsetConversas = response.proximo_offset || 0;
+                            temMaisConversas = response.tem_mais;
+                            conversasCarregadas += response.conversas.length;
+                            
+                            // console.log(`📊 Conversas carregadas: ${response.conversas.length}, Total: ${conversasCarregadas}, Tem mais: ${temMaisConversas}`);
+                        } else {
+                            temMaisConversas = false;
+                        }
+                        
+                        // Mostrar/esconder indicador de carregar mais
+                        if (temMaisConversas) {
+                            $('#loadMoreConversas').show();
+                        } else {
+                            $('#loadMoreConversas').hide();
+                            // ✅ NOVO: Mostrar mensagem de que não há mais conversas
+                            mostrarMensagemNaoHaMaisConversas();
+                        }
+                        
+                        // Atualizar contador de conversas
+                        atualizarContadorConversas();
+                    } else {
+                        temMaisConversas = false;
+                        $('#loadMoreConversas').hide();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    temMaisConversas = false;
+                    $('#loadMoreConversas').hide();
+                },
+                complete: function() {
+                    carregandoConversas = false;
+                    $('#loadingConversas').hide();
+                }
+            });
+        }
+        
+        // ✅ NOVO: Verificar se deve carregar mais conversas
+        function verificarCarregamentoConversas() {
+            if (!carregandoConversas && temMaisConversas) {
+                carregarMaisConversas();
+            }
+        }
+        
+        // ✅ NOVO: Resetar variáveis de carregamento de conversas
+        function resetarCarregamentoConversas() {
+            offsetConversas = 0;
+            temMaisConversas = true;
+            conversasCarregadas = 0;
+            tipoConversasAtual = 'ativas';
+            carregandoConversas = false;
+            
+            // Esconder indicadores e limpar mensagens
+            $('#loadingConversas, #loadMoreConversas').hide();
+            $('.no-more-conversas-message').remove();
+        }
+        
+        // ✅ NOVO: Mostrar mensagem quando não há mais conversas
+        function mostrarMensagemNaoHaMaisConversas() {
+            // Remover mensagem anterior se existir
+            $('.no-more-conversas-message').remove();
+            
+            const mensagem = `
+                <div class="no-more-conversas-message text-center py-3">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <p class="text-muted mb-0">Todas as conversas foram carregadas</p>
+                    <small class="text-muted">Não há mais conversas para exibir</small>
+                </div>
+            `;
+            
+            // Inserir após o indicador de carregamento
+            $('#loadingConversas').after(mensagem);
         }
     </script>
 

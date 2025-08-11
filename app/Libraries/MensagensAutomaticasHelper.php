@@ -21,23 +21,17 @@ class MensagensAutomaticasHelper
     public function __construct()
     {
         try {
-            // Verificar se APPROOT está definida
-            if (!defined('APPROOT')) {
-                // Definir APPROOT se não estiver definida
-                define('APPROOT', dirname(__DIR__, 2));
-            }
-            
             // Carregar apenas as classes essenciais
             if (!class_exists('MensagemAutomaticaModel')) {
-                require_once APPROOT . '/Models/MensagemAutomaticaModel.php';
+                require_once __DIR__ . '/../Models/MensagemAutomaticaModel.php';
             }
             
             if (!class_exists('SerproApi')) {
-                require_once APPROOT . '/Libraries/SerproApi.php';
+                require_once __DIR__ . '/SerproApi.php';
             }
             
             if (!class_exists('DepartamentoHelper')) {
-                require_once APPROOT . '/Libraries/DepartamentoHelper.php';
+                require_once __DIR__ . '/DepartamentoHelper.php';
             }
             
             $this->mensagemAutomaticaModel = new MensagemAutomaticaModel();

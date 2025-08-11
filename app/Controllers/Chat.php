@@ -2595,5 +2595,154 @@ class Chat extends Controllers
         ]);
         exit;
     }
+
+    /**
+     * [ carregarMensagensAntigas ] - Carrega mensagens antigas de uma conversa
+     */
+    public function carregarMensagensAntigas($conversaId, $offset = 0)
+    {
+        // Desabilitar exibição de erros em produção
+        if (APP_ENV === 'production') {
+            error_reporting(0);
+        }
+        
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        try {
+            // Verificar se o usuário tem permissão para ver esta conversa
+            $conversa = $this->conversaModel->verificarConversaPorId($conversaId);
+            if (!$conversa) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
+                exit;
+            }
+
+            // Verificar se o atendente tem permissão para ver esta conversa
+            if ($_SESSION['usuario_perfil'] === 'atendente' && $conversa->atendente_id != $_SESSION['usuario_id']) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você não tem permissão para ver mensagens desta conversa']);
+                exit;
+            }
+
+            // Validar parâmetros
+            $offset = max(0, intval($offset));
+            $limite = 20; // Carregar 20 mensagens por vez
+            
+            // Buscar mensagens antigas
+            $mensagens = $this->mensagemModel->getMensagensPorConversa($conversaId, $limite, $offset);
+            
+            // Verificar se há mais mensagens para carregar
+            $totalMensagens = $this->mensagemModel->contarMensagensConversa($conversaId);
+            $temMaisMensagens = ($offset + $limite) < $totalMensagens;
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'mensagens' => $mensagens,
+                'offset' => $offset,
+                'limite' => $limite,
+                'total' => $totalMensagens,
+                'tem_mais' => $temMaisMensagens,
+                'proximo_offset' => $temMaisMensagens ? ($offset + $limite) : null
+            ]);
+        } catch (Exception $e) {
+            error_log("Erro no Chat::carregarMensagensAntigas: " . $e->getMessage());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro interno do servidor'
+            ]);
+        }
+        
+        exit;
+    }
+
+    /**
+     * [ carregarMaisConversas ] - Carrega mais conversas com paginação
+     */
+    public function carregarMaisConversas($tipo = 'ativas', $offset = 0)
+    {
+        // Desabilitar exibição de erros em produção
+        if (APP_ENV === 'production') {
+            error_reporting(0);
+        }
+        
+        // Limpar qualquer output buffer e definir headers antes de tudo
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, must-revalidate');
+
+        try {
+            $perfil = $_SESSION['usuario_perfil'];
+            $usuarioId = $_SESSION['usuario_id'];
+            
+            // ✅ DEBUG: Log para verificar sessão
+            // error_log("DEBUG - Perfil: " . ($perfil ?? 'NULL') . ", UsuarioID: " . ($usuarioId ?? 'NULL'));
+            
+            // Validar parâmetros
+            $offset = max(0, intval($offset));
+            $limite = 15; // Carregar 15 conversas por vez
+            
+            $conversas = [];
+            $totalConversas = 0;
+            $temMaisConversas = false;
+            
+            if ($perfil === 'atendente') {
+                // Para atendentes, carregar suas próprias conversas
+                if ($tipo === 'ativas') {
+                    $conversas = $this->conversaModel->getConversasPorAtendente($usuarioId, ['aberto', 'pendente']);
+                    $totalConversas = $this->conversaModel->contarConversasPorAtendente($usuarioId);
+                } elseif ($tipo === 'pendentes') {
+                    $conversas = $this->conversaModel->getConversasPendentesPorAtendente($usuarioId, $limite);
+                    $totalConversas = $this->conversaModel->contarConversasPendentesPorAtendente($usuarioId);
+                }
+            } else {
+                // Para admin/supervisor, carregar todas as conversas
+                if ($tipo === 'ativas') {
+                    $conversas = $this->conversaModel->getConversasAtivas($limite);
+                    $totalConversas = $this->conversaModel->contarConversasAtivas();
+                } elseif ($tipo === 'pendentes') {
+                    $conversas = $this->conversaModel->getConversasPendentes($limite);
+                    $totalConversas = $this->conversaModel->contarConversasPendentes();
+                }
+            }
+            
+            // Verificar se há mais conversas para carregar
+            $temMaisConversas = false;
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'conversas' => $conversas,
+                'tipo' => $tipo,
+                'offset' => $offset,
+                'limite' => $limite,
+                'total' => $totalConversas,
+                'tem_mais' => $temMaisConversas,
+                'proximo_offset' => $temMaisConversas ? ($offset + $limite) : null,
+                'perfil' => $perfil
+            ]);
+        } catch (Exception $e) {
+            error_log("Erro no Chat::carregarMaisConversas: " . $e->getMessage());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erro interno do servidor'
+            ]);
+        }
+        
+        exit;
+    }
 }
 ?> 

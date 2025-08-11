@@ -227,13 +227,14 @@ $usuario = [
                                 <table class="table table-hover mb-0">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th style="width: 60px;">Avatar</th>
+                                            <!-- <th style="width: 60px;">Avatar</th> -->
                                             <th>Nome</th>
                                             <th>Telefone</th>
-                                            <th>E-mail</th>
+                                            <!-- <th>E-mail</th> -->
                                             <th>Tags</th>
                                             <th style="width: 100px;">Status</th>
                                             <th style="width: 120px;">Conversas</th>
+                                            <th style="width: 120px;">Status Conversa</th>
                                             <th style="width: 150px;">Último Contato</th>
                                             <th style="width: 150px;">Último Departamento</th>
                                             <th style="width: 150px;">Último Agente</th>
@@ -243,11 +244,11 @@ $usuario = [
                                     <tbody>
                                         <?php foreach ($contatos as $contato): ?>
                                         <tr>
-                                            <td>
+                                            <!-- <td>
                                                 <div class="user-avatar" style="width: 40px; height: 40px; font-size: 0.8rem; background: var(--info-color);">
                                                     <?= strtoupper(substr($contato->nome, 0, 2)) ?>
                                                 </div>
-                                            </td>
+                                            </td> -->
                                             <td>
                                                 <div>
                                                     <strong><?= htmlspecialchars($contato->nome) ?></strong>
@@ -263,7 +264,7 @@ $usuario = [
                                                     <i class="fab fa-whatsapp"></i>
                                                 </a> -->
                                             </td>
-                                            <td>
+                                            <!-- <td>
                                                 <?php if ($contato->email): ?>
                                                     <a href="mailto:<?= htmlspecialchars($contato->email) ?>" class="text-decoration-none">
                                                         <?= htmlspecialchars($contato->email) ?>
@@ -271,7 +272,7 @@ $usuario = [
                                                 <?php else: ?>
                                                     <span class="text-muted">-</span>
                                                 <?php endif; ?>
-                                            </td>
+                                            </td> -->
                                             <td>
                                                 <?php if ($contato->tags): ?>
                                                     <?php foreach (explode(', ', $contato->tags) as $tag): ?>
@@ -290,6 +291,37 @@ $usuario = [
                                             </td>
                                             <td>
                                                 <span class="badge bg-info"><?= $contato->total_conversas ?? 0 ?></span>
+                                            <td>
+                                                <?php if ($contato->status_conversa_atual): ?>
+                                                    <?php
+                                                    $statusClass = "";
+                                                    $statusText = "";
+                                                    switch ($contato->status_conversa_atual) {
+                                                        case "pendente":
+                                                            $statusClass = "bg-warning";
+                                                            $statusText = "Pendente";
+                                                            break;
+                                                        case "aberto":
+                                                            $statusClass = "bg-success";
+                                                            $statusText = "Aberta";
+                                                            break;
+                                                        case "fechado":
+                                                            $statusClass = "bg-secondary";
+                                                            $statusText = "Fechada";
+                                                            break;
+                                                        default:
+                                                            $statusClass = "bg-light text-dark";
+                                                            $statusText = ucfirst($contato->status_conversa_atual);
+                                                    }
+                                                    ?>
+                                                    <span class="badge <?= $statusClass ?>">
+                                                        <?= $statusText ?>
+                                                    </span>
+                                            
+                                                <?php else: ?>
+                                                    <span class="badge bg-light text-dark">Sem conversa</span>
+                                                <?php endif; ?>
+                                            </td>
                                             </td>
                                             <td>
                                                 <?php if ($contato->ultimo_contato): ?>
@@ -322,11 +354,12 @@ $usuario = [
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
+                                                    <?php if (in_array($usuario_logado['perfil'], ['admin', 'supervisor'])): ?>
                                                     <a href="<?= URL ?>/contatos/perfil/<?= $contato->id ?>" 
                                                        class="btn btn-outline-info" title="Ver Perfil">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    
+                                                    <?php endif; ?>
                                                     <a href="<?= URL ?>/contatos/editar/<?= $contato->id ?>" 
                                                        class="btn btn-outline-primary" title="Editar">
                                                         <i class="fas fa-edit"></i>

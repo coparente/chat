@@ -61,18 +61,18 @@ class ContatoModel
                    GROUP_CONCAT(DISTINCT ct.tag SEPARATOR ', ') as tags,
                    d.nome as ultimo_departamento_nome,
                    d.cor as ultimo_departamento_cor,
-                   u.nome as ultimo_agente_nome
+                   u.nome as ultimo_agente_nome,
+                   ultima_cv.status as status_conversa_atual,
+                   ultima_cv.id as conversa_atual_id
             FROM contatos c
             LEFT JOIN conversas cv ON c.id = cv.contato_id
             LEFT JOIN contato_tags ct ON c.id = ct.contato_id
             LEFT JOIN (
-                SELECT contato_id, departamento_id, atendente_id
+                SELECT contato_id, departamento_id, atendente_id, status, id
                 FROM conversas 
-                WHERE departamento_id IS NOT NULL
-                AND (contato_id, atualizado_em) IN (
+                WHERE (contato_id, atualizado_em) IN (
                     SELECT contato_id, MAX(atualizado_em)
                     FROM conversas 
-                    WHERE departamento_id IS NOT NULL
                     GROUP BY contato_id
                 )
             ) ultima_cv ON c.id = ultima_cv.contato_id
@@ -85,8 +85,8 @@ class ContatoModel
         
         // Filtro por texto (nome, telefone, email)
         if (!empty($filtros['busca'])) {
-            $where[] = "(c.nome LIKE :busca OR c.telefone LIKE :busca OR c.numero LIKE :busca OR c.email LIKE :busca)";
-            $params['busca'] = '%' . $filtros['busca'] . '%';
+            $where[] = "(c.nome LIKE :busca_nome OR c.telefone LIKE :busca_telefone OR c.numero LIKE :busca_numero OR c.email LIKE :busca_email)";
+            $like = '%' . $filtros['busca'] . '%'; $params['busca_nome'] = $like; $params['busca_telefone'] = $like; $params['busca_numero'] = $like; $params['busca_email'] = $like;
         }
         
         // Filtro por status (bloqueado/ativo)
@@ -163,8 +163,8 @@ class ContatoModel
         $params = [];
         
         if (!empty($filtros['busca'])) {
-            $where[] = "(c.nome LIKE :busca OR c.telefone LIKE :busca OR c.numero LIKE :busca OR c.email LIKE :busca)";
-            $params['busca'] = '%' . $filtros['busca'] . '%';
+            $where[] = "(c.nome LIKE :busca_nome OR c.telefone LIKE :busca_telefone OR c.numero LIKE :busca_numero OR c.email LIKE :busca_email)";
+            $like = '%' . $filtros['busca'] . '%'; $params['busca_nome'] = $like; $params['busca_telefone'] = $like; $params['busca_numero'] = $like; $params['busca_email'] = $like;
         }
         
         if (isset($filtros['bloqueado']) && $filtros['bloqueado'] !== '') {

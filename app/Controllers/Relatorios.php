@@ -26,20 +26,20 @@ class Relatorios extends Controllers
     public function __construct()
     {
         parent::__construct();
-        
+
         // Verificar se usuário está logado
         if (!isset($_SESSION['usuario_id'])) {
             Helper::redirecionar('login-chat');
             return;
         }
-        
+
         // Verificar permissão (apenas admin e supervisor)
         if (!in_array($_SESSION['usuario_perfil'], ['admin', 'supervisor'])) {
             Helper::mensagem('acesso_negado', '<i class="fas fa-exclamation-triangle"></i> Acesso negado. Você não tem permissão para acessar esta área.', 'alert alert-danger');
             Helper::redirecionar('dashboard');
             return;
         }
-        
+
         // Inicializar models
         $this->relatorioModel = $this->model('RelatorioModel');
         $this->conversaModel = $this->model('ConversaModel');
@@ -343,39 +343,17 @@ class Relatorios extends Controllers
                 exit;
             }
 
-            // Se estiver fechando a conversa, enviar mensagem de encerramento
+            // Se estiver fechando a conversa, apenas registrar no log
             $mensagemEnviada = false;
             if ($novoStatus === 'fechado') {
-                try {
-                    // Carregar helper de mensagens automáticas
-                    $mensagensHelper = new MensagensAutomaticasHelper();
-                    
-                    // Buscar informações do contato
-                    $contato = $this->contatoModel->lerContatoPorId($conversa->contato_id);
-                    
-                    if ($contato) {
-                        // Obter mensagem de encerramento
-                        $mensagemEncerramento = $mensagensHelper->obterMensagemAutomatica('encerramento', [
-                            'nome' => $contato->nome ?? 'Cliente'
-                        ]);
-                        
-                        if ($mensagemEncerramento) {
-                            // Enviar mensagem de encerramento
-                            $resultadoEnvio = $mensagensHelper->enviarMensagemAutomatica(
-                                $contato->numero,
-                                $mensagemEncerramento,
-                                $conversaId
-                            );
-                            
-                            if ($resultadoEnvio['success']) {
-                                $mensagemEnviada = true;
-                            }
-                        }
-                    }
-                } catch (Exception $e) {
-                    // Log do erro, mas não falhar a alteração do status
-                    error_log("Erro ao enviar mensagem de encerramento: " . $e->getMessage());
-                }
+                // Log de que a conversa foi fechada
+
+                // Logger::info('Conversa fechada', [
+                //     'Conversa' => $conversaId,
+                //     'nome' => $_SESSION['usuario_nome']
+                // ]);
+                // TODO: Implementar envio de mensagem de encerramento quando o sistema estiver estável
+                // Por enquanto, apenas fechar a conversa sem enviar mensagem automática
             }
 
             // Atualizar status da conversa
@@ -385,11 +363,15 @@ class Relatorios extends Controllers
 
             if ($resultado) {
                 // Log da ação
-                error_log("🔄 Status da conversa {$conversaId} alterado para '{$novoStatus}' por {$_SESSION['usuario_nome']} (ID: {$_SESSION['usuario_id']})");
                 
+                Logger::info('Status da conversa alterado', [
+                    'Conversa' => $conversaId,
+                    'Status' => $novoStatus,
+                    'Usuário' => $_SESSION['usuario_nome']
+                ]);
                 http_response_code(200);
                 echo json_encode([
-                    'success' => true, 
+                    'success' => true,
                     'message' => 'Status da conversa alterado com sucesso',
                     'novo_status' => $novoStatus,
                     'mensagem_encerramento_enviada' => $mensagemEnviada
@@ -398,13 +380,12 @@ class Relatorios extends Controllers
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Erro ao alterar status da conversa']);
             }
-            
         } catch (Exception $e) {
             error_log("Erro ao alterar status da conversa: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
         }
-        
+
         exit;
     }
 
@@ -452,13 +433,12 @@ class Relatorios extends Controllers
                 'mensagens' => $mensagensFormatadas,
                 'total_mensagens' => count($mensagensFormatadas)
             ]);
-
         } catch (Exception $e) {
             error_log("Erro ao buscar mensagens da conversa: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
         }
-        
+
         exit;
     }
 
@@ -518,10 +498,10 @@ class Relatorios extends Controllers
             if ($resultado) {
                 // Log da ação
                 error_log("🔄 Atendente da conversa {$conversaId} alterado para '{$novoAtendente->nome}' (ID: {$novoAtendenteId}) por {$_SESSION['usuario_nome']} (ID: {$_SESSION['usuario_id']})");
-                
+
                 http_response_code(200);
                 echo json_encode([
-                    'success' => true, 
+                    'success' => true,
                     'message' => 'Atendente da conversa alterado com sucesso',
                     'novo_atendente' => [
                         'id' => $novoAtendente->id,
@@ -533,13 +513,12 @@ class Relatorios extends Controllers
                 http_response_code(500);
                 echo json_encode(['success' => false, 'message' => 'Erro ao alterar atendente da conversa']);
             }
-            
         } catch (Exception $e) {
             error_log("Erro ao alterar atendente da conversa: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
         }
-        
+
         exit;
     }
 
@@ -549,14 +528,14 @@ class Relatorios extends Controllers
     private function exportarExcel($tipo, $dados, $filtros)
     {
         $filename = "relatorio_{$tipo}_" . date('Y-m-d_H-i-s') . '.csv';
-        
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . $filename);
         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Pragma: public');
 
         $output = fopen('php://output', 'w');
-        
+
         // BOM para UTF-8
         fwrite($output, "\xEF\xBB\xBF");
 
@@ -650,4 +629,4 @@ class Relatorios extends Controllers
         Helper::mensagem('relatorio', '<i class="fas fa-info-circle"></i> Exportação para PDF em desenvolvimento. Use a exportação Excel por enquanto.', 'alert alert-info');
         Helper::redirecionar("relatorios/{$tipo}");
     }
-} 
+}
