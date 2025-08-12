@@ -305,6 +305,32 @@ class MensagemModel
     }
 
     /**
+     * [ buscarPorIdRequisicao ] - Busca mensagem pelo ID de requisição nos metadados
+     * 
+     * @param string $idRequisicao ID da requisição
+     * @return object|null Dados da mensagem
+     */
+    public function buscarPorIdRequisicao($idRequisicao)
+    {
+        // Buscar mensagens onde o metadata contém o id_requisicao
+        $sql = "SELECT * FROM mensagens 
+                WHERE direcao = 'saida' 
+                AND metadata IS NOT NULL 
+                AND (
+                    JSON_EXTRACT(metadata, '$.serpro_response.idRequisicao') = :id_requisicao
+                    OR JSON_EXTRACT(metadata, '$.serpro_response.id') = :id_requisicao 
+                    OR JSON_EXTRACT(metadata, '$.idRequisicao') = :id_requisicao
+                    OR JSON_EXTRACT(metadata, '$.id') = :id_requisicao
+                )
+                ORDER BY criado_em DESC 
+                LIMIT 1";
+        
+        $this->db->query($sql);
+        $this->db->bind(':id_requisicao', $idRequisicao);
+        return $this->db->resultado();
+    }
+
+    /**
      * [ contarMensagensConversa ] - Conta mensagens de uma conversa
      * 
      * @param int $conversaId ID da conversa

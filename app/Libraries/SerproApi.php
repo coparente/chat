@@ -33,7 +33,7 @@ class SerproApi
     public function __construct($credencial = null)
     {
         $this->configuracaoModel = new ConfiguracaoModel();
-        
+
         // Se uma credencial específica foi fornecida, configurar com ela
         if ($credencial) {
             $this->configurarComCredencial($credencial);
@@ -47,8 +47,8 @@ class SerproApi
      */
     public function isConfigured()
     {
-        return isset($this->credencialEspecifica) || 
-               (!empty($this->baseUrl) && !empty($this->clientId) && !empty($this->clientSecret));
+        return isset($this->credencialEspecifica) ||
+            (!empty($this->baseUrl) && !empty($this->clientId) && !empty($this->clientSecret));
     }
 
     /**
@@ -65,10 +65,10 @@ class SerproApi
             $this->phoneNumberId = $credencial->phone_number_id ?? $this->phoneNumberId;
             $this->clientId = $credencial->client_id ?? $this->clientId;
             $this->clientSecret = $credencial->client_secret ?? $this->clientSecret;
-            
+
             // Armazenar credencial específica para uso no obterTokenValido
             $this->credencialEspecifica = $credencial;
-            
+
             // Log para debug
             $this->logDebug('API configurada com credencial específica', [
                 'departamento_id' => $credencial->departamento_id ?? 'N/A',
@@ -112,9 +112,9 @@ class SerproApi
             $this->lastError = 'API não configurada';
             return false;
         }
-
-        $url = $this->baseUrl . '/oauth2/token';
         
+        $url = $this->baseUrl . '/oauth2/token';
+
         $data = [
             'client_id' => $this->clientId,
             'client_secret' => $this->clientSecret
@@ -147,7 +147,12 @@ class SerproApi
         }
 
         $responseData = json_decode($response, true);
-        
+
+        // Log para debug
+        $this->logDebug('Token obtido', [
+            'token' => $responseData ?? 'N/A'
+        ]);
+
         if (isset($responseData['access_token'])) {
             return $responseData['access_token'];
         }
@@ -167,13 +172,23 @@ class SerproApi
      */
     public function enviarTemplate($destinatario, $nomeTemplate, $parametros = [], $header = null)
     {
+
+        // Log da requisição
+        $this->logDebug("REQUISIÇÃO - Enviar Template", [
+            "metodo" => "enviarTemplate",
+            "destinatario" => $destinatario,
+            "template" => $nomeTemplate,
+            "parametros_count" => count($parametros),
+            "has_header" => $header !== null,
+            "credencial_especifica" => isset($this->credencialEspecifica) ? "SIM" : "NAO"
+        ]);
         $token = $this->obterTokenValido();
         if (!$token) {
             return ['status' => 401, 'error' => 'Erro ao obter token: ' . $this->lastError];
         }
 
         $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/requisicao/mensagem/template';
-        
+
         $payload = [
             'nomeTemplate' => $nomeTemplate,
             'wabaId' => $this->wabaId,
@@ -258,13 +273,22 @@ class SerproApi
      */
     public function enviarMensagemTexto($destinatario, $mensagem, $messageId = null)
     {
+
+        // Log da requisição
+        $this->logDebug("REQUISIÇÃO - Enviar Mensagem Texto", [
+            "metodo" => "enviarMensagemTexto",
+            "destinatario" => $destinatario,
+            "mensagem_length" => strlen($mensagem),
+            "has_message_id" => $messageId !== null,
+            "credencial_especifica" => isset($this->credencialEspecifica) ? "SIM" : "NAO"
+        ]);
         $token = $this->obterTokenValido();
         if (!$token) {
             return ['status' => 401, 'error' => 'Erro ao obter token: ' . $this->lastError];
         }
 
         $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/requisicao/mensagem/texto';
-        
+
         $payload = [
             'destinatario' => $destinatario,
             'body' => $mensagem,
@@ -318,13 +342,13 @@ class SerproApi
     public function enviarMensagem($numeroDestino, $mensagem, $tipo = 'text')
     {
         $resultado = $this->enviarMensagemTexto($numeroDestino, $mensagem);
-        
+
         // Converter para formato compatível com a API antiga
         return [
             'success' => $resultado['status'] >= 200 && $resultado['status'] < 300,
-            'message' => $resultado['status'] >= 200 && $resultado['status'] < 300 ? 
-                        'Mensagem enviada com sucesso' : 
-                        'Erro ao enviar mensagem: ' . ($resultado['error'] ?? 'Erro desconhecido'),
+            'message' => $resultado['status'] >= 200 && $resultado['status'] < 300 ?
+                'Mensagem enviada com sucesso' :
+                'Erro ao enviar mensagem: ' . ($resultado['error'] ?? 'Erro desconhecido'),
             'dados' => $resultado['response'] ?? null,
             'http_code' => $resultado['status']
         ];
@@ -343,47 +367,58 @@ class SerproApi
      */
     public function enviarMidia($destinatario, $tipoMidia, $idMedia, $caption = null, $messageId = null, $filename = null)
     {
+
+        // Log da requisição
+        $this->logDebug("REQUISIÇÃO - Enviar Mídia", [
+            "metodo" => "enviarMidia",
+            "destinatario" => $destinatario,
+            "tipo_midia" => $tipoMidia,
+            "has_caption" => $caption !== null,
+            "has_message_id" => $messageId !== null,
+            "has_filename" => $filename !== null,
+            "credencial_especifica" => isset($this->credencialEspecifica) ? "SIM" : "NAO"
+        ]);
         $token = $this->obterTokenValido();
         if (!$token) {
             return ['status' => 401, 'error' => 'Erro ao obter token: ' . $this->lastError];
         }
 
         $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/requisicao/mensagem/media';
-        
+
         // Para documentos, tentar diferentes variações de campo filename
         if ($tipoMidia === 'document' && $filename) {
             $variationsToTry = [
                 ['filename' => $filename],
-                ['fileName' => $filename], 
+                ['fileName' => $filename],
                 ['name' => $filename],
                 ['nomeArquivo' => $filename]
             ];
-            
+
             foreach ($variationsToTry as $index => $variation) {
                 $payload = [
                     'destinatario' => $destinatario,
                     'tipoMedia' => $tipoMidia,
                     'idMedia' => $idMedia
                 ];
-                
+
                 // Adicionar a variação atual
                 $payload = array_merge($payload, $variation);
-                
+
                 // Adicionar message_id se fornecido
                 if ($messageId) {
                     $payload['message_id'] = $messageId;
                 }
-                
+
                 $resultado = $this->executarRequisicaoMidia($url, $token, $payload);
-                
+
                 if ($resultado['status'] === 200 || $resultado['status'] === 201) {
                     return $resultado;
                 }
             }
-            
+
             return $resultado; // Retorna o último resultado se nenhuma variação funcionou
         }
-        
+
         // Para outros tipos de mídia (imagem, vídeo, áudio)
         $payload = [
             'destinatario' => $destinatario,
@@ -392,14 +427,14 @@ class SerproApi
         ];
 
         // Adicionar caption se fornecido
-        if ($caption && in_array($tipoMidia, ['image', 'video', 'audio'])) {
+        if ($caption && in_array($tipoMidia, ['image', 'video', 'document'])) {
             $payload['caption'] = $caption;
         }
 
         if ($messageId) {
             $payload['message_id'] = $messageId;
         }
-        
+
         return $this->executarRequisicaoMidia($url, $token, $payload);
     }
 
@@ -453,18 +488,28 @@ class SerproApi
      */
     public function uploadMidia($arquivo, $tipoMidia)
     {
+
+        // Log da requisição
+        $this->logDebug("REQUISIÇÃO - Upload Mídia", [
+            "metodo" => "uploadMidia",
+            "arquivo_nome" => $arquivo["name"] ?? "N/A",
+            "arquivo_tipo" => $arquivo["type"] ?? "N/A",
+            "arquivo_tamanho" => $arquivo["size"] ?? 0,
+            "tipo_midia" => $tipoMidia,
+            "credencial_especifica" => isset($this->credencialEspecifica) ? "SIM" : "NAO"
+        ]);
         $token = $this->obterTokenValido();
         if (!$token) {
             return ['status' => 401, 'error' => 'Erro ao obter token: ' . $this->lastError];
         }
 
         $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/media';
-        
+
         // Verificar se o arquivo existe
         if (!file_exists($arquivo['tmp_name'])) {
             return ['status' => 400, 'error' => 'Arquivo temporário não encontrado'];
         }
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -507,11 +552,11 @@ class SerproApi
     private function mapearStatusRequisicao($requisicoesEnvio)
     {
         $statusMapeados = [];
-        
+
         foreach ($requisicoesEnvio as $requisicao) {
             $destinatario = $requisicao['destinatario'];
             $status = 'enviando'; // Status padrão
-            
+
             // Mapear status baseado nos campos da API
             if (!empty($requisicao['read'])) {
                 $status = 'lido';
@@ -524,7 +569,7 @@ class SerproApi
             } elseif (!empty($requisicao['deleted'])) {
                 $status = 'erro';
             }
-            
+
             $statusMapeados[$destinatario] = [
                 'status' => $status,
                 'id_meta' => $requisicao['idMeta'] ?? null,
@@ -533,7 +578,7 @@ class SerproApi
                 'timestamp_processamento' => $requisicao['timestampProcessamentoStatusApi'] ?? null
             ];
         }
-        
+
         return $statusMapeados;
     }
 
@@ -545,13 +590,20 @@ class SerproApi
      */
     public function consultarStatus($idRequisicao)
     {
+
+        // Log da requisição
+        $this->logDebug("REQUISIÇÃO - Consultar Status", [
+            "metodo" => "consultarStatus",
+            "id_requisicao" => $idRequisicao,
+            "credencial_especifica" => isset($this->credencialEspecifica) ? "SIM" : "NAO"
+        ]);
         $token = $this->obterTokenValido();
         if (!$token) {
             return ['status' => 401, 'error' => 'Erro ao obter token: ' . $this->lastError];
         }
 
         $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/requisicao/' . $idRequisicao;
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -627,7 +679,7 @@ class SerproApi
 
         // Endpoint para confirmar status da mensagem
         $url = $this->baseUrl . '/client/' . $this->phoneNumberId . '/v2/requisicao/mensagem/status';
-        
+
         $payload = [
             'message_id' => $messageId,
             'status' => $status
@@ -720,7 +772,7 @@ class SerproApi
         }
 
         $token = $this->obterTokenValido();
-        
+
         if (empty($token)) {
             return [
                 'conectado' => false,
@@ -784,15 +836,15 @@ class SerproApi
                 'titulo' => $titulo,
                 'dados' => $dados
             ];
-            
-            
+
+
             $logFile = 'logs/serpro_debug.log';
             $logDir = dirname($logFile);
-            
+
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
-            
+
             file_put_contents($logFile, json_encode($logEntry) . "\n", FILE_APPEND | LOCK_EX);
         }
     }
@@ -809,7 +861,7 @@ class SerproApi
     public function enviarTemplatePersonalizado($destinatario, $nomeTemplate, $parametros = [], $opcoes = [])
     {
         $header = null;
-        
+
         // Configurar header se especificado
         if (isset($opcoes['header'])) {
             $header = $opcoes['header'];
@@ -819,7 +871,7 @@ class SerproApi
                 'linkMedia' => $opcoes['imagem']['url']
             ];
         }
-        
+
         return $this->enviarTemplate($destinatario, $nomeTemplate, $parametros, $header);
     }
 
@@ -881,7 +933,7 @@ class SerproApi
             // Tentar decodificar resposta de erro
             $errorResponse = json_decode($response, true);
             $errorMsg = $errorResponse['error']['message'] ?? 'Erro desconhecido';
-            
+
             $this->lastError = $errorMsg;
             error_log("ERRO download mídia - HTTP {$httpCode}: {$errorMsg}");
             return [
@@ -892,4 +944,3 @@ class SerproApi
         }
     }
 }
-?> 

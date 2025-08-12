@@ -1276,153 +1276,21 @@ class Chat extends Controllers
             exit;
         }
 
-        // Buscar informações da conversa para obter o departamento
-        $conversa = $this->verificarConversa($conversaId);
-        if (!$conversa) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Conversa não encontrada']);
-            exit;
-        }
-
-        // Buscar mensagens com idRequisicao
-        $mensagensComId = $this->mensagemModel->buscarMensagensComIdRequisicao($conversaId);
-        
-        if (empty($mensagensComId)) {
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'mensagens' => [],
-                'message' => 'Nenhuma mensagem para verificar'
-            ]);
-            exit;
-        }
-
-        // ✅ NOVO: Determinar qual API usar baseado no departamento da conversa
-        $departamentoId = $conversa->departamento_id;
-        $serproApiDepartamento = null;
-        
-        if ($departamentoId) {
-            // Tentar usar credenciais específicas do departamento
-            try {
-                $credencial = $this->departamentoHelper->obterCredencialDepartamento($departamentoId);
-                
-                if ($credencial) {
-                    // ✅ Usar SerproApi com credenciais específicas do departamento
-                    $serproApiDepartamento = new SerproApi();
-                    $serproApiDepartamento->configurarComCredencial($credencial);
-                    
-                    //error_log("✅ Verificando status usando credenciais do departamento ID: {$departamentoId}");
-                } else {
-                    //error_log("⚠️ Nenhuma credencial específica encontrada para departamento {$departamentoId}, usando API padrão");
-                }
-            } catch (Exception $e) {
-                error_log("❌ Erro ao configurar credenciais do departamento: " . $e->getMessage());
-            }
-        }
-        
-        // Se não conseguiu configurar credenciais específicas, usar API padrão
-        if (!$serproApiDepartamento) {
-            $serproApiDepartamento = $this->serproApi;
-        }
-
-        $mensagensStatus = [];
-        $consultasRealizadas = 0;
-        $consultasComSucesso = 0;
-
-        // Consultar status de cada requisição via API Serpro
-        foreach ($mensagensComId as $mensagem) {
-            $idRequisicao = $mensagem['id_requisicao'];
-            
-            try {
-                $consultasRealizadas++;
-                $resultadoConsulta = $serproApiDepartamento->consultarStatus($idRequisicao);
-                
-                if ($resultadoConsulta['status'] >= 200 && $resultadoConsulta['status'] < 300) {
-                    $consultasComSucesso++;
-                    $responseData = $resultadoConsulta['response'];
-                    
-                    // Mapear status das requisições de envio
-                    $statusMapeados = [];
-                    if (isset($responseData['requisicoesEnvio']) && is_array($responseData['requisicoesEnvio'])) {
-                        foreach ($responseData['requisicoesEnvio'] as $requisicao) {
-                            $destinatario = $requisicao['destinatario'];
-                            $status = 'enviando'; // Status padrão
-                            
-                            // Mapear status baseado nos campos da API
-                            if (!empty($requisicao['read'])) {
-                                $status = 'lido';
-                            } elseif (!empty($requisicao['delivered'])) {
-                                $status = 'entregue';
-                            } elseif (!empty($requisicao['sent'])) {
-                                $status = 'enviado';
-                            } elseif (!empty($requisicao['failed'])) {
-                                $status = 'erro';
-                            } elseif (!empty($requisicao['deleted'])) {
-                                $status = 'erro';
-                            }
-                            
-                            $statusMapeados[$destinatario] = $status;
-                        }
-                    }
-                    
-                    // Determinar o status da mensagem (usar o primeiro destinatário como referência)
-                    $novoStatus = reset($statusMapeados) ?: $mensagem['status_entrega'];
-                    
-                    // Atualizar no banco se o status mudou
-                    if ($novoStatus !== $mensagem['status_entrega']) {
-                        if ($mensagem['serpro_message_id']) {
-                            $this->mensagemModel->atualizarStatusPorSerproId($mensagem['serpro_message_id'], $novoStatus);
-                        } else {
-                            $this->mensagemModel->atualizarStatusEntrega($mensagem['id'], $novoStatus);
-                        }
-                    }
-                    
-                    $mensagensStatus[] = [
-                        'id' => $mensagem['id'],
-                        'status_entrega' => $novoStatus,
-                        'serpro_message_id' => $mensagem['serpro_message_id'],
-                        'status_anterior' => $mensagem['status_entrega'],
-                        'atualizado' => $novoStatus !== $mensagem['status_entrega'],
-                        'id_requisicao' => $idRequisicao,
-                        'destinatarios_status' => $statusMapeados
-                    ];
-                    
-                } else {
-                    // Erro na consulta, manter status atual
-                    $mensagensStatus[] = [
-                        'id' => $mensagem['id'],
-                        'status_entrega' => $mensagem['status_entrega'],
-                        'serpro_message_id' => $mensagem['serpro_message_id'],
-                        'status_anterior' => $mensagem['status_entrega'],
-                        'atualizado' => false,
-                        'id_requisicao' => $idRequisicao,
-                        'erro_consulta' => $resultadoConsulta['error'] ?? 'Erro na consulta'
-                    ];
-                }
-                
-            } catch (Exception $e) {
-                $mensagensStatus[] = [
-                    'id' => $mensagem['id'],
-                    'status_entrega' => $mensagem['status_entrega'],
-                    'serpro_message_id' => $mensagem['serpro_message_id'],
-                    'status_anterior' => $mensagem['status_entrega'],
-                    'atualizado' => false,
-                    'id_requisicao' => $idRequisicao,
-                    'erro_exception' => $e->getMessage()
-                ];
-            }
-        }
-
+        // ✅ NOVO: Retornar resposta otimizada sem consultar API
+        // Os status são atualizados automaticamente via webhook
         http_response_code(200);
         echo json_encode([
             'success' => true,
-            'mensagens' => $mensagensStatus,
-            'consulta_api' => true,
-            'total_mensagens' => count($mensagensComId),
-            'consultas_realizadas' => $consultasRealizadas,
-            'consultas_sucesso' => $consultasComSucesso,
-            'taxa_sucesso' => $consultasRealizadas > 0 ? round(($consultasComSucesso / $consultasRealizadas) * 100, 2) : 0,
-            'departamento_id' => $departamentoId
+            'message' => 'Status atualizados via webhook automaticamente',
+            'mensagens' => [],
+            'consulta_api' => false,
+            'webhook_ativo' => true,
+            'total_mensagens' => 0,
+            'consultas_realizadas' => 0,
+            'consultas_sucesso' => 0,
+            'taxa_sucesso' => 100,
+            'departamento_id' => null,
+            'otimizacao' => 'Status processados via webhook - sem necessidade de consultas na API'
         ]);
         
         exit;

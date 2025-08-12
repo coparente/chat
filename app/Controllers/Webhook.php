@@ -117,18 +117,39 @@ class Webhook extends Controllers
     {
         $resultados = [];
 
-        // Processar mensagens recebidas
-        if (isset($evento['messages']) && is_array($evento['messages'])) {
-            foreach ($evento['messages'] as $mensagem) {
-                $resultado = $this->processarMensagemRecebida($mensagem, $evento);
+        // ✅ DEBUG: Log do evento completo
+ 
+        // ✅ PRIORIDADE: Processar status de entrega PRIMEIRO
+        // Isso evita que status updates sejam interpretados como mensagens
+        if (isset($evento['statuses']) && is_array($evento['statuses'])) {
+            foreach ($evento['statuses'] as $status) {
+                $resultado = $this->processarStatusEntrega($status, $evento);
                 $resultados[] = $resultado;
             }
         }
 
-        // Processar status de entrega
-        if (isset($evento['statuses']) && is_array($evento['statuses'])) {
-            foreach ($evento['statuses'] as $status) {
-                $resultado = $this->processarStatusEntrega($status, $evento);
+        // Processar mensagens recebidas (APÓS processar status)
+        if (isset($evento['messages']) && is_array($evento['messages'])) {
+            foreach ($evento['messages'] as $mensagem) {
+                // ✅ VALIDAÇÃO EXTRA: Verificar se não é um objeto de status
+                // Verificar se tem os campos obrigatórios E se não são valores inválidos
+                $from = $mensagem['from'] ?? null;
+                $id = $mensagem['id'] ?? null;
+                $type = $mensagem['type'] ?? null;
+                
+                // ✅ CORREÇÃO: Detectar valores inválidos como "[undefined]" ou vazios
+                if (!$from || !$id || !$type || 
+                    $from === '[undefined]' || $id === '[undefined]' || $type === '[undefined]' ||
+                    empty(trim($from)) || empty(trim($id)) || empty(trim($type))) {
+                    continue; // Pular esta "mensagem"
+                }
+
+                // ✅ VALIDAÇÃO EXTRA: Verificar se não tem campos típicos de status
+                if (isset($mensagem['status']) && !isset($mensagem['text']) && !isset($mensagem['image']) && !isset($mensagem['audio']) && !isset($mensagem['video']) && !isset($mensagem['document'])) {
+                    continue; // Pular este status disfarçado
+                }
+
+                $resultado = $this->processarMensagemRecebida($mensagem, $evento);
                 $resultados[] = $resultado;
             }
         }
@@ -158,6 +179,16 @@ class Webhook extends Controllers
             $messageId = $mensagem['id'] ?? null;
             $timestamp = $mensagem['timestamp'] ?? time();
             $tipo = $mensagem['type'] ?? 'text';
+
+            // ✅ DEBUG: Verificar se não é um evento de status sendo processado incorretamente
+            // ✅ CORREÇÃO: Detectar valores inválidos mais rigorosamente
+            if (empty($numeroRemetente) || empty($messageId) || empty($tipo) ||
+                $numeroRemetente === '[undefined]' || $messageId === '[undefined]' || $tipo === '[undefined]' ||
+                trim($numeroRemetente) === '' || trim($messageId) === '' || trim($tipo) === '') {
+
+            
+                return ['success' => false, 'message' => 'Dados da mensagem incompletos ou inválidos - possível evento de status'];
+            }
 
             if (!$numeroRemetente || !$messageId) {
                 return ['success' => false, 'message' => 'Dados da mensagem incompletos'];
@@ -373,32 +404,85 @@ class Webhook extends Controllers
             $messageId = $status['id'] ?? null;
             $statusEntrega = $status['status'] ?? null;
             $timestamp = $status['timestamp'] ?? time();
+            $numeroRemetente = $status['from'] ?? null;
+ 
+            // Log detalhado do status recebido para monitoramento
+            $this->logStatusProcessamento($status, $evento);
+ 
+            // Log detalhado para debug
+            error_log("📡 WEBHOOK STATUS RECEBIDO:");
+            error_log("   - Message ID: {$messageId}");
+            error_log("   - Status: {$statusEntrega}");
+            error_log("   - From: {$numeroRemetente}");
+            error_log("   - Timestamp: {$timestamp}");
 
             if (!$messageId || !$statusEntrega) {
+                error_log("❌ Status incompleto recebido via webhook: messageId={$messageId}, status={$statusEntrega}");
                 return ['success' => false, 'message' => 'Dados de status incompletos'];
             }
 
-            // Buscar mensagem pelo ID do Serpro
+            // Buscar mensagem pelo serpro_message_id (mensagens de SAÍDA do sistema)
+            error_log("🔍 Buscando mensagem no banco com serpro_message_id: {$messageId}");
             $mensagem = $this->mensagemModel->buscarPorSerproId($messageId);
 
             if ($mensagem) {
+                error_log("✅ Mensagem encontrada no banco: ID={$mensagem->id}, Status atual={$mensagem->status_entrega}");
+ 
                 // Mapear status da API para nosso sistema
                 $statusMapeado = $this->mapearStatusEntrega($statusEntrega);
+                $statusAnterior = $mensagem->status_entrega;
+ 
+                error_log("🔄 Mapeamento de status: {$statusEntrega} → {$statusMapeado}");
 
-                // Atualizar status da mensagem
-                $this->mensagemModel->atualizarStatusEntrega($mensagem->id, $statusMapeado);
+                // Atualizar status APENAS se mudou (otimização)
+                if ($statusMapeado !== $statusAnterior) {
+                    $resultadoUpdate = $this->mensagemModel->atualizarStatusEntrega($mensagem->id, $statusMapeado);
+                    
+                    if ($resultadoUpdate) {
+                        error_log("✅ Status atualizado via webhook: messageId={$messageId}, {$statusAnterior} → {$statusMapeado}");
+                    } else {
+                        error_log("❌ Erro ao atualizar status no banco: messageId={$messageId}");
+                    }
 
+                    return [
+                        'success' => true,
+                        'message' => 'Status atualizado com sucesso',
+                        'mensagem_id' => $mensagem->id,
+                        'status_anterior' => $statusAnterior,
+                        'status_novo' => $statusMapeado,
+                        'atualizado' => true
+                    ];
+                } else {
+                    error_log("ℹ️ Status já está atualizado: messageId={$messageId}, status={$statusMapeado}");
+                    return [
+                        'success' => true,
+                        'message' => 'Status já está atualizado',
+                        'mensagem_id' => $mensagem->id,
+                        'status' => $statusMapeado,
+                        'atualizado' => false
+                    ];
+                }
+            } else {
+                error_log("⚠️ Mensagem NÃO ENCONTRADA para status via webhook:");
+                error_log("   - Message ID buscado: {$messageId}");
+                error_log("   - Status recebido: {$statusEntrega}");
+                error_log("   - From: {$numeroRemetente}");
+                error_log("   ⚠️ POSSÍVEL CAUSA: Esta mensagem pode não ter sido enviada pelo sistema ou o ID está diferente");
+                error_log("   ℹ️ AÇÃO: Ignorando status de mensagem não encontrada (comportamento normal para mensagens externas)");
+                
+                // ✅ CORREÇÃO: Retornar success=true para não gerar erro no webhook
+                // Mensagens não encontradas são normais (mensagens de teste, externas, etc.)
                 return [
                     'success' => true,
-                    'message' => 'Status atualizado com sucesso',
-                    'mensagem_id' => $mensagem->id,
-                    'status' => $statusMapeado
+                    'message' => 'Mensagem não encontrada - ignorando status (normal para mensagens externas)',
+                    'ignorado' => true,
+                    'message_id' => $messageId,
+                    'status' => $statusEntrega
                 ];
-            } else {
-                return ['success' => false, 'message' => 'Mensagem não encontrada'];
             }
         } catch (Exception $e) {
-            error_log("Erro ao processar status de entrega: " . $e->getMessage());
+            error_log("❌ Erro ao processar status de entrega via webhook: " . $e->getMessage());
+            error_log("❌ Stack trace: " . $e->getTraceAsString());
             return ['success' => false, 'message' => 'Erro ao processar status: ' . $e->getMessage()];
         }
     }
@@ -1152,5 +1236,36 @@ class Webhook extends Controllers
 
         echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    /**
+     * [ logStatusProcessamento ] - Log detalhado do processamento de status
+     * 
+     * @param array $status Dados do status recebido
+     * @param array $evento Dados completos do evento do webhook
+     */
+    private function logStatusProcessamento($status, $evento)
+    {
+        $logData = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'tipo' => 'status_webhook',
+            'message_id' => $status['id'] ?? 'N/A',
+            'status' => $status['status'] ?? 'N/A',
+            'from' => $status['from'] ?? 'N/A',
+            'timestamp_original' => $status['timestamp'] ?? 'N/A',
+            'metadata' => $evento['metadata'] ?? [],
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+        ];
+ 
+        // Log sempre, não apenas em development (para monitoramento)
+        $logFile = dirname(__DIR__, 2) . '/logs/webhook_status_' . date('Y-m-d') . '.log';
+ 
+        // Criar diretório de logs se não existir
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+ 
+        file_put_contents($logFile, json_encode($logData) . "\n", FILE_APPEND | LOCK_EX);
     }
 }
