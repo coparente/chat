@@ -31,7 +31,7 @@
                     <i class="fab fa-whatsapp"></i>
                 </div>
                 <h1 class="app-title"><?= APP_NOME ?></h1>
-                <p class="app-subtitle">Sistema de Atendimento Multicanal</p>
+                <p class="app-subtitle">Sistema de Atendimento da Diretoria Judiciária</p>
             </div>
 
             <!-- Mensagens de erro/sucesso -->
@@ -125,6 +125,17 @@
                     <div class="loading"></div>
                 </button>
             </form>
+        </div>
+        <!-- Informações Adicionais -->
+        <div class="text-center mt-4  text-white">
+            <p class="mb-1">
+                <i class="fas fa-shield-alt me-1"></i> Acesso restrito a usuários autorizados
+            </p>
+            <p class="mb-0">
+                <i class="fas fa-code me-1"></i> Versão <?= APP_VERSAO ?>
+                <span class="mx-1">&bullet;</span>
+                <i class="fas fa-clock me-1"></i> <?= date('Y') ?>
+            </p>
         </div>
     </div>
 
