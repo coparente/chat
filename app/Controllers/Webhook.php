@@ -877,7 +877,9 @@ class Webhook extends Controllers
             // $this->confirmarStatusMensagem($messageId, 'read', $serproApi);
 
             // Método 2: Salvar para processamento posterior
+            if (APP_ENV === 'development') {
             $this->salvarConfirmacaoPendente($messageId, $delay);
+            }
         } catch (Exception $e) {
             error_log("Erro ao programar confirmação de leitura: " . $e->getMessage());
         }
@@ -888,6 +890,7 @@ class Webhook extends Controllers
      */
     private function salvarConfirmacaoPendente($messageId, $delay)
     {
+        if (APP_ENV === 'development') {
         try {
             // Criar arquivo de confirmação pendente
             $confirmacaoData = [
@@ -913,6 +916,7 @@ class Webhook extends Controllers
         } catch (Exception $e) {
             error_log("Erro ao salvar confirmação pendente: " . $e->getMessage());
         }
+    }
     }
 
     /**
