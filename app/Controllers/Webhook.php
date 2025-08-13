@@ -409,12 +409,6 @@ class Webhook extends Controllers
             // Log detalhado do status recebido para monitoramento
             $this->logStatusProcessamento($status, $evento);
  
-            // Log detalhado para debug
-            error_log("📡 WEBHOOK STATUS RECEBIDO:");
-            error_log("   - Message ID: {$messageId}");
-            error_log("   - Status: {$statusEntrega}");
-            error_log("   - From: {$numeroRemetente}");
-            error_log("   - Timestamp: {$timestamp}");
 
             if (!$messageId || !$statusEntrega) {
                 error_log("❌ Status incompleto recebido via webhook: messageId={$messageId}, status={$statusEntrega}");
@@ -463,13 +457,7 @@ class Webhook extends Controllers
                     ];
                 }
             } else {
-                error_log("⚠️ Mensagem NÃO ENCONTRADA para status via webhook:");
-                error_log("   - Message ID buscado: {$messageId}");
-                error_log("   - Status recebido: {$statusEntrega}");
-                error_log("   - From: {$numeroRemetente}");
-                error_log("   ⚠️ POSSÍVEL CAUSA: Esta mensagem pode não ter sido enviada pelo sistema ou o ID está diferente");
-                error_log("   ℹ️ AÇÃO: Ignorando status de mensagem não encontrada (comportamento normal para mensagens externas)");
-                
+               
                 // ✅ CORREÇÃO: Retornar success=true para não gerar erro no webhook
                 // Mensagens não encontradas são normais (mensagens de teste, externas, etc.)
                 return [

@@ -89,21 +89,6 @@ define('SERPRO_PHONE_NUMBER_ID', $_ENV['SERPRO_PHONE_NUMBER_ID'] ?? '');
 define('WEBHOOK_VERIFY_TOKEN', $_ENV['WEBHOOK_VERIFY_TOKEN'] ?? '');
 
 /**
- * Configurações da API do Serpro 2929
- */
-// define('SERPRO_CLIENT_ID', '642958872237822');
-// define('SERPRO_CLIENT_SECRET', 'ewW08ZJW1F1G6dkr8tExGGDQwTyua2jF');
-// define('SERPRO_BASE_URL', 'https://api.whatsapp.serpro.gov.br');
-// define('SERPRO_WABA_ID', '472202335973627');
-// define('SERPRO_PHONE_NUMBER_ID', '642958872237822');
-
-// Configurações da API do Serpro 4822
-// define('SERPRO_CLIENT_ID', '749709211549367');
-// define('SERPRO_CLIENT_SECRET', 'bY1t0kLcSCuUsCgfyLdrCrEfXq4Wmsb8');
-// define('SERPRO_BASE_URL', 'https://api.whatsapp.serpro.gov.br');
-// define('SERPRO_WABA_ID', '472202335973627');
-// define('SERPRO_PHONE_NUMBER_ID', '749709211549367');
-/**
  * Configurações do MinIO
  */ 
 define('MINIO_ENDPOINT', $_ENV['MINIO_ENDPOINT'] ?? 'https://minioapidj.helpersti.online');

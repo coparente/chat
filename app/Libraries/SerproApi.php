@@ -112,7 +112,7 @@ class SerproApi
             $this->lastError = 'API não configurada';
             return false;
         }
-        
+
         $url = $this->baseUrl . '/oauth2/token';
 
         $data = [
@@ -376,7 +376,7 @@ class SerproApi
             "has_caption" => $caption !== null,
             "has_message_id" => $messageId !== null,
             "has_filename" => $filename !== null,
-            "credencial_especifica" => isset($this->credencialEspecifica) ? "SIM" : "NAO"
+            "caption" => $caption
         ]);
         $token = $this->obterTokenValido();
         if (!$token) {
@@ -391,7 +391,10 @@ class SerproApi
                 ['filename' => $filename],
                 ['fileName' => $filename],
                 ['name' => $filename],
-                ['nomeArquivo' => $filename]
+                ['nomeArquivo' => $filename],
+                ['document' => ['filename' => $filename]],
+                ['document' => ['fileName' => $filename]],
+                ['document' => ['name' => $filename]]
             ];
 
             foreach ($variationsToTry as $index => $variation) {
@@ -404,10 +407,17 @@ class SerproApi
                 // Adicionar a variação atual
                 $payload = array_merge($payload, $variation);
 
+
                 // Adicionar message_id se fornecido
                 if ($messageId) {
                     $payload['message_id'] = $messageId;
                 }
+                // Log da requisição
+                $this->logDebug("MIDIA: Tentativa", [
+                    "metodo" => "enviarMidia",
+                    "variação" => $index,
+                    "payload" => $payload
+                ]);
 
                 $resultado = $this->executarRequisicaoMidia($url, $token, $payload);
 
@@ -427,9 +437,10 @@ class SerproApi
         ];
 
         // Adicionar caption se fornecido
-        if ($caption && in_array($tipoMidia, ['image', 'video', 'document'])) {
+        if ($caption && in_array($tipoMidia, ['image', 'video', 'audio'])) {
             $payload['caption'] = $caption;
         }
+        // Regras para outros tipos
 
         if ($messageId) {
             $payload['message_id'] = $messageId;
@@ -535,6 +546,12 @@ class SerproApi
         }
 
         $responseData = json_decode($response, true);
+
+        $this->logDebug('Resposta do upload de mídia', [
+            'status' => $httpCode,
+            'response' => $responseData,
+            'error' => $httpCode >= 400 ? $response : null
+        ]);
 
         return [
             'status' => $httpCode,

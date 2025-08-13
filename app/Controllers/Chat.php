@@ -518,6 +518,7 @@ class Chat extends Controllers
         $conversaId = $_POST['conversa_id'] ?? null;
         $caption = $_POST['caption'] ?? null;
 
+
         if (!$conversaId || !isset($_FILES['arquivo'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Conversa e arquivo são obrigatórios']);
