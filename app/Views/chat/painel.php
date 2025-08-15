@@ -207,7 +207,7 @@ $usuario = [
 
                             <?php if (!empty($conversas_para_exibir)): ?>
                                 <?php foreach ($conversas_para_exibir as $conversa): ?>
-                                    <div class="chat-item" data-conversa-id="<?= $conversa->id ?>" data-status="<?= $conversa->status ?>" data-departamento-id="<?= $conversa->departamento_id ?? '' ?>" data-atendente-id="<?= $conversa->atendente_id ?? '' ?>">
+                                    <div class="chat-item" data-conversa-id="<?= $conversa->id ?>" data-status="<?= $conversa->status ?>" data-departamento-id="<?= $conversa->departamento_id ?? '' ?>" data-atendente-id="<?= $conversa->atendente_id ?? '' ?>" data-telefone="<?= $conversa->numero ?>">
                                         <div class="chat-avatar">
                                             <div class="avatar-circle">
                                                 <?= strtoupper(substr($conversa->contato_nome ?? 'C', 0, 2)) ?>
@@ -323,6 +323,10 @@ $usuario = [
                                     </div>
                                     <div class="chat-details">
                                         <h6 class="chat-name" id="chatNameActive">Nome do Contato</h6>
+                                        <div class="chat-phone" id="chatPhoneActive">
+                                            <i class="fas fa-phone me-1"></i>
+                                            <span class="text-muted">Telefone</span>
+                                        </div>
                                         <div class="chat-status-info">
                                             <span class="badge" id="chatStatusActive">Status</span>
                                             <span class="text-muted ms-2" id="chatTimeActive">Tempo</span>
@@ -773,145 +777,6 @@ $usuario = [
 
     <!-- Scripts -->
     <?php include 'app/Views/include/linkjs.php' ?>
-
-    <style>
-        /* Estilos para o Gravador de Áudio */
-        .audio-recorder {
-            padding: 20px;
-        }
-        
-        .recorder-status {
-            text-align: center;
-        }
-        
-        .recording-time {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #dc3545;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .recording-status {
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-        
-        .recorder-controls {
-            text-align: center;
-        }
-        
-        .recorder-controls .btn {
-            margin: 0 5px;
-        }
-        
-        .audio-preview {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            background: #f8f9fa;
-        }
-        
-        .audio-actions {
-            text-align: center;
-        }
-        
-        .audio-actions .btn {
-            margin: 0 5px;
-        }
-        
-        /* Animação de gravação */
-        .recording .fa-microphone {
-            animation: pulse 1s infinite;
-            color: #dc3545 !important;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        /* Estilos para o botão de gravação no chat */
-        #btnGravarAudio {
-            transition: all 0.3s ease;
-        }
-        
-        #btnGravarAudio:hover {
-            background-color: #dc3545;
-            border-color: #dc3545;
-            color: white;
-        }
-        
-        #btnGravarAudio.recording {
-            background-color: #dc3545;
-            border-color: #dc3545;
-            color: white;
-            animation: pulse 1s infinite;
-        }
-        
-        /* ✅ NOVO: Estilos para carregamento de mensagens antigas */
-        .loading-messages-older {
-            border-bottom: 1px solid #dee2e6;
-            background: #f8f9fa;
-            border-radius: 8px 8px 0 0;
-        }
-        
-        .loading-messages-older .spinner-border {
-            width: 1rem;
-            height: 1rem;
-        }
-        
-        /* Indicador de "carregar mais" no topo */
-        .load-more-indicator {
-            text-align: center;
-            padding: 10px;
-            background: #e9ecef;
-            border-radius: 8px;
-            margin: 10px 0;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        
-        .load-more-indicator:hover {
-            background: #dee2e6;
-        }
-        
-        .load-more-indicator:active {
-            background: #ced4da;
-        }
-        
-        /* ✅ NOVO: Estilos para carregamento de conversas */
-        .loading-conversas {
-            border-top: 1px solid #dee2e6;
-            background: #f8f9fa;
-            border-radius: 0 0 8px 8px;
-        }
-        
-        .loading-conversas .spinner-border {
-            width: 1rem;
-            height: 1rem;
-        }
-        
-        .load-more-conversas {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-        }
-        
-        .load-more-conversas .btn {
-            border-radius: 20px;
-            padding: 8px 20px;
-            font-size: 0.9rem;
-        }
-        
-        .load-more-conversas .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-    </style>
-
     <script>
         // Variáveis globais
         let conversaAtiva = null;
@@ -1486,12 +1351,14 @@ $usuario = [
             // Pegar dados do item da lista
             const item = $(`.chat-item[data-conversa-id="${conversaId}"]`);
             const nome = item.find('.chat-name').text();
+            const telefone = item.data('telefone');
             const status = item.data('status');
             const tempo = item.find('.chat-time').text();
 
             // Atualizar header
             $('#chatNameActive').text(nome);
             $('#chatAvatarActive').text(nome.substr(0, 2).toUpperCase());
+            $('#chatPhoneActive').html(`<i class="fas fa-phone me-1"></i><span class="text-muted fw-bold fs-6">${telefone}</span>`);
 
             const statusClass = status === 'aberto' ? 'bg-success' : (status === 'pendente' ? 'bg-warning' : 'bg-secondary');
             $('#chatStatusActive').removeClass().addClass(`badge ${statusClass}`).text(status.toUpperCase());
@@ -2114,7 +1981,7 @@ $usuario = [
             }
 
             formData.append('arquivo', arquivo);
-            formData.append('caption', caption);
+            formData.append('1', caption);
             formData.append('conversa_id', conversaAtiva);
 
             $('#btnEnviarArquivo').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Enviando...');
@@ -3492,7 +3359,7 @@ $usuario = [
                 }
                 
                 const conversaHtml = `
-                    <div class="chat-item" data-conversa-id="${conversa.id}" data-status="${conversa.status}" data-departamento-id="${conversa.departamento_id || ''}" data-atendente-id="${conversa.atendente_id || ''}">
+                    <div class="chat-item" data-conversa-id="${conversa.id}" data-status="${conversa.status}" data-departamento-id="${conversa.departamento_id || ''}" data-atendente-id="${conversa.atendente_id || ''}" data-telefone="${conversa.numero}">
                         <div class="chat-avatar">
                             <div class="avatar-circle">
                                 ${(conversa.contato_nome || 'C').substring(0, 2).toUpperCase()}
