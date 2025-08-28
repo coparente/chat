@@ -1797,10 +1797,10 @@ class Chat extends Controllers
         // ✅ Verificar se é número brasileiro (DDI 55)
         if (substr($numero, 0, 2) !== '55') {
             // Se não é brasileiro, retornar sem alteração
-            Logger::info('Número não brasileiro - dígito 9 não aplicado', [
-                'numero' => $numero,
-                'ddi' => substr($numero, 0, 2)
-            ]);
+            // Logger::info('Número não brasileiro - dígito 9 não aplicado', [
+            //     'numero' => $numero,
+            //     'ddi' => substr($numero, 0, 2)
+            // ]);
             return $numero;
         }
         
@@ -1821,11 +1821,11 @@ class Chat extends Controllers
             
             if (!in_array($primeiroDigitoCelular, $digitosCelular)) {
                 // É número fixo - não aplicar dígito 9
-                Logger::info('Número fixo - dígito 9 não aplicado', [
-                    'numero' => $numero,
-                    'ddd' => $ddd,
-                    'primeiro_digito' => $primeiroDigitoCelular
-                ]);
+                // Logger::info('Número fixo - dígito 9 não aplicado', [
+                //     'numero' => $numero,
+                //     'ddd' => $ddd,
+                //     'primeiro_digito' => $primeiroDigitoCelular
+                // ]);
                 return $numero;
             }
             
@@ -1836,18 +1836,18 @@ class Chat extends Controllers
                 // Adicionar dígito 9 após o DDD
                 $numero = substr($numero, 0, 4) . '9' . substr($numero, 4);
                 // Se chegou aqui, a validação passou
-                Logger::info('Dígito 9 adicionado para DDD '. $ddd, [
-                    'numero' => $numero,
-                    'ddd' => $ddd,
-                    'tipo' => 'celular'
-                ]);
+                // Logger::info('Dígito 9 adicionado para DDD '. $ddd, [
+                //     'numero' => $numero,
+                //     'ddd' => $ddd,
+                //     'tipo' => 'celular'
+                // ]);
             } else {
                 // Área não está na lista - não aplicar dígito 9
-                Logger::info('Área não aplicável para dígito 9', [
-                    'numero' => $numero,
-                    'ddd' => $ddd,
-                    'areas_aplicaveis' => $areasComDigito9
-                ]);
+                // Logger::info('Área não aplicável para dígito 9', [
+                //     'numero' => $numero,
+                //     'ddd' => $ddd,
+                //     'areas_aplicaveis' => $areasComDigito9
+                // ]);
             }
         }
         
@@ -1866,14 +1866,14 @@ class Chat extends Controllers
                 'titulo' => 'Central de Intimação Remota',
                 'descricao' => 'Template para intimações remotas do tribunal',
                 'parametros' => ['mensagem']
+            ],
+            [
+                'nome' => 'msg_inicial_intimacao',
+                'titulo' => 'Mensagem Inicial Intimação',
+                'descricao' => 'Mensagem inicial para intimações e citações remotas',
+                'parametros' => ['nome']
             ]
             // ,
-            // [
-            //     'nome' => 'boas_vindas',
-            //     'titulo' => 'Boas-vindas',
-            //     'descricao' => 'Mensagem de boas-vindas personalizada',
-            //     'parametros' => ['nome']
-            // ],
             // [
             //     'nome' => 'promocao',
             //     'titulo' => 'Promoção',
